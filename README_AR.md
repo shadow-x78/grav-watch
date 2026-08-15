@@ -6,7 +6,7 @@
 
 محرك مراقبة وتجميع كوتا Antigravity CLI عبر عدة حسابات معزولة في حاويات Docker - خادم API وسعة مجمعة
 
-[![Version](https://img.shields.io/badge/version-2.0.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.1.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python)
 ![FastAPI](https://img.shields.io/badge/fastapi-0.109%2B-009688?style=flat-square&logo=fastapi)
@@ -93,14 +93,14 @@
 git clone https://github.com/shadow-x78/grav-watch.git ~/GravWatch
 cd ~/GravWatch
 
-# ضبط ملف المتغيرات البيئية
-cp .env.example .env
+# إعداد البيئة والاعتماديات ومجلدات التخزين
+./scripts/setup-dev-env.sh
 
 # مساعد تسجيل الدخول وتوثيق الحسابات تفاعلياً
 ./scripts/setup-auth.sh
 
 # تشغيل النظام بالكامل عبر Docker Compose
-./scripts/docker-run.sh
+docker compose -f packaging/docker/docker-compose.yml up -d
 ```
 
 - **توثيق الـ API التفاعلي (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
@@ -114,13 +114,14 @@ cp .env.example .env
 
 | الأمر | الوصف |
 |---|---|
-| `./scripts/setup-dev-env.sh` | تثبيت بيئة التطوير واعتماديات بايثون محلياً |
-| `./scripts/run-tests.sh` | تشغيل كافة اختبارات الوحدة واختبارات التكامل |
+| `./scripts/setup-dev-env.sh` | تثبيت بيئة التطوير واعتماديات بايثون وتجهيز المجلدات محلياً |
 | `./scripts/setup-auth.sh` | مساعد تسجيل دخول Google OAuth التفاعلي للحسابات |
-| `./scripts/docker-run.sh` | بناء وتشغيل جميع الحاويات عبر Docker Compose |
+| `docker compose -f packaging/docker/docker-compose.yml up -d` | بناء وتشغيل جميع الحاويات عبر Docker Compose |
 | `docker compose -f packaging/docker/docker-compose.yml ps` | فحص حالة الحاويات الشغالة |
 | `docker compose -f packaging/docker/docker-compose.yml logs -f` | متابعة سجلات الحاويات حياً |
 | `docker compose -f packaging/docker/docker-compose.yml down` | إيقاف جميع الحاويات الشغالة |
+| `./scripts/uninstall.sh` | الإزالة النظيفة لجميع الحاويات والمجلدات والملفات المؤقتة |
+| `python3 -m unittest discover -s tests -v` | تشغيل حزمة اختبارات الوحدة والتكامل |
 
 ```bash
 docker compose -f packaging/docker/docker-compose.yml logs -f server
@@ -146,7 +147,16 @@ docker compose -f packaging/docker/docker-compose.yml logs -f server
 grav-watch/
 ├── services/
 │   ├── server/                 # خادم FastAPI، نماذج SQLAlchemy، قاعدة البيانات
+│   │   ├── api/                # مسارات الـ API (health, usage, accounts)
+│   │   ├── core/               # الإعدادات وقاعدة البيانات والتوثيق
+│   │   ├── engine/             # محرك تجميع السعة الكلية
+│   │   ├── models/             # جداول قاعدة البيانات ونماذج Pydantic
+│   │   └── main.py             # نقطة انطلاق التطبيق الخفيفة
 │   └── agent/                  # جامع الكوتا ومحلل مخرجات CLI داخل الحاويات
+│       ├── collector/          # مشغل أوامر CLI ومحلل جداول ANSI
+│       ├── core/               # إعدادات الـ Agent
+│       ├── mock/               # مولد كوتا المحاكاة للموديلات الخمسة
+│       └── agent.py            # خدمة الجمع التلقائية
 ├── clients/
 │   ├── web/                    # لوحة تحكم الويب القادمة
 │   └── android/                # تطبيق Android الأصلي القادم
@@ -154,7 +164,7 @@ grav-watch/
 │   └── docker/                 # ملفات Docker Compose والـ Dockerfiles و entrypoint.sh
 ├── data/                       # الشعار الرسمي والأصول الرسومية
 ├── docs/                       # التوثيق الفني الثنائي الكامل
-├── scripts/                    # سكربتات التثبيت، الاختبار، التوثيق، الحذف والتشغيل
+├── scripts/                    # سكربتات التثبيت، التوثيق، الحذف
 ├── tests/                      # اختبارات الوحدة واختبارات التكامل
 ├── .github/                    # قوالب المشاكل ومسارات الـ CI
 ├── .editorconfig, .gitignore, .gitattributes
@@ -167,11 +177,11 @@ grav-watch/
 ┌───────────────────────────────────────────────────────────────────────────┐
 │  gravwatch-server (خادم FastAPI غير التزامني، المنفذ 8000)                │
 │  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐                │
-│  │ models.py    │  │ config.py    │  │ pool aggregator   │                │
-│  │ SQLAlchemy   │  │ pydantic     │  │ حساب السعة الكلية │                │
+│  │ models/      │  │ core/        │  │ engine/           │                │
+│  │ tables & pyd │  │ config & db  │  │ pool aggregator   │                │
 │  └──────────────┘  └──────────────┘  └───────────────────┘                │
 │  ┌───────────────────────────────────────────────────────┐                │
-│  │ محرك الـ REST API المركزي (/api/v1/usage, /latest)    │                │
+│  │ api/ (محرك الـ REST API المركزي: /usage, /latest)     │                │
 │  └───────────────────────────────────────────────────────┘                │
 └───────────────────────────────────────────────────────────────────────────┘
        ▲                  ▲                    ▲                    ▲

@@ -6,13 +6,12 @@ import sys
 import unittest
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "services", "server")))
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "services", "agent")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from httpx import AsyncClient, ASGITransport
-from main import app
-from models import init_db
-from parser import generate_mock_models
+from services.server.main import app
+from services.server.core.database import init_db
+from services.agent.mock.generator import generate_mock_models
 
 
 class TestServerE2E(unittest.IsolatedAsyncioTestCase):

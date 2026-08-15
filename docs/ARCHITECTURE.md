@@ -6,7 +6,7 @@
 
 ---
 
-> Applies to **v2.0.0** and later.
+> Applies to **v2.1.0** and later.
 
 GravWatch is designed as a distributed, containerized telemetry and quota aggregation engine that separates container sandboxes, CLI metric scraping, asynchronous database persistence, pooled calculations, and REST API distribution.
 
@@ -19,28 +19,28 @@ graph TD
     subgraph Host Linux Machine / Docker Engine
         subgraph Container acc-1 (Debian Slim - 256MB RAM)
             A1[Volume: ./data/acc-1] -->|Google OAuth Token| B1(agy CLI - Account 1)
-            B1 -->|Table Output| C1(services/agent daemon)
+            B1 -->|Table Output| C1(services/agent collector)
         end
         
         subgraph Container acc-2 (Debian Slim - 256MB RAM)
             A2[Volume: ./data/acc-2] -->|Google OAuth Token| B2(agy CLI - Account 2)
-            B2 -->|Table Output| C2(services/agent daemon)
+            B2 -->|Table Output| C2(services/agent collector)
         end
 
         subgraph Container acc-3 (Debian Slim - 256MB RAM)
             A3[Volume: ./data/acc-3] -->|Google OAuth Token| B3(agy CLI - Account 3)
-            B3 -->|Table Output| C3(services/agent daemon)
+            B3 -->|Table Output| C3(services/agent collector)
         end
 
         subgraph Container acc-N (Debian Slim - 256MB RAM)
             AN[Volume: ./data/acc-N] -->|Google OAuth Token| BN(agy CLI - Account N)
-            BN -->|Table Output| CN(services/agent daemon)
+            BN -->|Table Output| CN(services/agent collector)
         end
 
         subgraph Central Hub (services/server)
-            Server[FastAPI Async Server]
-            DB[(SQLite / PostgreSQL Async Engine)]
-            Aggregator[Pool Aggregator Engine]
+            Server[FastAPI Async Server - api/]
+            DB[(SQLite / PostgreSQL Async Engine - core/database)]
+            Aggregator[Pool Aggregator Engine - engine/]
 
             Server <--> DB
             Server --> Aggregator
@@ -59,8 +59,13 @@ graph TD
 
 | Service / Directory | Responsibility | Key Dependencies |
 |---|---|---|
-| `services/server` | Async REST API, SQLAlchemy ORM, database migrations, pool math | `fastapi`, `uvicorn`, `sqlalchemy`, `aiosqlite`, `pydantic` |
-| `services/agent` | Headless quota scraper daemon, ANSI table parser for 5 models, mock fallback | `requests` |
+| `services/server/core` | Application configuration, async database engine, API security | `pydantic-settings`, `sqlalchemy`, `aiosqlite` |
+| `services/server/models` | SQLAlchemy database tables & Pydantic validation schemas | `sqlalchemy`, `pydantic` |
+| `services/server/engine` | Multi-account pool aggregator and historical time-series queries | `sqlalchemy` |
+| `services/server/api` | Modular REST API route handlers (`/health`, `/usage`, `/accounts`) | `fastapi` |
+| `services/agent/core` | Container agent environment configuration | `dataclasses` |
+| `services/agent/collector` | Subprocess CLI execution and ANSI quota table parsing | `re`, `subprocess` |
+| `services/agent/mock` | Deterministic realistic telemetry simulator for Antigravity models | `random` |
 | `clients/web` | Browser-based live quota monitoring dashboard (HTML5, Vanilla JS, CSS) | Pure Web Standards |
 | `clients/android` | Native companion client for mobile devices | `Jetpack Compose`, `Material 3` |
 | `packaging/docker` | Multi-container Docker Compose definitions, Dockerfiles, entrypoint scripts | `docker-compose v2`, `debian:bookworm-slim` |

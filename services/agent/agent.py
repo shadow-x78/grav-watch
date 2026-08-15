@@ -1,94 +1,84 @@
-# GravWatch - Telemetry Agent Daemon (GPL-3.0-or-later)
+# GravWatch - Autonomous Quota Agent Daemon (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
-import os
 import time
 import logging
-import subprocess
-from datetime import datetime, timezone
 import requests
 
-from parser import parse_agy_output, generate_mock_models
+try:
+    from .core.config import config
+    from .collector.scraper import run_agy_usage_command
+    from .collector.parser import parse_agy_output
+    from .mock.generator import generate_mock_models
+except ImportError:
+    from core.config import config
+    from collector.scraper import run_agy_usage_command
+    from collector.parser import parse_agy_output
+    from mock.generator import generate_mock_models
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
 logger = logging.getLogger("gravwatch.agent")
 
-ACCOUNT_ID = os.getenv("ACCOUNT_ID", "acc-1")
-ACCOUNT_LABEL = os.getenv("ACCOUNT_LABEL", f"Account {ACCOUNT_ID}")
-SERVER_URL = os.getenv("SERVER_URL", "http://server:8000/api/v1/usage")
-AGENT_API_KEY = os.getenv("AGENT_API_KEY", "gravwatch-agent-secret-key")
-POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", "300"))
-USE_MOCK_FALLBACK = os.getenv("USE_MOCK_FALLBACK", "true").lower() in ("true", "1", "yes")
+
+def collect_telemetry() -> dict:
+    raw_output = run_agy_usage_command()
+
+    if not raw_output:
+        if config.use_mock_fallback:
+            logger.info(f"[{config.account_id}] No raw CLI output; generating simulated telemetry.")
+            return {
+                "account_id": config.account_id,
+                "account_label": config.account_label,
+                "email": f"{config.account_id}@corp.google.dev",
+                "tier": "Pro Developer",
+                "status": "healthy",
+                "models": generate_mock_models(config.account_id)
+            }
+        else:
+            return {
+                "account_id": config.account_id,
+                "account_label": config.account_label,
+                "email": f"{config.account_id}@domain.com",
+                "tier": "Standard",
+                "status": "unauthenticated",
+                "models": []
+            }
+
+    return parse_agy_output(
+        raw_output,
+        account_id=config.account_id,
+        account_label=config.account_label
+    )
 
 
-def execute_agy_cli() -> tuple[int, str]:
-    try:
-        result = subprocess.run(
-            ["agy", "-p", "/usage"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            timeout=45
-        )
-        return result.returncode, result.stdout
-    except FileNotFoundError:
-        return 127, "agy: command not found"
-    except subprocess.TimeoutExpired:
-        return 124, "Timeout executing agy"
-    except Exception as e:
-        return 1, str(e)
-
-
-def send_telemetry(payload: dict) -> bool:
+def send_telemetry(payload: dict):
+    target_url = f"{config.server_url.rstrip('/')}/api/v1/usage"
     headers = {
         "Content-Type": "application/json",
-        "X-Agent-Key": AGENT_API_KEY,
-        "User-Agent": f"GravWatch-Agent/{ACCOUNT_ID}"
+        "X-Agent-Key": config.agent_api_key
     }
+
     try:
-        res = requests.post(SERVER_URL, json=payload, headers=headers, timeout=15)
-        return res.status_code in (200, 201)
+        resp = requests.post(target_url, json=payload, headers=headers, timeout=10)
+        if resp.status_code == 201:
+            logger.info(f"[{config.account_id}] Telemetry dispatched successfully ({len(payload.get('models', []))} models).")
+        else:
+            logger.error(f"[{config.account_id}] Server rejected telemetry (HTTP {resp.status_code}): {resp.text}")
     except requests.exceptions.RequestException as e:
-        logger.error(f"Connection failure to {SERVER_URL}: {e}")
-        return False
-
-
-def collect_and_send():
-    returncode, raw_output = execute_agy_cli()
-
-    if returncode == 0 and raw_output.strip():
-        payload = parse_agy_output(raw_output, account_id=ACCOUNT_ID, account_label=ACCOUNT_LABEL)
-    else:
-        status = "healthy" if USE_MOCK_FALLBACK else "unauthenticated"
-        models = generate_mock_models(ACCOUNT_ID) if USE_MOCK_FALLBACK else []
-        payload = {
-            "account_id": ACCOUNT_ID,
-            "account_label": ACCOUNT_LABEL,
-            "email": f"{ACCOUNT_ID}@corp.google.dev",
-            "tier": "Pro Developer",
-            "status": status,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "models": models
-        }
-
-    if send_telemetry(payload):
-        logger.info(f"Telemetry dispatched for [{ACCOUNT_ID}]")
-    else:
-        logger.warning(f"Telemetry delivery failed for [{ACCOUNT_ID}]")
+        logger.error(f"[{config.account_id}] Network error sending telemetry to {target_url}: {e}")
 
 
 def main():
-    logger.info(f"GravWatch agent daemon started for [{ACCOUNT_ID}] (interval: {POLL_INTERVAL_SECONDS}s)")
+    logger.info(f"Starting GravWatch Agent for [{config.account_id}] (Poll interval: {config.poll_interval}s)...")
+
     while True:
         try:
-            collect_and_send()
+            telemetry = collect_telemetry()
+            send_telemetry(telemetry)
         except Exception as e:
-            logger.error(f"Error in collection cycle: {e}")
-        time.sleep(POLL_INTERVAL_SECONDS)
+            logger.error(f"[{config.account_id}] Unhandled loop error: {e}", exc_info=True)
+
+        time.sleep(config.poll_interval)
 
 
 if __name__ == "__main__":

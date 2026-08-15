@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.1.0] - 2026-08-15
+
+### Added
+- **Modular Services Architecture:** Separated `services/server` into dedicated subpackages (`core`, `models`, `engine`, `api`, `main.py`) and `services/agent` into (`core`, `collector`, `mock`, `agent.py`).
+- **Clean Package Hierarchy:** Standardized Python packages with top-level and service-level `__init__.py` modules for collision-free imports.
+
+### Changed
+- **Script Consolidation:** Streamlined root scripts into 3 core utilities: `setup-dev-env.sh`, `setup-auth.sh`, and `uninstall.sh`.
+
+### Removed
+- **Redundant Scripts:** Removed `docker-run.sh`, `install.sh`, and `run-tests.sh` in favor of standard direct Docker Compose and Python unit test commands.
+
+---
+
 ## [2.0.0] - 2026-08-15
 
 ### Added

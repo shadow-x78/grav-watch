@@ -6,7 +6,7 @@
 
 ---
 
-> يسري هذا التوثيق على الإصدار **v2.0.0** فما فوق.
+> يسري هذا التوثيق على الإصدار **v2.1.0** فما فوق.
 
 تم تصميم نظام GravWatch كمحرك موزّع ومعزول بالحاويات لمراقبة وتجميع بيانات الكوتا، حيث يفصل بين عزل الحسابات، وقراءة مخرجات أداة CLI، وحفظ البيانات غير التزامني في قاعدة البيانات، وحساب السعة المجمعة، وتوزيعها عبر REST API.
 
@@ -38,9 +38,9 @@ graph TD
         end
 
         subgraph المركز الرئيسي (services/server)
-            Server[خادم FastAPI غير التزامني]
-            DB[(قاعدة بيانات SQLite / PostgreSQL غير تزامنية)]
-            Aggregator[محرك تجميع السعة الكلية]
+            Server[خادم FastAPI غير التزامني - api/]
+            DB[(قاعدة بيانات SQLite / PostgreSQL غير تزامنية - core/database)]
+            Aggregator[محرك تجميع السعة الكلية - engine/]
 
             Server <--> DB
             Server --> Aggregator
@@ -59,13 +59,18 @@ graph TD
 
 | الخدمة / المجلد | المسؤولية | الاعتماديات الأساسية |
 |---|---|---|
-| `services/server` | واجهة REST API غير تزامنية، نماذج SQLAlchemy، حساب السعة الكلية | `fastapi`, `uvicorn`, `sqlalchemy`, `aiosqlite`, `pydantic` |
-| `services/agent` | خدمة خلفية لجمع كوتا الموديلات الخمسة وتحليل جداول ANSI وتوليد البيانات التجريبية | `requests` |
+| `services/server/core` | إعدادات التطبيق، محرك قاعدة البيانات غير التزامني، وحماية الـ API | `pydantic-settings`, `sqlalchemy`, `aiosqlite` |
+| `services/server/models` | جداول قاعدة البيانات ونماذج التحقق Pydantic | `sqlalchemy`, `pydantic` |
+| `services/server/engine` | محرك تجميع السعة التراكمية والاستعلام عن السجل الزمني | `sqlalchemy` |
+| `services/server/api` | مسارات الـ REST API المعيارية (`/health`, `/usage`, `/accounts`) | `fastapi` |
+| `services/agent/core` | إعدادات بيئة الـ Agent داخل الحاوية | `dataclasses` |
+| `services/agent/collector` | تنفيذ أوامر CLI وتحليل جداول كوتا ANSI | `re`, `subprocess` |
+| `services/agent/mock` | مولد الكوتا المحاكاة لنماذج Antigravity الخمسة | `random` |
 | `clients/web` | لوحة تحكم المتصفح الحية (HTML5, Vanilla JS, CSS) | معايير الويب الخالصة |
 | `clients/android` | تطبيق أندرويد الأصلي للأجهزة الذكية واللوحية | `Jetpack Compose`, `Material 3` |
 | `packaging/docker` | تعريفات Docker Compose وملفات Dockerfile وسكربت نقطة الدخول | `docker-compose v2`, `debian:bookworm-slim` |
 | `tests` | اختبارات الوحدة للمحلل واختبارات التكامل للخادم وقاعدة البيانات | `httpx`, `unittest` |
-| `scripts` | سكربتات الأتمتة المباشرة للإعداد، والاختبار، والتثبيت، والإدارة | `bash`, `docker`, `python3` |
+| `scripts` | سكربتات الأتمتة المباشرة للإعداد، والتثبيت، والإدارة | `bash`, `docker`, `python3` |
 
 ---
 

@@ -3,7 +3,9 @@ FROM python:3.11-slim-bookworm
 LABEL maintainer="shadow-x78 <https://github.com/shadow-x78/grav-watch>"
 LABEL description="GravWatch central FastAPI server and database"
 
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -14,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY services/server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY services/server/*.py ./
+COPY services/server/ ./
 
 EXPOSE 8000
 

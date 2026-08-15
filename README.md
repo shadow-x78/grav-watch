@@ -6,7 +6,7 @@
 
 Multi-account Google Antigravity CLI quota monitoring & telemetry engine - isolated containers & centralized API
 
-[![Version](https://img.shields.io/badge/version-2.0.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.1.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python)
 ![FastAPI](https://img.shields.io/badge/fastapi-0.109%2B-009688?style=flat-square&logo=fastapi)
@@ -93,14 +93,14 @@ Each containerized agent periodically parses quota metrics for **Gemini Flash, G
 git clone https://github.com/shadow-x78/grav-watch.git ~/GravWatch
 cd ~/GravWatch
 
-# Configure environment
-cp .env.example .env
+# Configure environment and dependencies
+./scripts/setup-dev-env.sh
 
 # Interactive OAuth account pairing assistant
 ./scripts/setup-auth.sh
 
 # Start the multi-account stack
-./scripts/docker-run.sh
+docker compose -f packaging/docker/docker-compose.yml up -d
 ```
 
 - **API Swagger Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
@@ -114,13 +114,14 @@ cp .env.example .env
 
 | Command | Description |
 |---------|-------------|
-| `./scripts/setup-dev-env.sh` | Install local Python dependencies for server & agent |
-| `./scripts/run-tests.sh` | Run all unit and integration test suites |
+| `./scripts/setup-dev-env.sh` | Set up Python development environment and data directories |
 | `./scripts/setup-auth.sh` | Interactive Google OAuth account pairing assistant |
-| `./scripts/docker-run.sh` | Build and start all containers via Docker Compose |
+| `docker compose -f packaging/docker/docker-compose.yml up -d` | Build and start all containers via Docker Compose |
 | `docker compose -f packaging/docker/docker-compose.yml ps` | Check container statuses |
 | `docker compose -f packaging/docker/docker-compose.yml logs -f` | Stream container logs in real time |
 | `docker compose -f packaging/docker/docker-compose.yml down` | Stop all running containers |
+| `./scripts/uninstall.sh` | Clean removal of containers, volumes, and temporary caches |
+| `python3 -m unittest discover -s tests -v` | Run all unit and integration test suites |
 
 ```bash
 docker compose -f packaging/docker/docker-compose.yml logs -f server
@@ -145,8 +146,17 @@ A native **Material 3 + Jetpack Compose** companion app for Android tablets and 
 ```
 grav-watch/
 ├── services/
-│   ├── server/                 # FastAPI hub, SQLAlchemy models, database
-│   └── agent/                  # container quota daemon & CLI output parser
+│   ├── server/                 # FastAPI hub, database, models, engine, and routes
+│   │   ├── api/                # route handlers (health, usage, accounts)
+│   │   ├── core/               # config, database engine, security
+│   │   ├── engine/             # pool aggregator and math engine
+│   │   ├── models/             # database tables and Pydantic schemas
+│   │   └── main.py             # minimal application entrypoint
+│   └── agent/                  # container daemon and quota scrapers
+│       ├── collector/          # CLI command runner and ANSI table parser
+│       ├── core/               # agent configuration
+│       ├── mock/               # 5-model mock telemetry generator
+│       └── agent.py            # autonomous scraping daemon
 ├── clients/
 │   ├── web/                    # upcoming browser telemetry dashboard
 │   └── android/                # upcoming native Material 3 Compose app
@@ -154,7 +164,7 @@ grav-watch/
 │   └── docker/                 # Docker Compose, Dockerfiles, entrypoint.sh
 ├── data/                       # brand vector and raster identities
 ├── docs/                       # complete bilingual documentation
-├── scripts/                    # setup, testing, auth, install, and launch scripts
+├── scripts/                    # setup, auth, and uninstall scripts
 ├── tests/                      # unit and integration test suites
 ├── .github/                    # CI workflows, templates, dependabot
 ├── .editorconfig, .gitignore, .gitattributes
@@ -167,11 +177,11 @@ grav-watch/
 ┌───────────────────────────────────────────────────────────────────────────┐
 │  gravwatch-server (FastAPI async hub, port 8000)                          │
 │  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐                │
-│  │ models.py    │  │ config.py    │  │ pool aggregator   │                │
-│  │ SQLAlchemy   │  │ pydantic     │  │ multi-account sum │                │
+│  │ models/      │  │ core/        │  │ engine/           │                │
+│  │ tables & pyd │  │ config & db  │  │ pool aggregator   │                │
 │  └──────────────┘  └──────────────┘  └───────────────────┘                │
 │  ┌───────────────────────────────────────────────────────┐                │
-│  │ Central REST API Engine (/api/v1/usage, /latest)      │                │
+│  │ api/ (Central REST API Engine: /usage, /latest)       │                │
 │  └───────────────────────────────────────────────────────┘                │
 └───────────────────────────────────────────────────────────────────────────┘
        ▲                  ▲                    ▲                    ▲

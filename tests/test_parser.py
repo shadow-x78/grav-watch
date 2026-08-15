@@ -5,9 +5,10 @@ import os
 import sys
 import unittest
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "services", "agent")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from parser import parse_agy_output, generate_mock_models, clean_ansi
+from services.agent.collector.parser import parse_agy_output, clean_ansi
+from services.agent.mock.generator import generate_mock_models
 
 
 class TestAgentParser(unittest.TestCase):

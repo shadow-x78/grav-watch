@@ -50,7 +50,7 @@ Follow the on-screen prompts (Options 1 through 4, or enter custom account ident
 
 #### Step 4: Launch Entire Multi-Account Stack
 ```bash
-./scripts/docker-run.sh
+docker compose -f packaging/docker/docker-compose.yml up -d
 ```
 
 ---

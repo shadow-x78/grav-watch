@@ -50,7 +50,7 @@ SERVER_PORT=8000
 
 #### الخطوة 4: تشغيل منظومة الحسابات بالكامل
 ```bash
-./scripts/docker-run.sh
+docker compose -f packaging/docker/docker-compose.yml up -d
 ```
 
 ---
