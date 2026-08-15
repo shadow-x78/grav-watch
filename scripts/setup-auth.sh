@@ -31,8 +31,8 @@ authenticate_account() {
     local data_dir="$ROOT_DIR/data/$acc_id"
     local agent_dir="$ROOT_DIR/data/$acc_id-agent"
 
-    mkdir -p "$data_dir" "$agent_dir"
-    chmod 700 "$data_dir" "$agent_dir"
+    mkdir -p "$data_dir" "$agent_dir" 2>/dev/null || true
+    chmod 700 "$data_dir" "$agent_dir" 2>/dev/null || true
 
     echo ""
     echo -e "\033[1;33m[*] Starting interactive authentication session for [$acc_id]...\033[0m"
