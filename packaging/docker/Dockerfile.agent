@@ -14,10 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
-COPY services/agent/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY services/agent/requirements.txt /app/services/agent/
+RUN pip install --no-cache-dir -r /app/services/agent/requirements.txt
 
-COPY services/agent/ ./
+COPY services/ /app/services/
 COPY packaging/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 

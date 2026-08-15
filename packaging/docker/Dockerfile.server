@@ -13,11 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY services/server/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY services/server/requirements.txt /app/services/server/
+RUN pip install --no-cache-dir -r /app/services/server/requirements.txt
 
-COPY services/server/ ./
+COPY services/ /app/services/
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "services.server.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -7,11 +7,18 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from ..core.database import get_db
-from ..core.security import get_current_agent
-from ..models.db import Account, UsageSnapshot, ModelQuota
-from ..models.schemas import UsageIngestRequest, LatestUsageResponse, HistoryResponse
-from ..engine.aggregator import compute_latest_pool_summary, query_usage_history
+try:
+    from services.server.core.database import get_db
+    from services.server.core.security import get_current_agent
+    from services.server.models.db import Account, UsageSnapshot, ModelQuota
+    from services.server.models.schemas import UsageIngestRequest, LatestUsageResponse, HistoryResponse
+    from services.server.engine.aggregator import compute_latest_pool_summary, query_usage_history
+except ImportError:
+    from ..core.database import get_db
+    from ..core.security import get_current_agent
+    from ..models.db import Account, UsageSnapshot, ModelQuota
+    from ..models.schemas import UsageIngestRequest, LatestUsageResponse, HistoryResponse
+    from ..engine.aggregator import compute_latest_pool_summary, query_usage_history
 
 logger = logging.getLogger("gravwatch.api.usage")
 router = APIRouter(prefix="/usage", tags=["Telemetry"])

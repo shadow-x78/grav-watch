@@ -4,7 +4,11 @@
 from datetime import datetime, timezone
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from ..core.database import Base
+
+try:
+    from services.server.core.database import Base
+except ImportError:
+    from ..core.database import Base
 
 
 class Account(Base):

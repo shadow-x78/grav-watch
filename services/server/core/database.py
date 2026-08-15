@@ -4,7 +4,11 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-from .config import settings
+
+try:
+    from services.server.core.config import settings
+except ImportError:
+    from .config import settings
 
 db_url = settings.DATABASE_URL
 if db_url.startswith("sqlite"):

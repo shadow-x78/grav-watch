@@ -7,4 +7,4 @@ set -euo pipefail
 mkdir -p /root/.gemini /root/.antigravity-agent
 chmod 700 /root/.gemini /root/.antigravity-agent
 
-exec python3 /app/agent.py
+exec python3 -m services.agent.agent

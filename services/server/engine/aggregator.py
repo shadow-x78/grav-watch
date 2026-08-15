@@ -5,12 +5,20 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from ..models.db import Account, UsageSnapshot, ModelQuota
-from ..models.schemas import (
-    ModelQuotaItem, ModelPoolSummary, PoolSummary,
-    AccountDetailResponse, LatestUsageResponse,
-    TimeSeriesDataPoint, HistoryResponse
-)
+try:
+    from services.server.models.db import Account, UsageSnapshot, ModelQuota
+    from services.server.models.schemas import (
+        ModelQuotaItem, ModelPoolSummary, PoolSummary,
+        AccountDetailResponse, LatestUsageResponse,
+        TimeSeriesDataPoint, HistoryResponse
+    )
+except ImportError:
+    from ..models.db import Account, UsageSnapshot, ModelQuota
+    from ..models.schemas import (
+        ModelQuotaItem, ModelPoolSummary, PoolSummary,
+        AccountDetailResponse, LatestUsageResponse,
+        TimeSeriesDataPoint, HistoryResponse
+    )
 
 
 async def compute_latest_pool_summary(db: AsyncSession) -> LatestUsageResponse:

@@ -6,15 +6,15 @@ import logging
 import requests
 
 try:
+    from services.agent.core.config import config
+    from services.agent.collector.scraper import run_agy_usage_command
+    from services.agent.collector.parser import parse_agy_output
+    from services.agent.mock.generator import generate_mock_models
+except ImportError:
     from .core.config import config
     from .collector.scraper import run_agy_usage_command
     from .collector.parser import parse_agy_output
     from .mock.generator import generate_mock_models
-except ImportError:
-    from core.config import config
-    from collector.scraper import run_agy_usage_command
-    from collector.parser import parse_agy_output
-    from mock.generator import generate_mock_models
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
 logger = logging.getLogger("gravwatch.agent")

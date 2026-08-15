@@ -5,9 +5,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from ..core.database import get_db
-from ..models.db import Account
-from ..models.schemas import AccountDetailResponse
+try:
+    from services.server.core.database import get_db
+    from services.server.models.db import Account
+    from services.server.models.schemas import AccountDetailResponse
+except ImportError:
+    from ..core.database import get_db
+    from ..models.db import Account
+    from ..models.schemas import AccountDetailResponse
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
 

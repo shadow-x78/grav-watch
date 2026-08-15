@@ -3,7 +3,11 @@
 
 from datetime import datetime, timezone
 from fastapi import APIRouter
-from ..core.config import settings
+
+try:
+    from services.server.core.config import settings
+except ImportError:
+    from ..core.config import settings
 
 router = APIRouter(tags=["System"])
 

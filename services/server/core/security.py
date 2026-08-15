@@ -3,7 +3,11 @@
 
 from fastapi import HTTPException, Security, status
 from fastapi.security.api_key import APIKeyHeader
-from .config import settings
+
+try:
+    from services.server.core.config import settings
+except ImportError:
+    from .config import settings
 
 agent_key_header = APIKeyHeader(name="X-Agent-Key", auto_error=False)
 

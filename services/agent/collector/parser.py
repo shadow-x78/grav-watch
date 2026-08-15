@@ -6,9 +6,9 @@ import json
 from datetime import datetime, timezone
 
 try:
-    from ..mock.generator import generate_mock_models
+    from services.agent.mock.generator import generate_mock_models
 except ImportError:
-    from mock.generator import generate_mock_models
+    from ..mock.generator import generate_mock_models
 
 ANSI_PATTERN = re.compile(r'\x1b\[[0-9;]*[mGKF]')
 
