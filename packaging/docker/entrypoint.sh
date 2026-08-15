@@ -5,6 +5,10 @@
 set -euo pipefail
 
 mkdir -p /root/.gemini /root/.antigravity-agent
-chmod 700 /root/.gemini /root/.antigravity-agent
+chmod 700 /root/.gemini /root/.antigravity-agent 2>/dev/null || true
+
+if [ "$#" -gt 0 ]; then
+    exec "$@"
+fi
 
 exec python3 -m services.agent.agent

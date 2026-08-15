@@ -7,24 +7,17 @@ set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(dirname "$DIR")"
 
-echo -e "\033[1;36m"
-echo "  ╔════════════════════════════════════════════════════════════════════╗"
-echo "  ║                  GravWatch - Auth Setup Helper                     ║"
-echo "  ║         Scalable Multi-Account OAuth Pairing for agy CLI           ║"
-echo "  ╚════════════════════════════════════════════════════════════════════╝"
-echo -e "\033[0m"
-
-echo "Select an option or enter a custom account identifier:"
-echo " 1) Account 1 (acc-1)"
-echo " 2) Account 2 (acc-2)"
-echo " 3) Account 3 (acc-3)"
-echo " 4) Account 4 (acc-4)"
-echo " 5) Authenticate accounts 1 to 4 sequentially"
-echo " c) Custom account identifier (e.g. acc-5, dev-team, etc.)"
-echo " q) Quit"
+echo "[GravWatch] Multi-Account OAuth Pairing Helper"
+echo "Select an account to authenticate:"
+echo "  1) Account 1 (acc-1)"
+echo "  2) Account 2 (acc-2)"
+echo "  3) Account 3 (acc-3)"
+echo "  4) Account 4 (acc-4)"
+echo "  c) Custom account identifier"
+echo "  q) Quit"
 echo ""
 
-read -r -p "Select option or enter account ID [1-5 / c / ID]: " choice
+read -r -p "Enter selection [1-4 / c / q]: " choice
 
 authenticate_account() {
     local acc_id=$1
@@ -35,20 +28,21 @@ authenticate_account() {
     chmod 700 "$data_dir" "$agent_dir" 2>/dev/null || true
 
     echo ""
-    echo -e "\033[1;33m[*] Starting interactive authentication session for [$acc_id]...\033[0m"
-    echo -e "\033[0;32m--> Persistent volume mapped to: $data_dir\033[0m"
-    echo -e "\033[0;34m--> Copy the Google OAuth link that appears, authenticate in your browser, and paste the code below.\033[0m"
+    echo "[GravWatch] Pairing session for [$acc_id]..."
+    echo "[GravWatch] Volume mapped to: $data_dir"
+    echo "[GravWatch] Complete Google OAuth authentication when prompted below."
     echo "----------------------------------------------------------------------"
 
     if command -v docker >/dev/null 2>&1; then
-        docker compose -f "$ROOT_DIR/packaging/docker/docker-compose.yml" --env-file "$ROOT_DIR/.env" run --rm -it \
+        docker compose --env-file "$ROOT_DIR/.env" -f "$ROOT_DIR/packaging/docker/docker-compose.yml" run --rm -it \
             -v "$data_dir:/root/.gemini" \
             -v "$agent_dir:/root/.antigravity-agent" \
-            acc-1 agy auth login || echo "Note: Authentication volume paired for [$acc_id]."
+            acc-1 bash -c "if command -v agy >/dev/null 2>&1; then agy auth login; else echo '[GravWatch] agy binary not found in container. You can place tokens in $data_dir or start a shell:'; bash; fi" || true
         
-        echo -e "\033[1;32m[✓] Authentication session completed for [$acc_id]!\033[0m"
+        echo "[GravWatch] Completed pairing session for [$acc_id]."
     else
-        echo -e "\033[1;31m[!] Docker CLI not found. Please install Docker first.\033[0m"
+        echo "[GravWatch] Error: Docker CLI not found."
+        exit 1
     fi
 }
 
@@ -57,35 +51,29 @@ case "$choice" in
     2) authenticate_account "acc-2" ;;
     3) authenticate_account "acc-3" ;;
     4) authenticate_account "acc-4" ;;
-    5)
-        authenticate_account "acc-1"
-        authenticate_account "acc-2"
-        authenticate_account "acc-3"
-        authenticate_account "acc-4"
-        ;;
     c|C)
         read -r -p "Enter custom account identifier (e.g. acc-5): " custom_id
         if [ -n "$custom_id" ]; then
             authenticate_account "$custom_id"
         else
-            echo "Invalid account identifier."
+            echo "[GravWatch] Invalid account identifier."
             exit 1
         fi
         ;;
     q|Q)
-        echo "Exiting."
+        echo "[GravWatch] Exiting."
         exit 0
         ;;
     *)
         if [ -n "$choice" ]; then
             authenticate_account "$choice"
         else
-            echo "Invalid selection."
+            echo "[GravWatch] Invalid selection."
             exit 1
         fi
         ;;
 esac
 
 echo ""
-echo -e "\033[1;32m[✓] Ready! You can start the stack anytime using:\033[0m"
-echo -e "    \033[1;36mdocker compose --env-file .env -f packaging/docker/docker-compose.yml up -d\033[0m"
+echo "[GravWatch] Done. Start or restart the container stack using:"
+echo "  docker compose --env-file .env -f packaging/docker/docker-compose.yml up -d"
