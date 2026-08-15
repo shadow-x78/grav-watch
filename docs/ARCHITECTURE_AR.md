@@ -1,71 +1,122 @@
-# البنية المعمارية لنظام GravWatch
+# مواصفات البنية المعمارية - GravWatch
 
-يوضح هذا المستند التصميم المعماري، استراتيجية عزل الحسابات، بروتوكولات الاتصال، ونماذج البيانات لنظام **GravWatch**.
+## 🌐 اللغة
+
+<a href="ARCHITECTURE.md">🇬🇧 English</a> · <a href="ARCHITECTURE_AR.md">🇸🇦 العربية</a>
 
 ---
 
-<a id="الفكرة-المعمارية"></a>
-## 🏛️ 1. الفكرة المعمارية العامة
+> يسري هذا التوثيق على الإصدار **v2.0.0** فما فوق.
 
-يقدم نظام **GravWatch** حلاً لمشكلة إدارة الحسابات المتعددة في **Google Antigravity CLI (`agy`)** عبر عزل بيئات التشغيل والتخزين داخل حاويات Docker خفيفة ومستقلة.
+تم تصميم نظام GravWatch كمحرك موزّع ومعزول بالحاويات لمراقبة وتجميع بيانات الكوتا، حيث يفصل بين عزل الحسابات، وقراءة مخرجات أداة CLI، وحفظ البيانات غير التزامني في قاعدة البيانات، وحساب السعة المجمعة، وتوزيعها عبر REST API.
+
+---
+
+## 🏛 نظرة عامة على معمارية النظام
 
 ```mermaid
 graph TD
-    subgraph Host["البيئة الحاضنة (Docker Host)"]
-        subgraph C1["حاوية acc-1 (Debian Slim - 256MB RAM)"]
-            A1["جامع الكوتا services/agent"] -->|قراءة الأوامر| CLI1["agy CLI (الحساب 1)"]
-            VOL1[("مجلد التوثيق: ./data/acc-1")] -.->|جلسة الدخول| CLI1
+    subgraph الجهاز المضيف / محرك Docker
+        subgraph حاوية acc-1 (Debian Slim - 256MB RAM)
+            A1[مجلد: ./data/acc-1] -->|توكن Google OAuth| B1(agy CLI - الحساب 1)
+            B1 -->|مخرجات الجداول| C1(جامع الكوتا services/agent)
         end
         
-        subgraph C2["حاوية acc-2 (Debian Slim - 256MB RAM)"]
-            A2["جامع الكوتا services/agent"] -->|قراءة الأوامر| CLI2["agy CLI (الحساب 2)"]
-            VOL2[("مجلد التوثيق: ./data/acc-2")] -.->|جلسة الدخول| CLI2
+        subgraph حاوية acc-2 (Debian Slim - 256MB RAM)
+            A2[مجلد: ./data/acc-2] -->|توكن Google OAuth| B2(agy CLI - الحساب 2)
+            B2 -->|مخرجات الجداول| C2(جامع الكوتا services/agent)
         end
 
-        subgraph C3["حاوية acc-3 (Debian Slim - 256MB RAM)"]
-            A3["جامع الكوتا services/agent"] -->|قراءة الأوامر| CLI3["agy CLI (الحساب 3)"]
-            VOL3[("مجلد التوثيق: ./data/acc-3")] -.->|جلسة الدخول| CLI3
+        subgraph حاوية acc-3 (Debian Slim - 256MB RAM)
+            A3[مجلد: ./data/acc-3] -->|توكن Google OAuth| B3(agy CLI - الحساب 3)
+            B3 -->|مخرجات الجداول| C3(جامع الكوتا services/agent)
         end
 
-        subgraph C4["حاوية acc-4 (Debian Slim - 256MB RAM)"]
-            A4["جامع الكوتا services/agent"] -->|قراءة الأوامر| CLI4["agy CLI (الحساب 4)"]
-            VOL4[("مجلد التوثيق: ./data/acc-4")] -.->|جلسة الدخول| CLI4
+        subgraph حاوية acc-N (Debian Slim - 256MB RAM)
+            AN[مجلد: ./data/acc-N] -->|توكن Google OAuth| BN(agy CLI - الحساب N)
+            BN -->|مخرجات الجداول| CN(جامع الكوتا services/agent)
         end
 
-        subgraph Backend["الخادم المركزي"]
-            Server["خادم services/server (FastAPI)"]
-            DB[("قاعدة البيانات: SQLite / PostgreSQL")]
-            AlertEngine["محرك تنبيهات Discord Webhook"]
+        subgraph المركز الرئيسي (services/server)
+            Server[خادم FastAPI غير التزامني]
+            DB[(قاعدة بيانات SQLite / PostgreSQL غير تزامنية)]
+            Aggregator[محرك تجميع السعة الكلية]
+
             Server <--> DB
-            Server --> AlertEngine
+            Server --> Aggregator
         end
 
-        A1 -->|POST /api/v1/usage| Server
-        A2 -->|POST /api/v1/usage| Server
-        A3 -->|POST /api/v1/usage| Server
-        A4 -->|POST /api/v1/usage| Server
+        C1 -->|POST /api/v1/usage (X-Agent-Key)| Server
+        C2 -->|POST /api/v1/usage (X-Agent-Key)| Server
+        C3 -->|POST /api/v1/usage (X-Agent-Key)| Server
+        CN -->|POST /api/v1/usage (X-Agent-Key)| Server
     end
 ```
 
 ---
 
-<a id="تفاصيل-الأقسام"></a>
-## 📁 2. تفاصيل أقسام المستودع القياسي
+## 📦 هيكل خدمات المستودع (Topology)
 
-### 1. الخدمات الخلفية (`services/`)
-- **`services/server/`**: خادم FastAPI المركزي غير التزامني ومحرك تنبيهات Discord وقاعدة البيانات.
-- **`services/agent/`**: جامع الكوتا داخل الكونتينرات المعزولة.
+| الخدمة / المجلد | المسؤولية | الاعتماديات الأساسية |
+|---|---|---|
+| `services/server` | واجهة REST API غير تزامنية، نماذج SQLAlchemy، حساب السعة الكلية | `fastapi`, `uvicorn`, `sqlalchemy`, `aiosqlite`, `pydantic` |
+| `services/agent` | خدمة خلفية لجمع كوتا الموديلات الخمسة وتحليل جداول ANSI وتوليد البيانات التجريبية | `requests` |
+| `clients/web` | لوحة تحكم المتصفح الحية (HTML5, Vanilla JS, CSS) | معايير الويب الخالصة |
+| `clients/android` | تطبيق أندرويد الأصلي للأجهزة الذكية واللوحية | `Jetpack Compose`, `Material 3` |
+| `packaging/docker` | تعريفات Docker Compose وملفات Dockerfile وسكربت نقطة الدخول | `docker-compose v2`, `debian:bookworm-slim` |
+| `tests` | اختبارات الوحدة للمحلل واختبارات التكامل للخادم وقاعدة البيانات | `httpx`, `unittest` |
+| `scripts` | سكربتات الأتمتة المباشرة للإعداد، والاختبار، والتثبيت، والإدارة | `bash`, `docker`, `python3` |
 
-### 2. الحزم والنشر (`packaging/`)
-- **`packaging/docker/`**: ملفات Docker Compose وتكوينات الحاويات.
+---
+
+## ⚡ مراحل تدفق وتجميع بيانات الكوتا
+
+1. **عزل الحسابات:** ترتبط كل حاوية (`acc-1` إلى `acc-N`) بمجلد تخزين مستقل `./data/acc-X` مع تصاريح `chmod 700`. تقرأ أداة `agy` التوكنات مباشرة من `/root/.gemini` دون التداخل مع الحاويات الأخرى.
+2. **الجمع الدوري:**
+   - تعمل خدمة الـ Agent داخل كل حاوية بشكل متكرر وتنفذ أمر `agy -p /usage` كل `POLL_INTERVAL_SECONDS` (افتراضياً: 300 ثانية).
+   - عند استقبال جدول نصوص ANSI، تقوم دالة `clean_ansi()` بإزالة أكواد الألوان واستخراج بيانات الاستهلاك، والحد الأقصى، ومؤقت التصفير لنماذج **Gemini Flash, Gemini Pro, Claude Sonnet, Claude Opus, GPT OSS**.
+   - في حال غياب التوثيق أثناء الاختبار، تستخدم الخدمة بيانات محاكاة دقيقة إذا كان `USE_MOCK_FALLBACK=true`.
+3. **استقبال البيانات بالخادم:**
+   - يرسل الـ Agent طلب `POST` إلى `http://server:8000/api/v1/usage` مع الترويسة `X-Agent-Key`.
+   - يتحقق الخادم من صحة المفتاح، ويحدث بيانات الحساب `Account`، وينشئ لقطة كوتا جديدة `UsageSnapshot` مع أسطر النماذج `ModelQuota`.
+4. **تجميع السعة الكلية (Pool Aggregation):**
+   - عند طلب `/api/v1/usage/latest`، تقرأ دالة `compute_latest_pool_summary()` آخر لقطة لكل حساب مسجل.
+   - تقوم بجمع إجمالي الطلبات المستخدمة والسعة القصوى وحساب نسبة الاستهلاك المجمعة لكل نموذج عبر الحسابات المتصلة.
+
+---
+
+## 🌐 عقود واجهة الـ API (Contract)
+
+| نقطة النهاية | الطريقة | التوثيق / Headers | ملخص البيانات | الاستجابة |
+|---|---|---|---|---|
+| `/api/v1/health` | GET | بدون | بدون | `{"status":"healthy","service":"gravwatch-server","version":"2.0.0"}` |
+| `/api/v1/usage` | POST | `X-Agent-Key: <key>` | `{account_id, timestamp, models: [...]}` | `201 Created {"success":true,"message":"..."}` |
+| `/api/v1/usage/latest` | GET | بدون | بدون | `200 OK LatestUsageResponse (pool_summary + accounts)` |
+| `/api/v1/usage/history` | GET | بدون | Query: `account_id`, `range=24h` | `200 OK HistoryResponse (series: [...])` |
+| `/api/v1/accounts` | GET | بدون | بدون | `200 OK List[AccountDetailResponse]` |
+
+---
+
+## 🔌 تحسينات الأداء واستقبال البيانات
+
+- **قاعدة بيانات غير تزامنية بالكامل:** مبنية على SQLAlchemy 2.0 Async Session مع عمليات commit غير حاجزة.
+- **قيود صارمة على الموارد:** تلتزم كل حاوية بسقف `mem_limit: 256m` ومعالج `cpus: 0.25` داخل Docker Compose.
+
+---
+
+## 🔁 دورة حياة الحاويات وعزلها
+
+- تعمل خدمة `services/agent/agent.py` كـ PID 1 في كل حاوية عبر السكربت `packaging/docker/entrypoint.sh`.
+- تتواصل الحاويات داخلياً عبر شبكة الجسر الخاصة `gravwatch-net`.
+- لا توجد أي متطلبات لواجهة رسومية على الجهاز المضيف.
 
 ---
 
 <div align="center">
 
-Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [العودة إلى README](../README_AR.md)
 
-<sub>&copy; 2026 GravWatch (shadow-x78)</sub>
+<sub>&copy; 2026 GravWatch</sub>
 
 </div>

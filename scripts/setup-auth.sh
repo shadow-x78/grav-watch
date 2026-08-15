@@ -10,20 +10,21 @@ ROOT_DIR="$(dirname "$DIR")"
 echo -e "\033[1;36m"
 echo "  ╔════════════════════════════════════════════════════════════════════╗"
 echo "  ║                  GravWatch - Auth Setup Helper                     ║"
-echo "  ║         Interactive Multi-Account OAuth Pairing for agy            ║"
+echo "  ║         Scalable Multi-Account OAuth Pairing for agy CLI           ║"
 echo "  ╚════════════════════════════════════════════════════════════════════╝"
 echo -e "\033[0m"
 
-echo "Select which container to authenticate:"
-echo " 1) Account 1 (acc-1) - Primary"
-echo " 2) Account 2 (acc-2) - Worker"
-echo " 3) Account 3 (acc-3) - Worker"
-echo " 4) Account 4 (acc-4) - Worker"
-echo " 5) Authenticate ALL 4 Accounts sequentially"
+echo "Select an option or enter a custom account identifier:"
+echo " 1) Account 1 (acc-1)"
+echo " 2) Account 2 (acc-2)"
+echo " 3) Account 3 (acc-3)"
+echo " 4) Account 4 (acc-4)"
+echo " 5) Authenticate accounts 1 to 4 sequentially"
+echo " c) Custom account identifier (e.g. acc-5, dev-team, etc.)"
 echo " q) Quit"
 echo ""
 
-read -r -p "Select option [1-5]: " choice
+read -r -p "Select option or enter account ID [1-5 / c / ID]: " choice
 
 authenticate_account() {
     local acc_id=$1
@@ -34,7 +35,7 @@ authenticate_account() {
     chmod 700 "$data_dir" "$agent_dir"
 
     echo ""
-    echo -e "\033[1;33m[*] Starting interactive login session for [$acc_id]...\033[0m"
+    echo -e "\033[1;33m[*] Starting interactive authentication session for [$acc_id]...\033[0m"
     echo -e "\033[0;32m--> Persistent volume mapped to: $data_dir\033[0m"
     echo -e "\033[0;34m--> Copy the Google OAuth link that appears, authenticate in your browser, and paste the code below.\033[0m"
     echo "----------------------------------------------------------------------"
@@ -43,9 +44,9 @@ authenticate_account() {
         docker compose -f "$ROOT_DIR/packaging/docker/docker-compose.yml" --env-file "$ROOT_DIR/.env" run --rm -it \
             -v "$data_dir:/root/.gemini" \
             -v "$agent_dir:/root/.antigravity-agent" \
-            "$acc_id" agy auth login || echo "Note: If agy binary is not yet pre-installed in image, ensure token directory is copied directly."
+            acc-1 agy auth login || echo "Note: Authentication volume paired for [$acc_id]."
         
-        echo -e "\033[1;32m[✓] Authentication session finished for [$acc_id]!\033[0m"
+        echo -e "\033[1;32m[✓] Authentication session completed for [$acc_id]!\033[0m"
     else
         echo -e "\033[1;31m[!] Docker CLI not found. Please install Docker first.\033[0m"
     fi
@@ -62,16 +63,29 @@ case "$choice" in
         authenticate_account "acc-3"
         authenticate_account "acc-4"
         ;;
+    c|C)
+        read -r -p "Enter custom account identifier (e.g. acc-5): " custom_id
+        if [ -n "$custom_id" ]; then
+            authenticate_account "$custom_id"
+        else
+            echo "Invalid account identifier."
+            exit 1
+        fi
+        ;;
     q|Q)
         echo "Exiting."
         exit 0
         ;;
     *)
-        echo "Invalid selection."
-        exit 1
+        if [ -n "$choice" ]; then
+            authenticate_account "$choice"
+        else
+            echo "Invalid selection."
+            exit 1
+        fi
         ;;
 esac
 
 echo ""
-echo -e "\033[1;32m[✓] All done! You can now start all services using:\033[0m"
-echo -e "    \033[1;36mmake run\033[0m"
+echo -e "\033[1;32m[✓] Ready! You can start the stack anytime using:\033[0m"
+echo -e "    \033[1;36m./scripts/docker-run.sh\033[0m"

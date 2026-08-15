@@ -1,44 +1,60 @@
-# REST API Specification
+# API Specification - GravWatch
 
-All endpoints are served under the base prefix: `/api/v1`
+## 🌐 Language
+
+<a href="API_SPEC.md">🇬🇧 English</a> · <a href="API_SPEC_AR.md">🇸🇦 العربية</a>
+
+---
+
+> Applies to **v2.0.0** and later. Base path: `/api/v1`
+
+---
+
+## 📋 Table of Contents
+
+- [Authentication & Headers](#authentication)
+- [Ingestion Endpoints](#ingestion)
+- [Query & Aggregation Endpoints](#query)
+- [Diagnostic Endpoints](#diagnostics)
+- [Model Identifiers](#models)
 
 ---
 
 <a id="authentication"></a>
-## 🔐 1. Authentication
+## 🔐 1. Authentication & Headers
 
-| Target | Auth Type | Header |
+| Endpoint Target | Auth Type | Required Header |
 |---|---|---|
-| Ingestion Endpoints (`/usage`) | API Key | `X-Agent-Key: <AGENT_API_KEY>` |
-| Diagnostic Endpoints | Open / Master Key | Optional `Authorization: Bearer <MASTER_KEY>` |
+| Ingestion (`POST /api/v1/usage`) | Shared Secret | `X-Agent-Key: <AGENT_API_KEY>` |
+| Diagnostic / Query | Open / Public | None |
 
 ---
 
-<a id="ingestion-endpoints"></a>
+<a id="ingestion"></a>
 ## 📥 2. Ingestion Endpoints
 
 ### `POST /api/v1/usage`
-Ingests telemetry snapshot from containerized agents (`services/agent`).
+Receives a point-in-time quota telemetry snapshot from an isolated container agent.
 
-**Request Headers:**
+**Headers:**
 ```http
 Content-Type: application/json
 X-Agent-Key: gravwatch-agent-secret-key
 ```
 
-**Request Body:**
+**Payload Schema (`UsageIngestRequest`):**
 ```json
 {
   "account_id": "acc-1",
   "account_label": "Account 1 (Primary)",
-  "email": "developer@corp.ai",
+  "email": "developer@corp.dev",
   "tier": "Pro Developer",
   "status": "healthy",
   "timestamp": "2026-08-15T03:30:00Z",
   "models": [
     {
-      "model_id": "gemini-3.5-flash",
-      "model_name": "Gemini 3.5 Flash",
+      "model_id": "gemini-flash",
+      "model_name": "Gemini Flash",
       "used": 140,
       "limit": 1000,
       "percentage": 14.0,
@@ -50,7 +66,7 @@ X-Agent-Key: gravwatch-agent-secret-key
 }
 ```
 
-**Response (201 Created):**
+**Response (`201 Created`):**
 ```json
 {
   "success": true,
@@ -60,51 +76,84 @@ X-Agent-Key: gravwatch-agent-secret-key
 
 ---
 
-<a id="query-endpoints"></a>
-## 📤 3. Query Endpoints
+<a id="query"></a>
+## 📤 3. Query & Aggregation Endpoints
 
 ### `GET /api/v1/usage/latest`
-Fetches the latest status and model quotas across all registered accounts, including the aggregated pool.
+Fetches the latest registered status of every account alongside the calculated multi-account pooled capacity.
 
-**Response (200 OK):**
+**Response (`200 OK` - `LatestUsageResponse`):**
 ```json
 {
   "timestamp": "2026-08-15T03:30:00Z",
   "pool_summary": {
-    "total_accounts": 4,
-    "online_accounts": 4,
+    "total_accounts": 3,
+    "online_accounts": 3,
     "total_requests_used": 1830,
     "total_requests_limit": 4000,
     "overall_percentage": 45.8,
     "model_summaries": [
       {
-        "model_id": "gemini-3.5-flash",
-        "model_name": "Gemini 3.5 Flash",
+        "model_id": "gemini-flash",
+        "model_name": "Gemini Flash",
         "total_used": 1830,
         "total_limit": 4000,
         "pool_percentage": 45.8,
-        "active_accounts_count": 4
+        "active_accounts_count": 3
       }
     ]
   },
-  "accounts": [ ... ]
+  "accounts": [
+    {
+      "id": "acc-1",
+      "label": "Account 1",
+      "email": "developer@corp.dev",
+      "tier": "Pro Developer",
+      "status": "healthy",
+      "last_seen_at": "2026-08-15T03:30:00Z",
+      "models": [ ... ]
+    }
+  ]
 }
 ```
 
 ### `GET /api/v1/usage/history`
-Returns time-series data for charting.
+Returns chronological snapshot metrics for time-series charts.
 
-**Parameters:**
+**Query Parameters:**
 - `account_id` (optional string): Filter to a specific account.
-- `range` (string): `1h`, `24h`, `7d`, `30d` (default: `24h`).
+- `range` (string, default `24h`): `1h`, `24h`, `7d`, `30d`.
+
+### `GET /api/v1/accounts`
+Lists registered accounts and metadata.
 
 ---
 
-<a id="diagnostics-and-testing"></a>
-## 🛠️ 4. Diagnostics & Testing
+<a id="diagnostics"></a>
+## 🛠️ 4. Diagnostic Endpoints
 
-### `POST /api/v1/accounts/test-alert`
-Sends a test webhook to the configured Discord channel.
+### `GET /api/v1/health`
+Liveness probe.
+```json
+{
+  "status": "healthy",
+  "service": "gravwatch-server",
+  "version": "2.0.0"
+}
+```
+
+---
+
+<a id="models"></a>
+## 🤖 5. Supported Antigravity Model Identifiers
+
+| Canonical Name | Model Identifier | Default Metric Unit |
+|---|---|---|
+| **Gemini Flash** | `gemini-flash` | Requests / Day |
+| **Gemini Pro** | `gemini-pro` | Requests / Day |
+| **Claude Sonnet** | `claude-sonnet` | Requests / Day |
+| **Claude Opus** | `claude-opus` | Requests / Day |
+| **GPT OSS** | `gpt-oss` | Requests / Day |
 
 ---
 
@@ -113,6 +162,6 @@ Sends a test webhook to the configured Discord channel.
 Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [Back to README](../README.md)
 
-<sub>&copy; 2026 GravWatch (shadow-x78)</sub>
+<sub>&copy; 2026 GravWatch</sub>
 
 </div>

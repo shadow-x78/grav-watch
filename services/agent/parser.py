@@ -13,6 +13,23 @@ def clean_ansi(text: str) -> str:
     return ANSI_PATTERN.sub('', text)
 
 
+def normalize_model_name(raw_name: str) -> tuple[str, str]:
+    lower = raw_name.lower().strip()
+    if "flash" in lower:
+        return "gemini-flash", "Gemini Flash"
+    elif "pro" in lower and "gemini" in lower:
+        return "gemini-pro", "Gemini Pro"
+    elif "sonnet" in lower:
+        return "claude-sonnet", "Claude Sonnet"
+    elif "opus" in lower:
+        return "claude-opus", "Claude Opus"
+    elif "gpt" in lower or "oss" in lower:
+        return "gpt-oss", "GPT OSS"
+    else:
+        clean_id = re.sub(r"[^a-z0-9]+", "-", lower).strip("-")
+        return clean_id, raw_name.strip()
+
+
 def parse_agy_output(raw_text: str, account_id: str = "acc-1", account_label: str = "Account 1") -> dict:
     clean_text = clean_ansi(raw_text)
 
@@ -42,7 +59,7 @@ def parse_agy_output(raw_text: str, account_id: str = "acc-1", account_label: st
         if "|" in line or "│" in line:
             parts = [p.strip() for p in re.split(r"[|│]", line) if p.strip()]
             if len(parts) >= 4 and not any(h in parts[0].lower() for h in ["model name", "model", "---"]):
-                model_name = parts[0]
+                raw_model_name = parts[0]
                 rpm_info = parts[1]
                 daily_info = parts[2]
                 resets_in = parts[3]
@@ -60,11 +77,11 @@ def parse_agy_output(raw_text: str, account_id: str = "acc-1", account_label: st
                 elif limit > 0:
                     percentage = round((used / limit) * 100, 1)
 
-                model_id = model_name.lower().replace(" ", "-").replace(".", "-")
+                model_id, canonical_name = normalize_model_name(raw_model_name)
 
                 models.append({
                     "model_id": model_id,
-                    "model_name": model_name,
+                    "model_name": canonical_name,
                     "used": used,
                     "limit": limit,
                     "percentage": min(percentage, 100.0),
@@ -92,10 +109,11 @@ def generate_mock_models(account_id: str) -> list[dict]:
     random.seed(seed_offset + int(datetime.now().timestamp() // 300))
 
     specs = [
-        ("gemini-3.5-flash", "Gemini 3.5 Flash", 1000, 120, 850, "03h 45m"),
-        ("gemini-3.5-pro", "Gemini 3.5 Pro", 50, 5, 45, "03h 45m"),
-        ("claude-sonnet-4.6", "Claude Sonnet 4.6", 200, 20, 180, "08h 15m"),
-        ("deepseek-r1", "DeepSeek R1", 500, 40, 420, "01h 10m")
+        ("gemini-flash", "Gemini Flash", 1000, 120, 850, "03h 45m"),
+        ("gemini-pro", "Gemini Pro", 100, 10, 80, "03h 45m"),
+        ("claude-sonnet", "Claude Sonnet", 200, 20, 180, "08h 15m"),
+        ("claude-opus", "Claude Opus", 50, 5, 45, "08h 15m"),
+        ("gpt-oss", "GPT OSS", 500, 40, 420, "01h 10m")
     ]
 
     result = []

@@ -6,7 +6,7 @@
 
 Multi-account Google Antigravity CLI quota monitoring & telemetry engine - isolated containers & centralized API
 
-[![Version](https://img.shields.io/badge/version-1.0.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.0.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python)
 ![FastAPI](https://img.shields.io/badge/fastapi-0.109%2B-009688?style=flat-square&logo=fastapi)
@@ -31,6 +31,7 @@ Multi-account Google Antigravity CLI quota monitoring & telemetry engine - isola
 - [Status](#status)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
+- [Clients Ecosystem](#clients-ecosystem)
 - [Architecture](#architecture)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
@@ -41,9 +42,9 @@ Multi-account Google Antigravity CLI quota monitoring & telemetry engine - isola
 <a id="what-is-gravwatch"></a>
 ## 🤔 What is GravWatch?
 
-**GravWatch** is a lightweight, distributed telemetry and quota aggregation engine built specifically for the **Google Antigravity CLI (`agy`)**. It runs up to **4 isolated Google accounts concurrently** inside minimal headless Docker containers (`debian:bookworm-slim`, capped at ~256MB RAM per container) to completely eliminate OAuth session conflicts.
+**GravWatch** is a lightweight, distributed telemetry and quota aggregation engine built specifically for the **Google Antigravity CLI (`agy`)**. It runs multiple isolated Google accounts concurrently inside minimal headless Docker containers (`debian:bookworm-slim`, capped at ~256MB RAM per container) to completely eliminate OAuth session conflicts.
 
-Each containerized agent periodically parses quota metrics and streams telemetry to a central **FastAPI** hub, calculating pooled capacity across all developer accounts and dispatching automated **Discord Webhook** alerts when quotas reach capacity limits.
+Each containerized agent periodically parses quota metrics for **Gemini Flash, Gemini Pro, Claude Sonnet, Claude Opus, and GPT OSS**, and streams telemetry to a central **FastAPI** hub, calculating pooled capacity across all developer accounts in real time.
 
 ---
 
@@ -54,8 +55,8 @@ Each containerized agent periodically parses quota metrics and streams telemetry
 |---------|---------------------|-----------|
 | **OAuth Session Collisions** | ❌ Switching accounts locally overwrites tokens | ✅ Strict process & volume isolation per container (`./data/acc-X`) |
 | **Resource Overhead** | ❌ Heavy VMs consuming 4GB+ RAM | ✅ Ultra-light Debian slim containers (256MB RAM & 0.25 vCPU cap) |
-| **Fragmented Visibility** | ❌ Checking quotas one by one in terminal | ✅ Unified pooled capacity across all 4 developer accounts |
-| **Quota Depletion Surprises** | ❌ Discovering quota exhaustion during live coding | ✅ Automated Discord alerts triggered at $\ge 85\%$ threshold |
+| **Fragmented Visibility** | ❌ Checking quotas one by one in terminal | ✅ Unified pooled capacity across all active developer accounts |
+| **Model Tracking Limits** | ❌ Manual estimation of model quotas | ✅ Automated parsing for Gemini Flash, Gemini Pro, Claude Sonnet, Claude Opus, and GPT OSS |
 | **Zero Maintenance** | ❌ Complex setups requiring desktop GUIs | ✅ Headless terminal-first daemon running in background |
 
 ---
@@ -63,11 +64,10 @@ Each containerized agent periodically parses quota metrics and streams telemetry
 <a id="highlights"></a>
 ## ✨ Highlights
 
-- 🔒 **Zero Token Collisions**: True multi-account isolation with persistent Docker volume mounts.
+- 🔒 **Zero Token Collisions**: True multi-account isolation with persistent Docker volume mounts for arbitrary $N$ accounts.
 - ⚡ **Minimal Footprint**: Strict memory limits (`256MB RAM`) and CPU caps (`0.25 vCPU`) per container node.
-- 🤖 **Smart Telemetry Parser**: Resilient parser supporting ANSI terminal tables, JSON flags, and dev simulation.
-- 📊 **Aggregated Quota Pool**: Calculates pooled requests, limits, and combined utilization percentage across all accounts for Gemini Flash, Gemini Pro, Claude Sonnet, and DeepSeek.
-- 🚨 **Automated Discord Alerts**: Dispatches rich embed alerts whenever any model quota hits $\ge 85\%$.
+- 🤖 **Smart Telemetry Parser**: Resilient parser tracking Gemini Flash, Gemini Pro, Claude Sonnet, Claude Opus, and GPT OSS.
+- 📊 **Aggregated Quota Pool**: Calculates pooled requests, limits, and combined utilization percentage across all accounts.
 - 🚀 **REST API Hub**: FastAPI async backend providing real-time telemetry endpoints and interactive Swagger docs.
 
 ---
@@ -80,27 +80,26 @@ Each containerized agent periodically parses quota metrics and streams telemetry
 | **Account Isolation** | Docker Compose (`debian:bookworm-slim`) | Multi-account token sandboxing | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **Agent Collector** | Python 3.11 (`subprocess` + `requests`) | Headless quota daemon | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **API Server** | FastAPI + SQLAlchemy (Async) | Central telemetry ingestion hub | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
+| **Web Dashboard** | Vanilla JS + Modern CSS Tokens | Browser telemetry visualization | ![Coming Soon](https://img.shields.io/badge/status-coming_soon-f59e0b?style=flat-square) |
+| **Android App** | Jetpack Compose + Material 3 | Mobile quota monitoring client | ![Coming Soon](https://img.shields.io/badge/status-coming_soon-f59e0b?style=flat-square) |
 
 ---
 
 <a id="quick-start"></a>
 ## ⚡ Quick Start
 
-### 1. Clone & Configure
 ```bash
-git clone https://github.com/shadow-x78/grav-watch.git
-cd grav-watch
+# Clone the repository
+git clone https://github.com/shadow-x78/grav-watch.git ~/GravWatch
+cd ~/GravWatch
+
+# Configure environment
 cp .env.example .env
-```
 
-### 2. Interactive OAuth Authentication
-Authenticate your 4 accounts sequentially using the interactive terminal helper:
-```bash
+# Interactive OAuth account pairing assistant
 ./scripts/setup-auth.sh
-```
 
-### 3. Launch Entire Stack
-```bash
+# Start the multi-account stack
 ./scripts/docker-run.sh
 ```
 
@@ -111,46 +110,77 @@ Authenticate your 4 accounts sequentially using the interactive terminal helper:
 ---
 
 <a id="commands"></a>
-## 💻 Commands
+## ⌨️ Commands
 
-| Action | Command | Description |
-|---|---|---|
-| **Setup Dev Environment** | `./scripts/setup-dev-env.sh` | Install Python dependencies for server & agent |
-| **Run Test Suite** | `./scripts/run-tests.sh` | Execute all unit and integration test suites |
-| **Authenticate Accounts** | `./scripts/setup-auth.sh` | Interactive Google OAuth account pairing assistant |
-| **Start Stack** | `./scripts/docker-run.sh` | Build and start all containers via Docker Compose |
-| **Stop Stack** | `docker compose -f packaging/docker/docker-compose.yml down` | Stop all running containers |
-| **Check Status** | `docker compose -f packaging/docker/docker-compose.yml ps` | Inspect status of all containers |
-| **Stream Logs** | `docker compose -f packaging/docker/docker-compose.yml logs -f` | View container logs in real time |
+| Command | Description |
+|---------|-------------|
+| `./scripts/setup-dev-env.sh` | Install local Python dependencies for server & agent |
+| `./scripts/run-tests.sh` | Run all unit and integration test suites |
+| `./scripts/setup-auth.sh` | Interactive Google OAuth account pairing assistant |
+| `./scripts/docker-run.sh` | Build and start all containers via Docker Compose |
+| `docker compose -f packaging/docker/docker-compose.yml ps` | Check container statuses |
+| `docker compose -f packaging/docker/docker-compose.yml logs -f` | Stream container logs in real time |
+| `docker compose -f packaging/docker/docker-compose.yml down` | Stop all running containers |
+
+```bash
+docker compose -f packaging/docker/docker-compose.yml logs -f server
+```
+
+---
+
+<a id="clients-ecosystem"></a>
+## 🖥️ Clients Ecosystem
+
+### 🖥️ Web Dashboard *(Coming Soon)*
+A lightweight browser dashboard visualizing live telemetry metrics, account states, and pooled model utilization without requiring external build tools.
+
+### 📱 Android App *(Coming Soon)*
+A native **Material 3 + Jetpack Compose** companion app for Android tablets and smartphones, connecting directly to the GravWatch API hub with quick glance widgets and status cards.
 
 ---
 
 <a id="architecture"></a>
-## 🏛️ Architecture
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────── Docker Host ───────────────────────────────┐
-│                                                                           │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐  ┌─────────────┐ │
-│  │ container-01  │  │ container-02  │  │ container-03  │  │ container-04│ │
-│  │ Debian slim   │  │ Debian slim   │  │ Debian slim   │  │ Debian slim │ │
-│  │ 256MB RAM max │  │ 256MB RAM max │  │ 256MB RAM max │  │ 256MB RAM   │ │
-│  │ agy (Acc 1)   │  │ agy (Acc 2)   │  │ agy (Acc 3)   │  │ agy (Acc 4) │ │
-│  │ agent-daemon  │  │ agent-daemon  │  │ agent-daemon  │  │ agent-daemon│ │
-│  └───────┬───────┘  └───────┬───────┘  └───────┬───────┘  └──────┬──────┘ │
-│          │  HTTP POST /api/v1/usage (with X-Agent-Key header)     │       │
-│          └───────────────────┴───────────────────┴────────────────┘       │
-│                                     ▼                                     │
-│                        ┌─────────────────────────┐                        │
-│                        │   gravwatch-server      │                        │
-│                        │   (FastAPI + SQLite/PG) │                        │
-│                        └───────────┬─────────────┘                        │
-│                                    │                                      │
-│                        ┌───────────┴─────────────┐                        │
-│                        │  Discord Alert Engine   │                        │
-│                        │  (Webhook at ≥ 85%)     │                        │
-│                        └─────────────────────────┘                        │
+grav-watch/
+├── services/
+│   ├── server/                 # FastAPI hub, SQLAlchemy models, database
+│   └── agent/                  # container quota daemon & CLI output parser
+├── clients/
+│   ├── web/                    # upcoming browser telemetry dashboard
+│   └── android/                # upcoming native Material 3 Compose app
+├── packaging/
+│   └── docker/                 # Docker Compose, Dockerfiles, entrypoint.sh
+├── data/                       # brand vector and raster identities
+├── docs/                       # complete bilingual documentation
+├── scripts/                    # setup, testing, auth, install, and launch scripts
+├── tests/                      # unit and integration test suites
+├── .github/                    # CI workflows, templates, dependabot
+├── .editorconfig, .gitignore, .gitattributes
+├── .env.example                # master environment template
+├── pyproject.toml              # PEP 621 package metadata
+└── README.md, README_AR.md, CONTRIBUTING.md, CHANGELOG.md, SECURITY.md, LICENSE
+```
+
+```
+┌───────────────────────────────────────────────────────────────────────────┐
+│  gravwatch-server (FastAPI async hub, port 8000)                          │
+│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐                │
+│  │ models.py    │  │ config.py    │  │ pool aggregator   │                │
+│  │ SQLAlchemy   │  │ pydantic     │  │ multi-account sum │                │
+│  └──────────────┘  └──────────────┘  └───────────────────┘                │
+│  ┌───────────────────────────────────────────────────────┐                │
+│  │ Central REST API Engine (/api/v1/usage, /latest)      │                │
+│  └───────────────────────────────────────────────────────┘                │
 └───────────────────────────────────────────────────────────────────────────┘
+       ▲                  ▲                    ▲                    ▲
+       │                  │                    │                    │
+┌──────┴──────┐    ┌──────┴──────┐      ┌──────┴──────┐      ┌──────┴──────┐
+│ container-01│    │ container-02│      │ container-03│      │ container-N │
+│ acc-1       │    │ acc-2       │      │ acc-3       │      │ acc-N       │
+│ agy agent   │    │ agy agent   │      │ agy agent   │      │ agy agent   │
+└─────────────┘    └─────────────┘      └─────────────┘      └─────────────┘
 ```
 
 ---
@@ -158,34 +188,53 @@ Authenticate your 4 accounts sequentially using the interactive terminal helper:
 <a id="documentation"></a>
 ## 📚 Documentation
 
-| English Guide | Arabic Guide | Subject |
-|---|---|---|
-| [System Architecture](docs/ARCHITECTURE.md) | [البنية المعمارية](docs/ARCHITECTURE_AR.md) | Distributed design & container isolation |
-| [Installation & Deployment](docs/INSTALL.md) | [دليل التثبيت والتشغيل](docs/INSTALL_AR.md) | Full setup, requirements & production steps |
-| [Packaging & Containers](docs/PACKAGING.md) | [دليل الحزم والمواصفات](docs/PACKAGING_AR.md) | Memory caps & persistent volume mounts |
-| [Troubleshooting Guide](docs/TROUBLESHOOTING.md) | [دليل حل المشاكل](docs/TROUBLESHOOTING_AR.md) | Auth recovery, diagnostics & alerts |
-| [REST API Specification](docs/API_SPEC.md) | [مواصفات الـ API](docs/API_SPEC_AR.md) | Endpoints, payloads & schemas |
+| Document | Description |
+|----------|-------------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [AR](docs/ARCHITECTURE_AR.md) | System topology, telemetry ingestion & multi-account container isolation |
+| [docs/INSTALL.md](docs/INSTALL.md) · [AR](docs/INSTALL_AR.md) | Multi-account container setup, OAuth pairing & quick start |
+| [docs/PACKAGING.md](docs/PACKAGING.md) · [AR](docs/PACKAGING_AR.md) | Container specifications, resource quotas & volume isolation |
+| [docs/API_SPEC.md](docs/API_SPEC.md) · [AR](docs/API_SPEC_AR.md) | REST API endpoints, JSON payloads & model contracts |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) · [AR](docs/TROUBLESHOOTING_AR.md) | Auth tokens recovery, network diagnostics & container issues |
+| [SECURITY.md](SECURITY.md) | Security model, token isolation & vulnerability reporting |
+| [CHANGELOG.md](CHANGELOG.md) | Full release history |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Guidelines for contributing and code conventions |
 
 ---
 
 <a id="contributing"></a>
 ## 🤝 Contributing
 
-Contributions are warmly welcomed! Please read our [Contributing Guide](CONTRIBUTING.md) before submitting pull requests.
+Please read our [Contributing Guidelines](CONTRIBUTING.md) for details on how to set up the development environment, format your code, and submit Pull Requests.
+
+When committing, follow the convention:
+
+```text
+grav-watch | <scope>: <message>
+```
+
+For example:
+
+```text
+grav-watch | parser | regex: support gpt oss table layout
+grav-watch | docs | readme: clarify OAuth token persistence
+grav-watch | v2.0.0 | release: major production release
+```
 
 ---
 
 <a id="license"></a>
 ## 📜 License
 
-This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for details.
+Distributed under the [GPL-3.0 License](LICENSE).
 
 ---
 
 <div align="center">
 
-Built by <a href="https://github.com/shadow-x78">shadow-x78</a>
+Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+[Changelog](CHANGELOG.md) ·
+[Security](SECURITY.md)
 
-<sub>&copy; 2026 GravWatch (shadow-x78)</sub>
+<sub>&copy; 2026 GravWatch</sub>
 
 </div>

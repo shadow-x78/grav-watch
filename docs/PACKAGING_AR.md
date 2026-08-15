@@ -1,47 +1,84 @@
-# دليل الحزم ومواصفات الحاويات
+# مواصفات الحزم والحاويات - GravWatch
 
-يوضح هذا المستند معايير عزل الحاويات، حدود الموارد، وآليات التخزين الدائم في نظام **GravWatch**.
+## 🌐 اللغة
+
+<a href="PACKAGING.md">🇬🇧 English</a> · <a href="PACKAGING_AR.md">🇸🇦 العربية</a>
 
 ---
 
-<a id="عزل-الحاويات"></a>
-## 📦 1. استراتيجية عزل الحاويات
+> يسري هذا التوثيق على الإصدار **v2.0.0** فما فوق.
 
-يتم تشغيل كل حساب Antigravity داخل بيئة Debian مستقلة:
+يقوم نظام GravWatch بتجميع خدمات جمع الكوتا والخادم المركزي في حاويات Docker معزولة ومحمية لضمان عدم تعارض جلسات توثيق Google OAuth نهائياً وتقليل استهلاك موارد الجهاز المضيف.
 
-```yaml
-services:
-  acc-1:
-    build:
-      context: ../..
-      dockerfile: packaging/docker/Dockerfile.agent
-    mem_limit: 256m
-    cpus: 0.25
-    volumes:
-      - ../../data/acc-1:/root/.gemini
-      - ../../data/acc-1-agent:/root/.antigravity-agent
+---
+
+## 📦 معمارية الحاويات ونموذج العزل
+
+يتم عزل كل حساب Antigravity CLI داخل حاوية مستقلة تماماً:
+
+```
+مجلدات الجهاز المضيف (data/)
+├── acc-1/  ──(ربط مجلد: chmod 700)──►  حاوية acc-1 (/root/.gemini)
+├── acc-2/  ──(ربط مجلد: chmod 700)──►  حاوية acc-2 (/root/.gemini)
+├── acc-3/  ──(ربط مجلد: chmod 700)──►  حاوية acc-3 (/root/.gemini)
+├── acc-N/  ──(ربط مجلد: chmod 700)──►  حاوية acc-N (/root/.gemini)
+└── server/ ──(ربط مجلد)─────────────►  حاوية server (/app/data)
 ```
 
 ---
 
-<a id="حدود-الموارد"></a>
-## ⚡ 2. قيود الموارد والأداء
+## ⚡ مواصفات قيود الموارد (Resource Quotas)
 
-| الخدمة | سقف الذاكرة | سقف المعالج | الوظيفة |
-|---|---|---|---|
-| `server` | بدون قيود | بدون قيود | خادم FastAPI المركزي وقاعدة البيانات |
-| `acc-1` | 256 MB | 0.25 vCPU | جامع الكوتا للحساب الأساسي الأول |
-| `acc-2` | 256 MB | 0.25 vCPU | جامع الكوتا لحساب العمل الثاني |
-| `acc-3` | 256 MB | 0.25 vCPU | جامع الكوتا لحساب العمل الثالث |
-| `acc-4` | 256 MB | 0.25 vCPU | جامع الكوتا لحساب العمل الرابع |
+يتم فرض حدود صارمة على الموارد عبر Docker Compose للحفاظ على خفة النظام:
+
+| الحاوية | الصورة الأساسية | سقف الذاكرة | سقف المعالج | الأمان ومجلدات التخزين |
+|---|---|---|---|---|
+| `gravwatch-server` | `python:3.11-slim-bookworm` | بدون قيود (مشترك) | بدون قيود | تخزين دائم لقاعدة البيانات في `./data/server` |
+| `gravwatch-acc-1` | `python:3.11-slim-bookworm` | `256m` (حد أقصى) | `0.25 vCPU` | مجلد معزول `./data/acc-1` (chmod 700) |
+| `gravwatch-acc-2` | `python:3.11-slim-bookworm` | `256m` (حد أقصى) | `0.25 vCPU` | مجلد معزول `./data/acc-2` (chmod 700) |
+| `gravwatch-acc-3` | `python:3.11-slim-bookworm` | `256m` (حد أقصى) | `0.25 vCPU` | مجلد معزول `./data/acc-3` (chmod 700) |
+| `gravwatch-acc-N` | `python:3.11-slim-bookworm` | `256m` (حد أقصى) | `0.25 vCPU` | مجلد معزول `./data/acc-N` (chmod 700) |
+
+إجمالي استهلاك كل حاوية عاملة يظل محكوماً بـ **256 ميجابايت RAM** و **0.25 معالج vCPU**.
+
+---
+
+## 🔨 بناء الحاويات محلياً
+
+### 1. بناء حاوية الخادم المركزي
+```bash
+docker build -t gravwatch-server:latest -f packaging/docker/Dockerfile.server .
+```
+
+### 2. بناء حاوية جامع الكوتا (Agent)
+```bash
+docker build -t gravwatch-agent:latest -f packaging/docker/Dockerfile.agent .
+```
+
+### 3. بناء جميع الحاويات عبر Docker Compose
+```bash
+docker compose -f packaging/docker/docker-compose.yml build --no-cache
+```
+
+---
+
+## 🔒 تصاريح المجلدات والأمان
+
+يجب حماية مجلدات الحسابات بحيث لا يمكن قراءة توكنات التوثيق إلا من قبل الحاوية المعنية:
+
+```bash
+chmod 700 data/acc-1 data/acc-2 data/acc-3 data/acc-N
+```
+
+يقوم سكربت `./scripts/setup-auth.sh` بإنشاء وتعيين هذه التصاريح تلقائياً قبل بدء تسجيل الدخول.
 
 ---
 
 <div align="center">
 
-Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [العودة إلى README](../README_AR.md)
 
-<sub>&copy; 2026 GravWatch (shadow-x78)</sub>
+<sub>&copy; 2026 GravWatch</sub>
 
 </div>

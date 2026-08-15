@@ -66,6 +66,6 @@ If you discover a security vulnerability in GravWatch, please report it **respon
 Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [Back to README](README.md)
 
-<sub>&copy; 2026 GravWatch (shadow-x78)</sub>
+<sub>&copy; 2026 GravWatch</sub>
 
 </div>

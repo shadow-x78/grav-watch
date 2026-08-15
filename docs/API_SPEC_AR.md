@@ -1,16 +1,32 @@
-# مواصفات واجهة الـ API البرمجية
+# مواصفات واجهة الـ API البرمجية - GravWatch
 
-جميع نقاط النهاية تعمل تحت المسار الأساسي: `/api/v1`
+## 🌐 اللغة
+
+<a href="API_SPEC.md">🇬🇧 English</a> · <a href="API_SPEC_AR.md">🇸🇦 العربية</a>
 
 ---
 
-<a id="التوثيق-والأمان"></a>
-## 🔐 1. التوثيق والأمان
+> يسري هذا التوثيق على الإصدار **v2.0.0** فما فوق. المسار الأساسي: `/api/v1`
+
+---
+
+## 📋 جدول المحتويات
+
+- [التوثيق والترويسات](#التوثيق-والترويسات)
+- [نقاط استقبال البيانات](#نقاط-الاستقبال)
+- [نقاط الاستعلام والسعة المجمعة](#نقاط-الاستعلام)
+- [نقاط الفحص والتشخيص](#نقاط-الفحص)
+- [معرفات النماذج المعتمدة](#معرفات-النماذج)
+
+---
+
+<a id="التوثيق-والترويسات"></a>
+## 🔐 1. التوثيق والترويسات المطلوبة
 
 | الهدف | نوع التوثيق | الـ Header المطلوب |
 |---|---|---|
-| استقبال البيانات (`/usage`) | مفتاح الـ Agent | `X-Agent-Key: <AGENT_API_KEY>` |
-| نقاط التشخيص والعرض | عام / Master Key | اختياري `Authorization: Bearer <MASTER_KEY>` |
+| استقبال البيانات (`POST /api/v1/usage`) | مفتاح سري مشترك | `X-Agent-Key: <AGENT_API_KEY>` |
+| الاستعلام والفحص | عام / مفتوح | بدون |
 
 ---
 
@@ -18,9 +34,9 @@
 ## 📥 2. نقاط استقبال البيانات (Ingestion)
 
 ### `POST /api/v1/usage`
-استقبال لقطة الكوتا من أي حاوية عاملة (`services/agent`).
+استقبال لقطة الكوتا من أي حاوية عاملة.
 
-**Headers الطلب:**
+**الترويسات:**
 ```http
 Content-Type: application/json
 X-Agent-Key: gravwatch-agent-secret-key
@@ -30,15 +46,15 @@ X-Agent-Key: gravwatch-agent-secret-key
 ```json
 {
   "account_id": "acc-1",
-  "account_label": "Account 1 (Primary)",
-  "email": "dev1@corp.ai",
+  "account_label": "Account 1",
+  "email": "developer@corp.dev",
   "tier": "Pro Developer",
   "status": "healthy",
   "timestamp": "2026-08-15T03:30:00Z",
   "models": [
     {
-      "model_id": "gemini-3.5-flash",
-      "model_name": "Gemini 3.5 Flash",
+      "model_id": "gemini-flash",
+      "model_name": "Gemini Flash",
       "used": 140,
       "limit": 1000,
       "percentage": 14.0,
@@ -50,13 +66,46 @@ X-Agent-Key: gravwatch-agent-secret-key
 }
 ```
 
+**الاستجابة (`201 Created`):**
+```json
+{
+  "success": true,
+  "message": "Recorded telemetry for acc-1"
+}
+```
+
 ---
 
 <a id="نقاط-الاستعلام"></a>
-## 📤 3. نقاط الاستعلام والعرض
+## 📤 3. نقاط الاستعلام والسعة المجمعة
 
 ### `GET /api/v1/usage/latest`
-جلب أحدث بيانات الكوتا لجميع الحسابات مع السعة التراكمية المجمعة (Pool Summary).
+جلب أحدث بيانات الحسابات المسجلة وحساب السعة التراكمية الإجمالية لكافة الحسابات.
+
+**الاستجابة (`200 OK`):**
+```json
+{
+  "timestamp": "2026-08-15T03:30:00Z",
+  "pool_summary": {
+    "total_accounts": 3,
+    "online_accounts": 3,
+    "total_requests_used": 1830,
+    "total_requests_limit": 4000,
+    "overall_percentage": 45.8,
+    "model_summaries": [
+      {
+        "model_id": "gemini-flash",
+        "model_name": "Gemini Flash",
+        "total_used": 1830,
+        "total_limit": 4000,
+        "pool_percentage": 45.8,
+        "active_accounts_count": 3
+      }
+    ]
+  },
+  "accounts": [ ... ]
+}
+```
 
 ### `GET /api/v1/usage/history`
 جلب السجل الزمني للنقاط لرسم المخططات البيانية.
@@ -65,19 +114,39 @@ X-Agent-Key: gravwatch-agent-secret-key
 
 ---
 
-<a id="الفحص-والتنبيهات"></a>
-## 🛠️ 4. الفحص والتنبيهات
+<a id="نقاط-الفحص"></a>
+## 🛠️ 4. نقاط الفحص والتشخيص
 
-### `POST /api/v1/accounts/test-alert`
-إرسال تنبيه تجريبي مباشر إلى سيرفر ديسكورد للتأكد من عمل الـ Webhook.
+### `GET /api/v1/health`
+فحص جاهزية الخادم.
+```json
+{
+  "status": "healthy",
+  "service": "gravwatch-server",
+  "version": "2.0.0"
+}
+```
+
+---
+
+<a id="معرفات-النماذج"></a>
+## 🤖 5. معرفات موديلات Antigravity المعتمدة
+
+| الاسم المعتمد | معرف النموذج (ID) | وحدة القياس |
+|---|---|---|
+| **Gemini Flash** | `gemini-flash` | طلبات يومياً |
+| **Gemini Pro** | `gemini-pro` | طلبات يومياً |
+| **Claude Sonnet** | `claude-sonnet` | طلبات يومياً |
+| **Claude Opus** | `claude-opus` | طلبات يومياً |
+| **GPT OSS** | `gpt-oss` | طلبات يومياً |
 
 ---
 
 <div align="center">
 
-Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
 [العودة إلى README](../README_AR.md)
 
-<sub>&copy; 2026 GravWatch (shadow-x78)</sub>
+<sub>&copy; 2026 GravWatch</sub>
 
 </div>

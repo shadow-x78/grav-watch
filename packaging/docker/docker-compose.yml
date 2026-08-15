@@ -1,10 +1,7 @@
-# GravWatch - Multi-Account Container Stack (GPL-3.0-or-later)
+# GravWatch Multi-Account Container Stack (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 services:
-  # ==========================================
-  # GravWatch Central API Server
-  # ==========================================
   server:
     build:
       context: ../..
@@ -12,129 +9,126 @@ services:
     container_name: gravwatch-server
     restart: unless-stopped
     ports:
-      - "8000:8000"
-    env_file:
-      - ../../.env
+      - "${SERVER_PORT:-8000}:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data/gravwatch.db}
-      - AGENT_API_KEY=${AGENT_API_KEY:-gravwatch-agent-secret-key}
-      - MASTER_API_KEY=${MASTER_API_KEY:-gravwatch-master-secret-key}
-      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
-      - ALERT_THRESHOLD_PERCENT=${ALERT_THRESHOLD_PERCENT:-85.0}
+      - AGENT_API_KEY=${AGENT_API_KEY}
+      - MASTER_API_KEY=${MASTER_API_KEY}
     volumes:
       - ../../data/server:/app/data
     networks:
       - gravwatch-net
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
-  # ==========================================
-  # Isolated Account 1 (acc-1 Primary)
-  # ==========================================
   acc-1:
     build:
       context: ../..
       dockerfile: packaging/docker/Dockerfile.agent
     container_name: gravwatch-acc-1
     restart: unless-stopped
-    mem_limit: 256m
-    cpus: 0.25
-    env_file:
-      - ../../.env
+    depends_on:
+      server:
+        condition: service_healthy
     environment:
       - ACCOUNT_ID=acc-1
-      - ACCOUNT_LABEL=Account 1 (Primary)
-      - SERVER_URL=http://server:8000/api/v1/usage
-      - AGENT_API_KEY=${AGENT_API_KEY:-gravwatch-agent-secret-key}
+      - ACCOUNT_LABEL=Account 1
+      - SERVER_URL=http://server:8000
+      - AGENT_API_KEY=${AGENT_API_KEY}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
-      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
+      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-false}
     volumes:
       - ../../data/acc-1:/root/.gemini
       - ../../data/acc-1-agent:/root/.antigravity-agent
-    depends_on:
-      - server
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
     networks:
       - gravwatch-net
 
-  # ==========================================
-  # Isolated Account 2 (acc-2 Worker)
-  # ==========================================
   acc-2:
     build:
       context: ../..
       dockerfile: packaging/docker/Dockerfile.agent
     container_name: gravwatch-acc-2
     restart: unless-stopped
-    mem_limit: 256m
-    cpus: 0.25
-    env_file:
-      - ../../.env
+    depends_on:
+      server:
+        condition: service_healthy
     environment:
       - ACCOUNT_ID=acc-2
-      - ACCOUNT_LABEL=Account 2 (Worker)
-      - SERVER_URL=http://server:8000/api/v1/usage
-      - AGENT_API_KEY=${AGENT_API_KEY:-gravwatch-agent-secret-key}
+      - ACCOUNT_LABEL=Account 2
+      - SERVER_URL=http://server:8000
+      - AGENT_API_KEY=${AGENT_API_KEY}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
-      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
+      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-false}
     volumes:
       - ../../data/acc-2:/root/.gemini
       - ../../data/acc-2-agent:/root/.antigravity-agent
-    depends_on:
-      - server
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
     networks:
       - gravwatch-net
 
-  # ==========================================
-  # Isolated Account 3 (acc-3 Worker)
-  # ==========================================
   acc-3:
     build:
       context: ../..
       dockerfile: packaging/docker/Dockerfile.agent
     container_name: gravwatch-acc-3
     restart: unless-stopped
-    mem_limit: 256m
-    cpus: 0.25
-    env_file:
-      - ../../.env
+    depends_on:
+      server:
+        condition: service_healthy
     environment:
       - ACCOUNT_ID=acc-3
-      - ACCOUNT_LABEL=Account 3 (Worker)
-      - SERVER_URL=http://server:8000/api/v1/usage
-      - AGENT_API_KEY=${AGENT_API_KEY:-gravwatch-agent-secret-key}
+      - ACCOUNT_LABEL=Account 3
+      - SERVER_URL=http://server:8000
+      - AGENT_API_KEY=${AGENT_API_KEY}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
-      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
+      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-false}
     volumes:
       - ../../data/acc-3:/root/.gemini
       - ../../data/acc-3-agent:/root/.antigravity-agent
-    depends_on:
-      - server
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
     networks:
       - gravwatch-net
 
-  # ==========================================
-  # Isolated Account 4 (acc-4 Worker)
-  # ==========================================
   acc-4:
     build:
       context: ../..
       dockerfile: packaging/docker/Dockerfile.agent
     container_name: gravwatch-acc-4
     restart: unless-stopped
-    mem_limit: 256m
-    cpus: 0.25
-    env_file:
-      - ../../.env
+    depends_on:
+      server:
+        condition: service_healthy
     environment:
       - ACCOUNT_ID=acc-4
-      - ACCOUNT_LABEL=Account 4 (Worker)
-      - SERVER_URL=http://server:8000/api/v1/usage
-      - AGENT_API_KEY=${AGENT_API_KEY:-gravwatch-agent-secret-key}
+      - ACCOUNT_LABEL=Account 4
+      - SERVER_URL=http://server:8000
+      - AGENT_API_KEY=${AGENT_API_KEY}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
-      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
+      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-false}
     volumes:
       - ../../data/acc-4:/root/.gemini
       - ../../data/acc-4-agent:/root/.antigravity-agent
-    depends_on:
-      - server
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
     networks:
       - gravwatch-net
 
