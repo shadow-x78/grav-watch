@@ -88,4 +88,4 @@ esac
 
 echo ""
 echo -e "\033[1;32m[✓] Ready! You can start the stack anytime using:\033[0m"
-echo -e "    \033[1;36m./scripts/docker-run.sh\033[0m"
+echo -e "    \033[1;36mdocker compose --env-file .env -f packaging/docker/docker-compose.yml up -d\033[0m"
