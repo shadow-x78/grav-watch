@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from typing import Optional
 
 try:
@@ -333,7 +333,7 @@ async def get_auth_status(db: AsyncSession = Depends(get_db)):
 
 
 @router.delete("/token", status_code=status.HTTP_200_OK)
-async def revoke_auth_token(account_id: str, db: AsyncSession = Depends(get_db)):
+async def revoke_auth_token(account_id: str = Query("acc-1"), db: AsyncSession = Depends(get_db)):
     base_data_dir = settings.DATA_DIR
     creds_path = os.path.join(base_data_dir, account_id, "credentials.json")
     if os.path.exists(creds_path):
@@ -342,11 +342,23 @@ async def revoke_auth_token(account_id: str, db: AsyncSession = Depends(get_db))
         except Exception as e:
             logger.warning(f"Error removing credentials file for {account_id}: {e}")
 
+    # Remove candidate path
+    try:
+        gemini_creds = "/root/.gemini/credentials.json"
+        if os.path.exists(gemini_creds):
+            os.remove(gemini_creds)
+    except Exception:
+        pass
+
     stmt = select(Account).where(Account.id == account_id)
     res = await db.execute(stmt)
     account = res.scalar_one_or_none()
     if account:
         account.status = "unauthenticated"
+        account.email = None
+        
+        # Delete old usage snapshots
+        await db.execute(delete(UsageSnapshot).where(UsageSnapshot.account_id == account_id))
         await db.commit()
 
-    return {"success": True, "message": f"Revoked credentials for {account_id}"}
+    return {"success": True, "message": f"Revoked credentials and reset session for {account_id}"}
