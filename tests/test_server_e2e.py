@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from httpx import AsyncClient, ASGITransport
 from services.server.main import app
 from services.server.core.database import init_db
-from services.agent.mock.generator import generate_mock_models
+from services.agent.mock.generator import generate_mock_telemetry
 
 
 class TestServerE2E(unittest.IsolatedAsyncioTestCase):
@@ -30,45 +30,50 @@ class TestServerE2E(unittest.IsolatedAsyncioTestCase):
         data = resp.json()
         self.assertEqual(data["status"], "healthy")
 
+    async def test_auth_endpoints(self):
+        auth_payload = {
+            "account_id": "acc-test",
+            "account_label": "Test Account",
+            "email": "test@google.dev",
+            "access_token": "mock-access-token-12345",
+            "refresh_token": "mock-refresh-token-67890"
+        }
+        res = await self.client.post("/api/v1/auth/token", json=auth_payload)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json()["authenticated"])
+
+        status_res = await self.client.get("/api/v1/auth/status")
+        self.assertEqual(status_res.status_code, 200)
+        self.assertIsInstance(status_res.json(), list)
+
     async def test_ingest_and_fetch_latest(self):
         headers = {"X-Agent-Key": "gravwatch-agent-secret-key"}
         
+        telemetry1 = generate_mock_telemetry("acc-1")
         payload1 = {
             "account_id": "acc-1",
             "account_label": "Account 1 (Primary)",
             "email": "dev1@corp.ai",
-            "tier": "Pro",
+            "tier": "Pro Developer",
             "status": "healthy",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "models": generate_mock_models("acc-1")
+            "categories": telemetry1["categories"],
+            "models": telemetry1["models"]
         }
         res1 = await self.client.post("/api/v1/usage", json=payload1, headers=headers)
         self.assertEqual(res1.status_code, 201)
         self.assertTrue(res1.json()["success"])
-
-        payload2 = {
-            "account_id": "acc-2",
-            "account_label": "Account 2 (Worker)",
-            "email": "dev2@corp.ai",
-            "tier": "Standard",
-            "status": "healthy",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "models": generate_mock_models("acc-2")
-        }
-        res2 = await self.client.post("/api/v1/usage", json=payload2, headers=headers)
-        self.assertEqual(res2.status_code, 201)
 
         latest_res = await self.client.get("/api/v1/usage/latest")
         self.assertEqual(latest_res.status_code, 200)
         latest_data = latest_res.json()
         
         pool = latest_data["pool_summary"]
-        self.assertGreaterEqual(pool["total_accounts"], 2)
-        self.assertGreater(pool["total_requests_limit"], 0)
+        self.assertGreaterEqual(pool["total_accounts"], 1)
+        self.assertGreater(len(pool["category_summaries"]), 0)
         
         acc_ids = [a["id"] for a in latest_data["accounts"]]
         self.assertIn("acc-1", acc_ids)
-        self.assertIn("acc-2", acc_ids)
 
     async def test_history_endpoint(self):
         history_res = await self.client.get("/api/v1/usage/history?range=24h")

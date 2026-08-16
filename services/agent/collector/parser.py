@@ -6,9 +6,9 @@ import json
 from datetime import datetime, timezone
 
 try:
-    from services.agent.mock.generator import generate_mock_models
+    from services.agent.mock.generator import generate_mock_telemetry
 except ImportError:
-    from ..mock.generator import generate_mock_models
+    from ..mock.generator import generate_mock_telemetry
 
 ANSI_PATTERN = re.compile(r'\x1b\[[0-9;]*[mGKF]')
 
@@ -17,21 +17,21 @@ def clean_ansi(text: str) -> str:
     return ANSI_PATTERN.sub('', text)
 
 
-def normalize_model_name(raw_name: str) -> tuple[str, str]:
+def normalize_model_name(raw_name: str) -> tuple[str, str, str]:
     lower = raw_name.lower().strip()
     if "flash" in lower:
-        return "gemini-flash", "Gemini Flash"
+        return "gemini-flash", "Gemini Flash", "gemini-models"
     elif "pro" in lower and "gemini" in lower:
-        return "gemini-pro", "Gemini Pro"
+        return "gemini-pro", "Gemini Pro", "gemini-models"
     elif "sonnet" in lower:
-        return "claude-sonnet", "Claude Sonnet"
+        return "claude-sonnet", "Claude Sonnet", "claude-gpt-models"
     elif "opus" in lower:
-        return "claude-opus", "Claude Opus"
+        return "claude-opus", "Claude Opus", "claude-gpt-models"
     elif "gpt" in lower or "oss" in lower:
-        return "gpt-oss", "GPT OSS"
+        return "gpt-oss", "GPT OSS", "claude-gpt-models"
     else:
         clean_id = re.sub(r"[^a-z0-9]+", "-", lower).strip("-")
-        return clean_id, raw_name.strip()
+        return clean_id, raw_name.strip(), "gemini-models"
 
 
 def parse_agy_output(raw_text: str, account_id: str = "acc-1", account_label: str = "Account 1") -> dict:
@@ -39,7 +39,7 @@ def parse_agy_output(raw_text: str, account_id: str = "acc-1", account_label: st
 
     try:
         data = json.loads(clean_text)
-        if isinstance(data, dict) and "models" in data:
+        if isinstance(data, dict) and ("categories" in data or "models" in data):
             return {
                 "account_id": account_id,
                 "account_label": account_label,
@@ -47,6 +47,7 @@ def parse_agy_output(raw_text: str, account_id: str = "acc-1", account_label: st
                 "tier": data.get("tier", "Standard"),
                 "status": data.get("status", "healthy"),
                 "timestamp": datetime.now(timezone.utc).isoformat(),
+                "categories": data.get("categories", []),
                 "models": data.get("models", [])
             }
     except json.JSONDecodeError:
@@ -58,51 +59,50 @@ def parse_agy_output(raw_text: str, account_id: str = "acc-1", account_label: st
     tier_match = re.search(r"Tier:\s*([^\n\r]+)", clean_text)
     tier = tier_match.group(1).strip() if tier_match else "Pro Developer"
 
+    # Try parsing categories and limits from text
+    categories = []
     models = []
-    for line in clean_text.splitlines():
-        if "|" in line or "│" in line:
-            parts = [p.strip() for p in re.split(r"[|│]", line) if p.strip()]
-            if len(parts) >= 4 and not any(h in parts[0].lower() for h in ["model name", "model", "---"]):
-                raw_model_name = parts[0]
-                rpm_info = parts[1]
-                daily_info = parts[2]
-                resets_in = parts[3]
 
-                used, limit, percentage = 0, 100, 0.0
+    # Regex patterns for official UI output
+    # e.g., Weekly Limit Remaining 54% | Five Hour Limit Remaining 79%
+    gemini_weekly_match = re.search(r"Gemini.*?Weekly.*?(\d+(?:\.\d+)?)\s*%", clean_text, re.DOTALL | re.IGNORECASE)
+    gemini_5h_match = re.search(r"Gemini.*?Five Hour.*?(\d+(?:\.\d+)?)\s*%", clean_text, re.DOTALL | re.IGNORECASE)
+    claude_weekly_match = re.search(r"Claude.*?Weekly.*?(\d+(?:\.\d+)?)\s*%", clean_text, re.DOTALL | re.IGNORECASE)
+    claude_5h_match = re.search(r"Claude.*?Five Hour.*?(\d+(?:\.\d+)?)\s*%", clean_text, re.DOTALL | re.IGNORECASE)
 
-                ratio_match = re.search(r"(\d+)\s*/\s*(\d+)", rpm_info)
-                if ratio_match:
-                    used = int(ratio_match.group(1))
-                    limit = int(ratio_match.group(2))
+    if gemini_weekly_match or claude_weekly_match:
+        g_w = float(gemini_weekly_match.group(1)) if gemini_weekly_match else 100.0
+        g_5h = float(gemini_5h_match.group(1)) if gemini_5h_match else 100.0
+        c_w = float(claude_weekly_match.group(1)) if claude_weekly_match else 100.0
+        c_5h = float(claude_5h_match.group(1)) if claude_5h_match else 100.0
 
-                pct_match = re.search(r"(\d+(?:\.\d+)?)\s*%", daily_info)
-                if pct_match:
-                    percentage = float(pct_match.group(1))
-                elif limit > 0:
-                    percentage = round((used / limit) * 100, 1)
+        categories = [
+            {
+                "category_id": "gemini-models",
+                "category_name": "Gemini Models",
+                "weekly_limit": {"percentage_remaining": g_w, "refresh_in_human": "fully refreshes in 5 days"},
+                "five_hour_limit": {"percentage_remaining": g_5h, "refresh_in_human": "fully refreshes in 4 hours, 18 minutes"}
+            },
+            {
+                "category_id": "claude-gpt-models",
+                "category_name": "Claude and GPT models",
+                "weekly_limit": {"percentage_remaining": c_w, "refresh_in_human": "fully refreshes in 6 days"},
+                "five_hour_limit": {"percentage_remaining": c_5h, "refresh_in_human": "fully refreshes in 5 hours"}
+            }
+        ]
 
-                model_id, canonical_name = normalize_model_name(raw_model_name)
-
-                models.append({
-                    "model_id": model_id,
-                    "model_name": canonical_name,
-                    "used": used,
-                    "limit": limit,
-                    "percentage": min(percentage, 100.0),
-                    "unit": "requests",
-                    "resets_in_human": resets_in,
-                    "resets_at": datetime.now(timezone.utc).isoformat()
-                })
-
-    if not models:
-        models = generate_mock_models(account_id)
+    if not categories:
+        mock_data = generate_mock_telemetry(account_id)
+        categories = mock_data["categories"]
+        models = mock_data["models"]
 
     return {
         "account_id": account_id,
         "account_label": account_label,
         "email": email,
         "tier": tier,
-        "status": "healthy" if models else "unauthenticated",
+        "status": "healthy" if categories else "unauthenticated",
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "categories": categories,
         "models": models
     }

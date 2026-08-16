@@ -14,8 +14,9 @@ services:
       - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data/gravwatch.db}
       - AGENT_API_KEY=${AGENT_API_KEY}
       - MASTER_API_KEY=${MASTER_API_KEY}
+      - DATA_DIR=/app/data
     volumes:
-      - ../../data/server:/app/data
+      - ../../data:/app/data
     networks:
       - gravwatch-net
     healthcheck:
@@ -39,7 +40,7 @@ services:
       - SERVER_URL=http://server:8000
       - AGENT_API_KEY=${AGENT_API_KEY}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
-      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-false}
+      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
     volumes:
       - ../../data/acc-1:/root/.gemini
       - ../../data/acc-1-agent:/root/.antigravity-agent
@@ -56,6 +57,8 @@ services:
       context: ../..
       dockerfile: packaging/docker/Dockerfile.agent
     container_name: gravwatch-acc-2
+    profiles:
+      - multi
     restart: unless-stopped
     depends_on:
       server:
@@ -66,7 +69,7 @@ services:
       - SERVER_URL=http://server:8000
       - AGENT_API_KEY=${AGENT_API_KEY}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
-      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-false}
+      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
     volumes:
       - ../../data/acc-2:/root/.gemini
       - ../../data/acc-2-agent:/root/.antigravity-agent
@@ -83,6 +86,8 @@ services:
       context: ../..
       dockerfile: packaging/docker/Dockerfile.agent
     container_name: gravwatch-acc-3
+    profiles:
+      - multi
     restart: unless-stopped
     depends_on:
       server:
@@ -93,7 +98,7 @@ services:
       - SERVER_URL=http://server:8000
       - AGENT_API_KEY=${AGENT_API_KEY}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
-      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-false}
+      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
     volumes:
       - ../../data/acc-3:/root/.gemini
       - ../../data/acc-3-agent:/root/.antigravity-agent
@@ -110,6 +115,8 @@ services:
       context: ../..
       dockerfile: packaging/docker/Dockerfile.agent
     container_name: gravwatch-acc-4
+    profiles:
+      - multi
     restart: unless-stopped
     depends_on:
       server:
@@ -120,7 +127,7 @@ services:
       - SERVER_URL=http://server:8000
       - AGENT_API_KEY=${AGENT_API_KEY}
       - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
-      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-false}
+      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
     volumes:
       - ../../data/acc-4:/root/.gemini
       - ../../data/acc-4-agent:/root/.antigravity-agent

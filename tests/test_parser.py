@@ -8,7 +8,7 @@ import unittest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from services.agent.collector.parser import parse_agy_output, clean_ansi
-from services.agent.mock.generator import generate_mock_models
+from services.agent.mock.generator import generate_mock_telemetry
 
 
 class TestAgentParser(unittest.TestCase):
@@ -17,10 +17,16 @@ class TestAgentParser(unittest.TestCase):
         colored = "\x1b[31mError\x1b[0m: Connection refused"
         self.assertEqual(clean_ansi(colored), "Error: Connection refused")
 
-    def test_generate_mock_models(self):
-        models = generate_mock_models("acc-1")
-        self.assertEqual(len(models), 5)
-        model_names = [m["model_name"] for m in models]
+    def test_generate_mock_telemetry(self):
+        data = generate_mock_telemetry("acc-1")
+        self.assertIn("categories", data)
+        self.assertIn("models", data)
+        
+        cat_ids = [c["category_id"] for c in data["categories"]]
+        self.assertIn("gemini-models", cat_ids)
+        self.assertIn("claude-gpt-models", cat_ids)
+
+        model_names = [m["model_name"] for m in data["models"]]
         self.assertIn("Gemini Flash", model_names)
         self.assertIn("Gemini Pro", model_names)
         self.assertIn("Claude Sonnet", model_names)
@@ -29,30 +35,22 @@ class TestAgentParser(unittest.TestCase):
 
     def test_parse_structured_cli_output(self):
         raw = """
-        ╭─────────────────────────── Model Quotas & Usage ───────────────────────────╮
-        │ Account: dev-team-01@gmail.com                                            │
-        │ Tier: Pro Developer                                                       │
-        ├───────────────────────┬──────────────┬──────────────┬─────────────────────┤
-        │ Model Name            │ Requests/Min │ Daily Quota  │ Resets In           │
-        ├───────────────────────┼──────────────┼──────────────┼─────────────────────┤
-        │ Gemini Flash          │ 120 / 1000   │ 12% used     │ 03h 42m (06:00 UTC) │
-        │ Gemini Pro            │ 15 / 100     │ 15% used     │ 03h 42m (06:00 UTC) │
-        │ Claude Sonnet         │ 40 / 200     │ 20% used     │ 08h 15m (12:00 UTC) │
-        │ Claude Opus           │ 10 / 50      │ 20% used     │ 08h 15m (12:00 UTC) │
-        │ GPT OSS               │ 80 / 500     │ 16% used     │ 01h 10m (04:00 UTC) │
-        ╰───────────────────────┴──────────────┴──────────────┴─────────────────────╯
+        Gemini Models:
+        Weekly Limit Remaining: 54% (fully refreshes in 5 days)
+        Five Hour Limit Remaining: 79% (fully refreshes in 4 hours, 18 minutes)
+
+        Claude and GPT models:
+        Weekly Limit Remaining: 100% (fully refreshes in 6 days)
+        Five Hour Limit Remaining: 100% (fully refreshes in 5 hours)
         """
         result = parse_agy_output(raw, account_id="acc-1", account_label="Account 1")
         self.assertEqual(result["account_id"], "acc-1")
-        self.assertEqual(result["email"], "dev-team-01@gmail.com")
         self.assertEqual(result["status"], "healthy")
-        self.assertEqual(len(result["models"]), 5)
+        self.assertEqual(len(result["categories"]), 2)
         
-        flash = next(m for m in result["models"] if m["model_id"] == "gemini-flash")
-        self.assertEqual(flash["model_name"], "Gemini Flash")
-        self.assertEqual(flash["used"], 120)
-        self.assertEqual(flash["limit"], 1000)
-        self.assertEqual(flash["percentage"], 12.0)
+        gemini_cat = next(c for c in result["categories"] if c["category_id"] == "gemini-models")
+        self.assertEqual(gemini_cat["weekly_limit"]["percentage_remaining"], 54.0)
+        self.assertEqual(gemini_cat["five_hour_limit"]["percentage_remaining"], 79.0)
 
 
 if __name__ == "__main__":

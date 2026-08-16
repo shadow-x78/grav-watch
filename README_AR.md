@@ -6,7 +6,7 @@
 
 محرك مراقبة وتجميع كوتا Antigravity CLI عبر عدة حسابات معزولة في حاويات Docker - خادم API وسعة مجمعة
 
-[![Version](https://img.shields.io/badge/version-2.1.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+[![الإصدار](https://img.shields.io/badge/version-2.2.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python)
 ![FastAPI](https://img.shields.io/badge/fastapi-0.109%2B-009688?style=flat-square&logo=fastapi)

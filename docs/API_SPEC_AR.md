@@ -1,4 +1,4 @@
-# مواصفات واجهة الـ API البرمجية - GravWatch
+# مواصفات واجهة برمجة التطبيقات (API) - GravWatch
 
 ## 🌐 اللغة
 
@@ -6,35 +6,59 @@
 
 ---
 
-> يسري هذا التوثيق على الإصدار **v2.0.0** فما فوق. المسار الأساسي: `/api/v1`
+> يسري هذا التوثيق على الإصدار **v2.2.0** فما فوق. المسار الأساسي: `/api/v1`
 
 ---
 
 ## 📋 جدول المحتويات
 
-- [التوثيق والترويسات](#التوثيق-والترويسات)
-- [نقاط استقبال البيانات](#نقاط-الاستقبال)
-- [نقاط الاستعلام والسعة المجمعة](#نقاط-الاستعلام)
-- [نقاط الفحص والتشخيص](#نقاط-الفحص)
-- [معرفات النماذج المعتمدة](#معرفات-النماذج)
+- [التوثيق وإدارة الجلسات عبر الـ API](#auth-api)
+- [نقاط استقبال البيانات (Ingestion)](#ingestion)
+- [نقاط الاستعلام وتجميع الكوتا (Query & Pooling)](#query)
+- [نقاط الفحص والتشخيص](#diagnostics)
+- [فئات النماذج الرسمية](#categories)
 
 ---
 
-<a id="التوثيق-والترويسات"></a>
-## 🔐 1. التوثيق والترويسات المطلوبة
+<a id="auth-api"></a>
+## 🔐 1. التوثيق وإدارة الجلسات عبر الـ API (بدون الحاجة لطرفية لينكس)
 
-| الهدف | نوع التوثيق | الـ Header المطلوب |
-|---|---|---|
-| استقبال البيانات (`POST /api/v1/usage`) | مفتاح سري مشترك | `X-Agent-Key: <AGENT_API_KEY>` |
-| الاستعلام والفحص | عام / مفتوح | بدون |
+### `POST /api/v1/auth/token`
+إرسال توكنات Google OAuth أو كائن بيانات الجلسة الكامل لربط الحساب بالخلفية مباشرة دون فتح أي سطر أوامر.
+
+**بيانات الطلب (`AuthTokenPayload`):**
+```json
+{
+  "account_id": "acc-1",
+  "account_label": "Account 1 (Primary)",
+  "email": "dev@corp.google.dev",
+  "access_token": "ya29.a0AfH6SM...",
+  "refresh_token": "1//04...",
+  "oauth_credentials_json": null
+}
+```
+
+**الاستجابة (`200 OK`):**
+```json
+{
+  "account_id": "acc-1",
+  "authenticated": true,
+  "email": "dev@corp.google.dev",
+  "last_token_update": "2026-08-16T19:50:00Z",
+  "message": "Successfully authenticated and paired session for acc-1 via API."
+}
+```
+
+### `GET /api/v1/auth/status`
+التحقق من حالة التوثيق وصحة الجلسة لكافة الحسابات المسجلة.
 
 ---
 
-<a id="نقاط-الاستقبال"></a>
-## 📥 2. نقاط استقبال البيانات (Ingestion)
+<a id="ingestion"></a>
+## 📥 2. نقاط استقبال البيانات
 
 ### `POST /api/v1/usage`
-استقبال لقطة الكوتا من أي حاوية عاملة.
+استقبال لقطة الكوتا من جامع البيانات المعزول مطابقة لمجموعات واجهة Antigravity الرسمية.
 
 **الترويسات:**
 ```http
@@ -42,110 +66,118 @@ Content-Type: application/json
 X-Agent-Key: gravwatch-agent-secret-key
 ```
 
-**جسم الطلب (JSON Body):**
+**بيانات الطلب (`UsageIngestRequest`):**
 ```json
 {
   "account_id": "acc-1",
   "account_label": "Account 1",
-  "email": "developer@corp.dev",
+  "email": "dev@corp.google.dev",
   "tier": "Pro Developer",
   "status": "healthy",
-  "timestamp": "2026-08-15T03:30:00Z",
-  "models": [
+  "timestamp": "2026-08-16T19:50:00Z",
+  "categories": [
     {
-      "model_id": "gemini-flash",
-      "model_name": "Gemini Flash",
-      "used": 140,
-      "limit": 1000,
-      "percentage": 14.0,
-      "unit": "requests",
-      "resets_in_human": "03h 45m",
-      "resets_at": "2026-08-15T06:00:00Z"
+      "category_id": "gemini-models",
+      "category_name": "Gemini Models",
+      "weekly_limit": {
+        "percentage_remaining": 54.0,
+        "refresh_in_human": "fully refreshes in 5 days"
+      },
+      "five_hour_limit": {
+        "percentage_remaining": 79.0,
+        "refresh_in_human": "fully refreshes in 4 hours, 18 minutes"
+      }
+    },
+    {
+      "category_id": "claude-gpt-models",
+      "category_name": "Claude and GPT models",
+      "weekly_limit": {
+        "percentage_remaining": 100.0,
+        "refresh_in_human": "fully refreshes in 6 days"
+      },
+      "five_hour_limit": {
+        "percentage_remaining": 100.0,
+        "refresh_in_human": "fully refreshes in 5 hours"
+      }
     }
-  ]
-}
-```
-
-**الاستجابة (`201 Created`):**
-```json
-{
-  "success": true,
-  "message": "Recorded telemetry for acc-1"
+  ],
+  "models": []
 }
 ```
 
 ---
 
-<a id="نقاط-الاستعلام"></a>
-## 📤 3. نقاط الاستعلام والسعة المجمعة
+<a id="query"></a>
+## 📊 3. نقاط الاستعلام وتجميع الكوتا
 
 ### `GET /api/v1/usage/latest`
-جلب أحدث بيانات الحسابات المسجلة وحساب السعة التراكمية الإجمالية لكافة الحسابات.
+استعراض الكوتا المجمعة الإجمالية ومتوسطات المجموعات ومؤشرات الحسابات.
 
 **الاستجابة (`200 OK`):**
 ```json
 {
-  "timestamp": "2026-08-15T03:30:00Z",
+  "timestamp": "2026-08-16T19:50:00Z",
   "pool_summary": {
-    "total_accounts": 3,
-    "online_accounts": 3,
-    "total_requests_used": 1830,
-    "total_requests_limit": 4000,
-    "overall_percentage": 45.8,
-    "model_summaries": [
+    "total_accounts": 1,
+    "online_accounts": 1,
+    "overall_weekly_remaining": 77.0,
+    "overall_five_hour_remaining": 89.5,
+    "category_summaries": [
       {
-        "model_id": "gemini-flash",
-        "model_name": "Gemini Flash",
-        "total_used": 1830,
-        "total_limit": 4000,
-        "pool_percentage": 45.8,
-        "active_accounts_count": 3
+        "category_id": "gemini-models",
+        "category_name": "Gemini Models",
+        "weekly_limit_remaining": 54.0,
+        "five_hour_limit_remaining": 79.0,
+        "weekly_refresh_human": "fully refreshes in 5 days",
+        "five_hour_refresh_human": "fully refreshes in 4 hours, 18 minutes"
+      },
+      {
+        "category_id": "claude-gpt-models",
+        "category_name": "Claude and GPT models",
+        "weekly_limit_remaining": 100.0,
+        "five_hour_limit_remaining": 100.0,
+        "weekly_refresh_human": "fully refreshes in 6 days",
+        "five_hour_refresh_human": "fully refreshes in 5 hours"
       }
-    ]
+    ],
+    "model_summaries": []
   },
-  "accounts": [ ... ]
+  "accounts": []
 }
 ```
 
-### `GET /api/v1/usage/history`
-جلب السجل الزمني للنقاط لرسم المخططات البيانية.
-- `account_id` (اختياري)
-- `range` (`1h`, `24h`, `7d`, `30d`)
-
 ---
 
-<a id="نقاط-الفحص"></a>
-## 🛠️ 4. نقاط الفحص والتشخيص
+<a id="diagnostics"></a>
+## 🩺 4. نقاط الفحص والتشخيص
 
 ### `GET /api/v1/health`
-فحص جاهزية الخادم.
 ```json
 {
   "status": "healthy",
   "service": "gravwatch-server",
-  "version": "2.0.0"
+  "version": "2.2.0",
+  "timestamp": "2026-08-16T19:50:00Z"
 }
 ```
 
 ---
 
-<a id="معرفات-النماذج"></a>
-## 🤖 5. معرفات موديلات Antigravity المعتمدة
+<a id="categories"></a>
+## 🤖 5. فئات النماذج الرسمية
 
-| الاسم المعتمد | معرف النموذج (ID) | وحدة القياس |
+| اسم المجموعة | المعرّف (`category_id`) | النماذج المشمولة |
 |---|---|---|
-| **Gemini Flash** | `gemini-flash` | طلبات يومياً |
-| **Gemini Pro** | `gemini-pro` | طلبات يومياً |
-| **Claude Sonnet** | `claude-sonnet` | طلبات يومياً |
-| **Claude Opus** | `claude-opus` | طلبات يومياً |
-| **GPT OSS** | `gpt-oss` | طلبات يومياً |
+| **Gemini Models** | `gemini-models` | `Gemini Flash`, `Gemini Pro` |
+| **Claude and GPT models** | `claude-gpt-models` | `Claude Sonnet`, `Claude Opus`, `GPT OSS` |
 
 ---
 
 <div align="center">
 
 بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
-[العودة إلى README](../README_AR.md)
+[سجل التغييرات](../CHANGELOG.md) ·
+[العودة للرئيسية](../README_AR.md)
 
 <sub>&copy; 2026 GravWatch</sub>
 

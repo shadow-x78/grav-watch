@@ -6,7 +6,9 @@
 
 Multi-account Google Antigravity CLI quota monitoring & telemetry engine - isolated containers & centralized API
 
-[![Version](https://img.shields.io/badge/version-2.1.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
+<p align="center">
+  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.2.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.2.0"></a>
+</p>
 [![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python)
 ![FastAPI](https://img.shields.io/badge/fastapi-0.109%2B-009688?style=flat-square&logo=fastapi)

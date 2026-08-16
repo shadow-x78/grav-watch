@@ -9,12 +9,12 @@ try:
     from services.agent.core.config import config
     from services.agent.collector.scraper import run_agy_usage_command
     from services.agent.collector.parser import parse_agy_output
-    from services.agent.mock.generator import generate_mock_models
+    from services.agent.mock.generator import generate_mock_telemetry
 except ImportError:
     from .core.config import config
     from .collector.scraper import run_agy_usage_command
     from .collector.parser import parse_agy_output
-    from .mock.generator import generate_mock_models
+    from .mock.generator import generate_mock_telemetry
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
 logger = logging.getLogger("gravwatch.agent")
@@ -26,13 +26,15 @@ def collect_telemetry() -> dict:
     if not raw_output:
         if config.use_mock_fallback:
             logger.info(f"[{config.account_id}] No raw CLI output; generating simulated telemetry.")
+            mock_data = generate_mock_telemetry(config.account_id)
             return {
                 "account_id": config.account_id,
                 "account_label": config.account_label,
                 "email": f"{config.account_id}@corp.google.dev",
                 "tier": "Pro Developer",
                 "status": "healthy",
-                "models": generate_mock_models(config.account_id)
+                "categories": mock_data["categories"],
+                "models": mock_data["models"]
             }
         else:
             return {
@@ -41,6 +43,7 @@ def collect_telemetry() -> dict:
                 "email": f"{config.account_id}@domain.com",
                 "tier": "Standard",
                 "status": "unauthenticated",
+                "categories": [],
                 "models": []
             }
 
@@ -61,7 +64,9 @@ def send_telemetry(payload: dict):
     try:
         resp = requests.post(target_url, json=payload, headers=headers, timeout=10)
         if resp.status_code == 201:
-            logger.info(f"[{config.account_id}] Telemetry dispatched successfully ({len(payload.get('models', []))} models).")
+            cats_count = len(payload.get("categories", []))
+            models_count = len(payload.get("models", []))
+            logger.info(f"[{config.account_id}] Telemetry dispatched ({cats_count} categories, {models_count} models).")
         else:
             logger.error(f"[{config.account_id}] Server rejected telemetry (HTTP {resp.status_code}): {resp.text}")
     except requests.exceptions.RequestException as e:

@@ -6,27 +6,64 @@
 
 ---
 
-> Applies to **v2.0.0** and later. Base path: `/api/v1`
+> Applies to **v2.2.0** and later. Base path: `/api/v1`
 
 ---
 
 ## 📋 Table of Contents
 
-- [Authentication & Headers](#authentication)
+- [Authentication & Session Management](#auth-api)
 - [Ingestion Endpoints](#ingestion)
-- [Query & Aggregation Endpoints](#query)
+- [Query & Pool Aggregation](#query)
 - [Diagnostic Endpoints](#diagnostics)
-- [Model Identifiers](#models)
+- [Official Model Categories](#categories)
 
 ---
 
-<a id="authentication"></a>
-## 🔐 1. Authentication & Headers
+<a id="auth-api"></a>
+## 🔐 1. Authentication & Session Management (No Linux Terminal Needed)
 
-| Endpoint Target | Auth Type | Required Header |
-|---|---|---|
-| Ingestion (`POST /api/v1/usage`) | Shared Secret | `X-Agent-Key: <AGENT_API_KEY>` |
-| Diagnostic / Query | Open / Public | None |
+### `POST /api/v1/auth/token`
+Submit Google OAuth tokens or full credentials JSON to pair an account directly via API.
+
+**Payload (`AuthTokenPayload`):**
+```json
+{
+  "account_id": "acc-1",
+  "account_label": "Account 1 (Primary)",
+  "email": "dev@corp.google.dev",
+  "access_token": "ya29.a0AfH6SM...",
+  "refresh_token": "1//04...",
+  "oauth_credentials_json": null
+}
+```
+
+**Response (`200 OK`):**
+```json
+{
+  "account_id": "acc-1",
+  "authenticated": true,
+  "email": "dev@corp.google.dev",
+  "last_token_update": "2026-08-16T19:50:00Z",
+  "message": "Successfully authenticated and paired session for acc-1 via API."
+}
+```
+
+### `GET /api/v1/auth/status`
+Inspect authentication and session health across all registered accounts.
+
+**Response (`200 OK`):**
+```json
+[
+  {
+    "account_id": "acc-1",
+    "authenticated": true,
+    "email": "dev@corp.google.dev",
+    "last_token_update": "2026-08-16T19:50:00Z",
+    "message": "Authenticated"
+  }
+]
+```
 
 ---
 
@@ -34,7 +71,7 @@
 ## 📥 2. Ingestion Endpoints
 
 ### `POST /api/v1/usage`
-Receives a point-in-time quota telemetry snapshot from an isolated container agent.
+Receives a point-in-time quota telemetry snapshot matching official Google Antigravity UI categories.
 
 **Headers:**
 ```http
@@ -42,124 +79,117 @@ Content-Type: application/json
 X-Agent-Key: gravwatch-agent-secret-key
 ```
 
-**Payload Schema (`UsageIngestRequest`):**
+**Payload (`UsageIngestRequest`):**
 ```json
 {
   "account_id": "acc-1",
-  "account_label": "Account 1 (Primary)",
-  "email": "developer@corp.dev",
+  "account_label": "Account 1",
+  "email": "dev@corp.google.dev",
   "tier": "Pro Developer",
   "status": "healthy",
-  "timestamp": "2026-08-15T03:30:00Z",
-  "models": [
+  "timestamp": "2026-08-16T19:50:00Z",
+  "categories": [
     {
-      "model_id": "gemini-flash",
-      "model_name": "Gemini Flash",
-      "used": 140,
-      "limit": 1000,
-      "percentage": 14.0,
-      "unit": "requests",
-      "resets_in_human": "03h 45m",
-      "resets_at": "2026-08-15T06:00:00Z"
+      "category_id": "gemini-models",
+      "category_name": "Gemini Models",
+      "weekly_limit": {
+        "percentage_remaining": 54.0,
+        "refresh_in_human": "fully refreshes in 5 days"
+      },
+      "five_hour_limit": {
+        "percentage_remaining": 79.0,
+        "refresh_in_human": "fully refreshes in 4 hours, 18 minutes"
+      }
+    },
+    {
+      "category_id": "claude-gpt-models",
+      "category_name": "Claude and GPT models",
+      "weekly_limit": {
+        "percentage_remaining": 100.0,
+        "refresh_in_human": "fully refreshes in 6 days"
+      },
+      "five_hour_limit": {
+        "percentage_remaining": 100.0,
+        "refresh_in_human": "fully refreshes in 5 hours"
+      }
     }
-  ]
-}
-```
-
-**Response (`201 Created`):**
-```json
-{
-  "success": true,
-  "message": "Recorded telemetry for acc-1"
+  ],
+  "models": []
 }
 ```
 
 ---
 
 <a id="query"></a>
-## 📤 3. Query & Aggregation Endpoints
+## 📊 3. Query & Pool Aggregation
 
 ### `GET /api/v1/usage/latest`
-Fetches the latest registered status of every account alongside the calculated multi-account pooled capacity.
+Returns consolidated pool capacity, category averages, and individual account metrics.
 
-**Response (`200 OK` - `LatestUsageResponse`):**
+**Response (`200 OK`):**
 ```json
 {
-  "timestamp": "2026-08-15T03:30:00Z",
+  "timestamp": "2026-08-16T19:50:00Z",
   "pool_summary": {
-    "total_accounts": 3,
-    "online_accounts": 3,
-    "total_requests_used": 1830,
-    "total_requests_limit": 4000,
-    "overall_percentage": 45.8,
-    "model_summaries": [
+    "total_accounts": 1,
+    "online_accounts": 1,
+    "overall_weekly_remaining": 77.0,
+    "overall_five_hour_remaining": 89.5,
+    "category_summaries": [
       {
-        "model_id": "gemini-flash",
-        "model_name": "Gemini Flash",
-        "total_used": 1830,
-        "total_limit": 4000,
-        "pool_percentage": 45.8,
-        "active_accounts_count": 3
+        "category_id": "gemini-models",
+        "category_name": "Gemini Models",
+        "weekly_limit_remaining": 54.0,
+        "five_hour_limit_remaining": 79.0,
+        "weekly_refresh_human": "fully refreshes in 5 days",
+        "five_hour_refresh_human": "fully refreshes in 4 hours, 18 minutes"
+      },
+      {
+        "category_id": "claude-gpt-models",
+        "category_name": "Claude and GPT models",
+        "weekly_limit_remaining": 100.0,
+        "five_hour_limit_remaining": 100.0,
+        "weekly_refresh_human": "fully refreshes in 6 days",
+        "five_hour_refresh_human": "fully refreshes in 5 hours"
       }
-    ]
+    ],
+    "model_summaries": []
   },
-  "accounts": [
-    {
-      "id": "acc-1",
-      "label": "Account 1",
-      "email": "developer@corp.dev",
-      "tier": "Pro Developer",
-      "status": "healthy",
-      "last_seen_at": "2026-08-15T03:30:00Z",
-      "models": [ ... ]
-    }
-  ]
+  "accounts": []
 }
 ```
-
-### `GET /api/v1/usage/history`
-Returns chronological snapshot metrics for time-series charts.
-
-**Query Parameters:**
-- `account_id` (optional string): Filter to a specific account.
-- `range` (string, default `24h`): `1h`, `24h`, `7d`, `30d`.
-
-### `GET /api/v1/accounts`
-Lists registered accounts and metadata.
 
 ---
 
 <a id="diagnostics"></a>
-## 🛠️ 4. Diagnostic Endpoints
+## 🩺 4. Diagnostic Endpoints
 
 ### `GET /api/v1/health`
-Liveness probe.
 ```json
 {
   "status": "healthy",
   "service": "gravwatch-server",
-  "version": "2.0.0"
+  "version": "2.2.0",
+  "timestamp": "2026-08-16T19:50:00Z"
 }
 ```
 
 ---
 
-<a id="models"></a>
-## 🤖 5. Supported Antigravity Model Identifiers
+<a id="categories"></a>
+## 🤖 5. Official Model Categories
 
-| Canonical Name | Model Identifier | Default Metric Unit |
+| Category Name | Category ID | Models Included |
 |---|---|---|
-| **Gemini Flash** | `gemini-flash` | Requests / Day |
-| **Gemini Pro** | `gemini-pro` | Requests / Day |
-| **Claude Sonnet** | `claude-sonnet` | Requests / Day |
-| **Claude Opus** | `claude-opus` | Requests / Day |
-| **GPT OSS** | `gpt-oss` | Requests / Day |
+| **Gemini Models** | `gemini-models` | `Gemini Flash`, `Gemini Pro` |
+| **Claude and GPT models** | `claude-gpt-models` | `Claude Sonnet`, `Claude Opus`, `GPT OSS` |
 
 ---
 
 <div align="center">
 
 Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+[Changelog](../CHANGELOG.md) ·
 [Back to README](../README.md)
 
 <sub>&copy; 2026 GravWatch</sub>

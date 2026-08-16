@@ -10,13 +10,13 @@ from sqlalchemy import select
 try:
     from services.server.core.database import get_db
     from services.server.core.security import get_current_agent
-    from services.server.models.db import Account, UsageSnapshot, ModelQuota
+    from services.server.models.db import Account, UsageSnapshot, CategorySnapshot, ModelQuota
     from services.server.models.schemas import UsageIngestRequest, LatestUsageResponse, HistoryResponse
     from services.server.engine.aggregator import compute_latest_pool_summary, query_usage_history
 except ImportError:
     from ..core.database import get_db
     from ..core.security import get_current_agent
-    from ..models.db import Account, UsageSnapshot, ModelQuota
+    from ..models.db import Account, UsageSnapshot, CategorySnapshot, ModelQuota
     from ..models.schemas import UsageIngestRequest, LatestUsageResponse, HistoryResponse
     from ..engine.aggregator import compute_latest_pool_summary, query_usage_history
 
@@ -63,17 +63,30 @@ async def ingest_usage(
         db.add(snapshot)
         await db.flush()
 
+        # Ingest Categories (Gemini Models, Claude and GPT models)
+        for cat in payload.categories:
+            cs = CategorySnapshot(
+                snapshot_id=snapshot.id,
+                category_id=cat.category_id,
+                category_name=cat.category_name,
+                weekly_remaining=cat.weekly_limit.percentage_remaining,
+                weekly_refresh_human=cat.weekly_limit.refresh_in_human,
+                five_hour_remaining=cat.five_hour_limit.percentage_remaining,
+                five_hour_refresh_human=cat.five_hour_limit.refresh_in_human
+            )
+            db.add(cs)
+
+        # Ingest Models (5 canonical models)
         for m in payload.models:
             mq = ModelQuota(
                 snapshot_id=snapshot.id,
                 model_id=m.model_id,
                 model_name=m.model_name,
-                used=m.used,
-                limit=m.limit,
-                percentage=m.percentage,
-                unit=m.unit,
-                resets_in_human=m.resets_in_human,
-                resets_at=m.resets_at
+                category_id=m.category_id,
+                weekly_remaining=m.weekly_limit.percentage_remaining,
+                weekly_refresh_human=m.weekly_limit.refresh_in_human,
+                five_hour_remaining=m.five_hour_limit.percentage_remaining,
+                five_hour_refresh_human=m.five_hour_limit.refresh_in_human
             )
             db.add(mq)
 

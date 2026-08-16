@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.2.0] - 2026-08-16
+
+### Added
+- **Official Antigravity UI Quota Parity:** Re-architected data schemas and telemetry engines to match official Google Antigravity quota categories (`Gemini Models` and `Claude and GPT models`) with `Weekly Limit Remaining` and `Five Hour Limit Remaining` metrics and human-readable countdowns.
+- **Full API-Driven Authentication & Session Management:** Added `/api/v1/auth/token` and `/api/v1/auth/status` REST endpoints to authenticate, ingest, and inspect Google OAuth tokens directly via API/UI without requiring access to a Linux terminal.
+- **CategorySnapshot Database Layer:** Added dedicated SQLAlchemy asynchronous persistence for category-level quotas and time-series snapshots.
+
+### Changed
+- **Default 1-Account Container Topology:** Configured `docker-compose.yml` to run a lean 1-account default (`server` + `acc-1`), with additional accounts placed under Compose Profile `--profile multi`.
+- **Pool Aggregator Engine:** Upgraded `compute_latest_pool_summary` to compute aggregate weekly and 5-hour percentages across categories and models.
+
+---
+
 ## [2.1.0] - 2026-08-15
 
 ### Added

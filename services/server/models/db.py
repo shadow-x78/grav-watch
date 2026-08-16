@@ -2,7 +2,7 @@
 # https://github.com/shadow-x78/grav-watch
 
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
 
 try:
@@ -32,7 +32,23 @@ class UsageSnapshot(Base):
     timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
     account = relationship("Account", back_populates="snapshots")
+    categories = relationship("CategorySnapshot", back_populates="snapshot", cascade="all, delete-orphan")
     models = relationship("ModelQuota", back_populates="snapshot", cascade="all, delete-orphan")
+
+
+class CategorySnapshot(Base):
+    __tablename__ = "category_snapshots"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    snapshot_id = Column(Integer, ForeignKey("usage_snapshots.id"), nullable=False, index=True)
+    category_id = Column(String(64), nullable=False, index=True)
+    category_name = Column(String(128), nullable=False)
+    weekly_remaining = Column(Float, nullable=False, default=100.0)
+    weekly_refresh_human = Column(String(128), default="")
+    five_hour_remaining = Column(Float, nullable=False, default=100.0)
+    five_hour_refresh_human = Column(String(128), default="")
+
+    snapshot = relationship("UsageSnapshot", back_populates="categories")
 
 
 class ModelQuota(Base):
@@ -42,11 +58,10 @@ class ModelQuota(Base):
     snapshot_id = Column(Integer, ForeignKey("usage_snapshots.id"), nullable=False, index=True)
     model_id = Column(String(64), nullable=False, index=True)
     model_name = Column(String(128), nullable=False)
-    used = Column(Integer, nullable=False, default=0)
-    limit = Column(Integer, nullable=False, default=0)
-    percentage = Column(Float, nullable=False, default=0.0)
-    unit = Column(String(32), default="requests")
-    resets_in_human = Column(String(64), default="")
-    resets_at = Column(DateTime, nullable=True)
+    category_id = Column(String(64), nullable=False, default="gemini-models")
+    weekly_remaining = Column(Float, nullable=False, default=100.0)
+    weekly_refresh_human = Column(String(128), default="")
+    five_hour_remaining = Column(Float, nullable=False, default=100.0)
+    five_hour_refresh_human = Column(String(128), default="")
 
     snapshot = relationship("UsageSnapshot", back_populates="models")
