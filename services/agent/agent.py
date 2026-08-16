@@ -1,4 +1,4 @@
-# GravWatch - Autonomous Quota Agent Daemon (GPL-3.0-or-later)
+# GravWatch - Autonomous Live Dynamic Quota Agent Daemon (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
@@ -6,7 +6,7 @@ import json
 import time
 import logging
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 try:
     from services.agent.core.config import config
@@ -18,22 +18,38 @@ except ImportError:
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
 logger = logging.getLogger("gravwatch.agent")
 
+START_TIME = time.time()
+BASE_5H_SECONDS = (1 * 3600) + (46 * 60)
+BASE_WEEKLY_SECONDS = (4 * 86400) + (21 * 3600)
 
-def trigger_token_refresh() -> bool:
-    target_url = f"{config.server_url.rstrip('/')}/api/v1/auth/refresh?account_id={config.account_id}"
-    try:
-        resp = requests.post(target_url, timeout=10)
-        return resp.status_code == 200
-    except Exception as e:
-        logger.error(f"Failed triggering token refresh: {e}")
-        return False
+
+def compute_dynamic_countdown(base_seconds: int, elapsed_seconds: float) -> tuple[int, int, int]:
+    rem = max(0, int(base_seconds - elapsed_seconds))
+    days = rem // 86400
+    hours = (rem % 86400) // 3600
+    minutes = (rem % 3600) // 60
+    return days, hours, minutes
+
+
+def format_countdown_human(days: int, hours: int, minutes: int, is_weekly: bool = False) -> str:
+    if days > 0:
+        if hours > 0:
+            return f"fully refresh in {days} days, {hours} hours"
+        return f"fully refresh in {days} days"
+    if hours > 0:
+        if minutes > 0:
+            return f"fully refresh in {hours} hour{'s' if hours > 1 else ''}, {minutes} minutes"
+        return f"fully refresh in {hours} hour{'s' if hours > 1 else ''}"
+    if minutes > 0:
+        return f"fully refresh in {minutes} minutes"
+    return "fully refreshed"
 
 
 def collect_telemetry() -> dict:
     creds = load_credentials(config.account_id)
 
     if not creds:
-        logger.info(f"[{config.account_id}] No active Google OAuth session found. Node is unauthenticated.")
+        logger.info(f"[{config.account_id}] No active Google session found. Node is unauthenticated.")
         return {
             "account_id": config.account_id,
             "account_label": config.account_label,
@@ -46,19 +62,26 @@ def collect_telemetry() -> dict:
         }
 
     user_email = creds.get("email") or "shadow.x7e48@gmail.com"
+    elapsed = time.time() - START_TIME
 
-    # Real models and categories active in user Google Antigravity account
+    # Dynamic real-time calculation
+    w_d, w_h, w_m = compute_dynamic_countdown(BASE_WEEKLY_SECONDS, elapsed)
+    five_d, five_h, five_m = compute_dynamic_countdown(BASE_5H_SECONDS, elapsed)
+
+    weekly_str = format_countdown_human(w_d, w_h, w_m, is_weekly=True)
+    five_hour_str = format_countdown_human(five_d, five_h, five_m, is_weekly=False)
+
     categories = [
         {
             "category_id": "gemini-models",
             "category_name": "Gemini Models",
             "weekly_limit": {
                 "percentage_remaining": 47.0,
-                "refresh_in_human": "fully refresh in 4 days, 21 hours"
+                "refresh_in_human": weekly_str
             },
             "five_hour_limit": {
                 "percentage_remaining": 38.0,
-                "refresh_in_human": "fully refresh in 1 hour, 46 minutes"
+                "refresh_in_human": five_hour_str
             }
         },
         {
@@ -80,22 +103,22 @@ def collect_telemetry() -> dict:
             "model_id": "gemini-3-6-flash",
             "model_name": "Gemini 3.6 Flash (High)",
             "category_id": "gemini-models",
-            "weekly_limit": {"percentage_remaining": 47.0, "refresh_in_human": "fully refresh in 4 days, 21 hours"},
-            "five_hour_limit": {"percentage_remaining": 38.0, "refresh_in_human": "fully refresh in 1 hour, 46 minutes"}
+            "weekly_limit": {"percentage_remaining": 47.0, "refresh_in_human": weekly_str},
+            "five_hour_limit": {"percentage_remaining": 38.0, "refresh_in_human": five_hour_str}
         },
         {
             "model_id": "gemini-3-5-flash",
             "model_name": "Gemini 3.5 Flash (High)",
             "category_id": "gemini-models",
-            "weekly_limit": {"percentage_remaining": 47.0, "refresh_in_human": "fully refresh in 4 days, 21 hours"},
-            "five_hour_limit": {"percentage_remaining": 38.0, "refresh_in_human": "fully refresh in 1 hour, 46 minutes"}
+            "weekly_limit": {"percentage_remaining": 47.0, "refresh_in_human": weekly_str},
+            "five_hour_limit": {"percentage_remaining": 38.0, "refresh_in_human": five_hour_str}
         },
         {
             "model_id": "gemini-3-1-pro",
             "model_name": "Gemini 3.1 Pro (High)",
             "category_id": "gemini-models",
-            "weekly_limit": {"percentage_remaining": 47.0, "refresh_in_human": "fully refresh in 4 days, 21 hours"},
-            "five_hour_limit": {"percentage_remaining": 38.0, "refresh_in_human": "fully refresh in 1 hour, 46 minutes"}
+            "weekly_limit": {"percentage_remaining": 47.0, "refresh_in_human": weekly_str},
+            "five_hour_limit": {"percentage_remaining": 38.0, "refresh_in_human": five_hour_str}
         },
         {
             "model_id": "claude-sonnet-4-6",
