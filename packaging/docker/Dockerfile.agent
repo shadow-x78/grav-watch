@@ -19,6 +19,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY services/agent/requirements.txt /app/services/agent/
 RUN pip install --no-cache-dir -r /app/services/agent/requirements.txt
 
+COPY packaging/cli/agy /usr/local/bin/agy
+RUN chmod +x /usr/local/bin/agy
+
 COPY services/ /app/services/
 COPY packaging/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
