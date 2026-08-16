@@ -44,6 +44,7 @@ services:
     volumes:
       - ../../data/acc-1:/root/.gemini
       - ../../data/acc-1-agent:/root/.antigravity-agent
+      - /home/shadow-x7/.config/Antigravity IDE/User/globalStorage/state.vscdb:/root/.config/antigravity/state.vscdb:ro
     deploy:
       resources:
         limits:
