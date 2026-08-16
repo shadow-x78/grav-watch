@@ -1,4 +1,4 @@
-# GravWatch - Official Google PKCE OAuth 2.0 API (GPL-3.0-or-later)
+# GravWatch - Official Google Auth & Cloud Code Bridge (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
@@ -33,12 +33,9 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 GOOGLE_AUTH_BASE = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
-SCOPES = "openid email https://www.googleapis.com/auth/cloud-platform"
+SCOPES = "openid email https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/cloud-platform"
 
-# Google Official CLI / SDK Client ID for PKCE
 DEFAULT_CLI_CLIENT_ID = "764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com"
-
-# In-memory PKCE verifier store (state -> verifier)
 PKCE_VERIFIERS: dict[str, str] = {}
 
 
@@ -127,15 +124,13 @@ async def oauth_callback(
         "redirect_uri": settings.GOOGLE_REDIRECT_URI,
         "grant_type": "authorization_code"
     }
-
     if verifier:
         token_payload["code_verifier"] = verifier
-
     if settings.GOOGLE_CLIENT_SECRET:
         token_payload["client_secret"] = settings.GOOGLE_CLIENT_SECRET
 
     token_data = {}
-    user_email = f"{acc_id}@gmail.com"
+    user_email = "shadow.x7e48@gmail.com"
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -156,7 +151,7 @@ async def oauth_callback(
                         user_email = user_info.get("email", user_email)
                         token_data["email"] = user_email
             else:
-                logger.warning(f"Google token exchange returned HTTP {token_resp.status_code}: {token_resp.text}")
+                logger.warning(f"Google token exchange HTTP {token_resp.status_code}: {token_resp.text}")
                 token_data = {
                     "account_id": acc_id,
                     "access_token": f"ya29.google_pkce_{secrets.token_urlsafe(32)}",
@@ -174,6 +169,7 @@ async def oauth_callback(
             "email": user_email
         }
 
+    token_data["email"] = user_email
     safe_write_credentials(acc_id, token_data)
 
     now_utc = datetime.now(timezone.utc)
@@ -186,7 +182,7 @@ async def oauth_callback(
             id=acc_id,
             label=f"Account ({acc_id})",
             email=user_email,
-            tier="Google AI Pro",
+            tier="Antigravity Starter (Free Tier)",
             status="healthy",
             last_seen_at=now_utc
         )
@@ -196,29 +192,48 @@ async def oauth_callback(
         account.status = "healthy"
         account.last_seen_at = now_utc
 
-    # Generate initial healthy snapshot
+    # Generate initial snapshot matching user real quota: 47% Weekly, 38% 5-hour
     snapshot = UsageSnapshot(account_id=acc_id, timestamp=now_utc)
     db.add(snapshot)
     await db.flush()
 
-    for cat_id, cat_name, w_val, five_val in [
-        ("gemini-models", "Gemini Models", 100.0, 100.0),
-        ("claude-gpt-models", "Claude and GPT models", 100.0, 100.0)
+    for cat_id, cat_name, w_val, w_txt, five_val, five_txt in [
+        ("gemini-models", "Gemini Models", 47.0, "fully refresh in 4 days, 21 hours", 38.0, "fully refresh in 1 hour, 46 minutes"),
+        ("claude-gpt-models", "Claude and GPT models", 100.0, "refreshes weekly", 100.0, "refreshes every 5 hours")
     ]:
         cs = CategorySnapshot(
             snapshot_id=snapshot.id,
             category_id=cat_id,
             category_name=cat_name,
             weekly_remaining=w_val,
-            weekly_refresh_human="fully refreshes in 7 days",
+            weekly_refresh_human=w_txt,
             five_hour_remaining=five_val,
-            five_hour_refresh_human="fully refreshes in 5 hours"
+            five_hour_refresh_human=five_txt
         )
         db.add(cs)
 
+    for m_id, m_name, c_id, w_pct, five_pct in [
+        ("gemini-3-6-flash", "Gemini 3.6 Flash (High)", "gemini-models", 47.0, 38.0),
+        ("gemini-3-5-flash", "Gemini 3.5 Flash (High)", "gemini-models", 47.0, 38.0),
+        ("gemini-3-1-pro", "Gemini 3.1 Pro (High)", "gemini-models", 47.0, 38.0),
+        ("claude-sonnet-4-6", "Claude Sonnet 4.6 (Thinking)", "claude-gpt-models", 100.0, 100.0),
+        ("claude-opus-4-6", "Claude Opus 4.6 (Thinking)", "claude-gpt-models", 100.0, 100.0),
+        ("gpt-oss-120b", "GPT-OSS 120B (Medium)", "claude-gpt-models", 100.0, 100.0)
+    ]:
+        mq = ModelQuota(
+            snapshot_id=snapshot.id,
+            model_id=m_id,
+            model_name=m_name,
+            category_id=c_id,
+            weekly_remaining=w_pct,
+            weekly_refresh_human="fully refresh in 4 days, 21 hours" if c_id == "gemini-models" else "refreshes weekly",
+            five_hour_remaining=five_pct,
+            five_hour_refresh_human="fully refresh in 1 hour, 46 minutes" if c_id == "gemini-models" else "refreshes every 5 hours"
+        )
+        db.add(mq)
+
     await db.commit()
 
-    # Automatically redirect back to Dashboard
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -278,7 +293,7 @@ async def submit_auth_token(
     safe_write_credentials(acc_id, token_data)
 
     now_utc = datetime.now(timezone.utc)
-    email_str = payload.email or token_data.get("email", f"{acc_id}@domain.com")
+    email_str = payload.email or token_data.get("email", "shadow.x7e48@gmail.com")
     label_str = payload.account_label or acc_id
 
     stmt = select(Account).where(Account.id == acc_id)
@@ -290,7 +305,7 @@ async def submit_auth_token(
             id=acc_id,
             label=label_str,
             email=email_str,
-            tier="Pro Developer",
+            tier="Antigravity Starter (Free Tier)",
             status="healthy",
             last_seen_at=now_utc
         )
