@@ -1,20 +1,19 @@
-# GravWatch - Google Cloud Quota Scraper & API Client (GPL-3.0-or-later)
+# GravWatch - CLI Scraper & Subprocess Executor (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
 import json
 import logging
-import requests
+import subprocess
 
 logger = logging.getLogger("gravwatch.agent.scraper")
-
-GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
 def load_credentials(account_id: str) -> dict | None:
     candidate_paths = [
         f"/root/.gemini/credentials.json",
-        f"./data/{account_id}/credentials.json"
+        f"./data/{account_id}/credentials.json",
+        f"/home/shadow-x7/Projects/Tools/Python/GravWatch/data/{account_id}/credentials.json"
     ]
     for p in candidate_paths:
         if os.path.exists(p):
@@ -26,25 +25,52 @@ def load_credentials(account_id: str) -> dict | None:
     return None
 
 
-def fetch_google_quota(access_token: str) -> dict | None:
-    headers = {"Authorization": f"Bearer {access_token}"}
+def run_agy_usage_command(account_id: str) -> str:
+    """
+    Executes 'agy usage' inside the Linux container and returns raw CLI output.
+    """
+    # 1. Try direct agy CLI if in PATH
     try:
-        # Check token validity with Google
-        user_res = requests.get(GOOGLE_USERINFO_URL, headers=headers, timeout=10)
-        if user_res.status_code == 200:
-            user_data = user_res.json()
-            return {
-                "authenticated": True,
-                "email": user_data.get("email"),
-                "name": user_data.get("name"),
-                "picture": user_data.get("picture")
-            }
-        elif user_res.status_code == 401:
-            logger.warning("Google Access Token has expired. Needs refresh.")
-            return {"authenticated": False, "expired": True}
-        else:
-            logger.warning(f"Google API returned HTTP {user_res.status_code}: {user_res.text}")
-            return None
+        proc = subprocess.run(
+            ["agy", "usage"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env=os.environ
+        )
+        if proc.returncode == 0 and proc.stdout:
+            return proc.stdout
     except Exception as e:
-        logger.error(f"Error connecting to Google API: {e}")
-        return None
+        logger.debug(f"Direct 'agy usage' execution attempt: {e}")
+
+    # 2. Try python module execution
+    try:
+        proc = subprocess.run(
+            ["python3", "/usr/local/bin/agy", "usage"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env=os.environ
+        )
+        if proc.returncode == 0 and proc.stdout:
+            return proc.stdout
+    except Exception as e:
+        logger.debug(f"Python agy execution attempt: {e}")
+
+    # 3. Fallback to local packaging script
+    try:
+        script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../packaging/cli/agy"))
+        if os.path.exists(script_path):
+            proc = subprocess.run(
+                ["python3", script_path, "usage"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                env=os.environ
+            )
+            if proc.returncode == 0 and proc.stdout:
+                return proc.stdout
+    except Exception as e:
+        logger.error(f"Fallback agy execution error: {e}")
+
+    return ""

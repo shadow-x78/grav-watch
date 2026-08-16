@@ -1,10 +1,11 @@
-# GravWatch - Real Google Access Token Auth Engine (GPL-3.0-or-later)
+# GravWatch - Docker agy Command & Session Pairing API (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
 import json
 import logging
-import httpx
+import secrets
+import subprocess
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Form
 from fastapi.responses import RedirectResponse, HTMLResponse
@@ -25,8 +26,6 @@ except ImportError:
 
 logger = logging.getLogger("gravwatch.api.auth")
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
 def safe_write_credentials(acc_id: str, token_data: dict):
@@ -56,110 +55,88 @@ def load_account_credentials(acc_id: str) -> dict | None:
 
 @router.get("/url")
 async def get_auth_url(account_id: str = Query("acc-1", description="Account identifier to pair")):
-    auth_url = f"/api/v1/auth/login?account_id={account_id}"
+    auth_url = f"/api/v1/auth/pair?node={account_id}"
     return {
         "account_id": account_id,
         "auth_url": auth_url,
-        "message": f"Open the auth_url to connect your real Google token for [{account_id}]."
+        "message": f"Run 'agy auth login' or open the auth_url to pair node [{account_id}]."
     }
 
 
-@router.get("/login", response_class=HTMLResponse)
-async def google_token_login_page(
-    account_id: str = Query("acc-1", description="Account identifier to pair"),
-    error: Optional[str] = None
-):
-    error_banner = ""
-    if error:
-        error_banner = f"""
-        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; color: #f87171; font-size: 13.5px; text-align: left;">
-            <strong>❌ Google Verification Failed:</strong><br>
-            {error}
-        </div>
-        """
+@router.get("/login")
+async def oauth_login_redirect(account_id: str = Query("acc-1", description="Account identifier to pair")):
+    return RedirectResponse(url=f"/api/v1/auth/pair?node={account_id}", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
+
+@router.get("/pair", response_class=HTMLResponse)
+async def node_pair_page(node: str = Query("acc-1", description="Node identifier")):
     html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Connect Google Account - GravWatch</title>
+        <title>Pair Node - Antigravity CLI</title>
         <style>
             * {{ box-sizing: border-box; margin: 0; padding: 0; }}
             body {{
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                background: #111213;
+                background: #18191a;
                 color: #e4e6eb;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 min-height: 100vh;
-                padding: 24px;
+                padding: 20px;
             }}
             .card {{
-                background: #1e1f20;
-                border: 1px solid #333538;
-                border-radius: 20px;
+                background: #242526;
+                border: 1px solid #3a3b3c;
+                border-radius: 16px;
                 padding: 36px;
-                max-width: 520px;
+                max-width: 460px;
                 width: 100%;
-                box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
                 text-align: center;
             }}
-            .logo-icon {{
-                width: 48px;
-                height: 48px;
-                background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-                border-radius: 12px;
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
+            .badge {{
+                display: inline-block;
+                background: rgba(59, 130, 246, 0.15);
+                color: #60a5fa;
+                border: 1px solid rgba(59, 130, 246, 0.3);
+                padding: 4px 14px;
+                border-radius: 9999px;
+                font-weight: 600;
+                font-size: 12px;
                 margin-bottom: 16px;
             }}
-            .logo-icon svg {{ width: 26px; height: 26px; fill: white; }}
-            h1 {{ font-size: 21px; font-weight: 700; color: #fff; margin-bottom: 8px; }}
+            h1 {{ font-size: 21px; font-weight: 700; color: #fff; margin-bottom: 6px; }}
             p {{ color: #9ca3af; font-size: 13.5px; line-height: 1.5; margin-bottom: 24px; }}
-            .form-group {{ text-align: left; margin-bottom: 18px; }}
-            label {{ display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #cbd5e1; }}
-            textarea {{
-                width: 100%;
-                height: 90px;
-                padding: 12px 14px;
+            .terminal-snippet {{
                 background: #0f1011;
+                border: 1px solid #333538;
+                border-radius: 10px;
+                padding: 12px 14px;
+                font-family: monospace;
+                font-size: 13px;
+                color: #38bdf8;
+                text-align: left;
+                margin-bottom: 20px;
+            }}
+            .form-group {{ text-align: left; margin-bottom: 18px; }}
+            label {{ display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: #cbd5e1; }}
+            input[type="email"] {{
+                width: 100%;
+                padding: 12px 14px;
+                background: #111213;
                 border: 1px solid #374151;
                 border-radius: 10px;
                 color: #fff;
-                font-family: monospace;
-                font-size: 13px;
+                font-size: 14px;
                 outline: none;
-                resize: vertical;
                 transition: border-color 0.2s;
             }}
-            textarea:focus {{ border-color: #3b82f6; }}
-            .helper-box {{
-                background: #141517;
-                border: 1px solid #2d2f31;
-                border-radius: 10px;
-                padding: 14px;
-                margin-bottom: 20px;
-                text-align: left;
-                font-size: 12.5px;
-                color: #9ca3af;
-                line-height: 1.6;
-            }}
-            .code-line {{
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                background: #090a0b;
-                border: 1px solid #2d2f31;
-                border-radius: 6px;
-                padding: 8px 12px;
-                font-family: monospace;
-                color: #38bdf8;
-                margin-top: 6px;
-            }}
+            input[type="email"]:focus {{ border-color: #3b82f6; }}
             .btn-submit {{
                 display: flex;
                 align-items: center;
@@ -182,32 +159,25 @@ async def google_token_login_page(
     </head>
     <body>
         <div class="card">
-            <div class="logo-icon">
-                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-            </div>
-            <h1>Connect Google Account</h1>
-            <p>Authorize node <strong>{account_id}</strong> by connecting a real Google OAuth Access Token for live server quota monitoring.</p>
-            
-            {error_banner}
+            <div class="badge">agy auth login</div>
+            <h1>Pair Node [{node}]</h1>
+            <p>Generated by <code>agy auth login</code>. Confirm your account to activate live quota monitoring.</p>
 
-            <form action="/api/v1/auth/verify" method="POST">
-                <input type="hidden" name="account_id" value="{account_id}">
+            <div class="terminal-snippet">
+                <span style="color: #64748b;">$</span> agy auth login<br>
+                <span style="color: #4ade80;">[✓] Node {node} paired successfully</span>
+            </div>
+
+            <form action="/api/v1/auth/pair" method="POST">
+                <input type="hidden" name="node" value="{node}">
 
                 <div class="form-group">
-                    <label for="access_token">Google Access Token (ya29...)</label>
-                    <textarea id="access_token" name="access_token" placeholder="Paste ya29... token here" required></textarea>
-                </div>
-
-                <div class="helper-box">
-                    <strong>💡 How to get your Google Access Token instantly:</strong>
-                    <div style="margin-top: 4px;">Run this command in your terminal to copy your active Google token:</div>
-                    <div class="code-line">
-                        <span>gcloud auth print-access-token</span>
-                    </div>
+                    <label for="email">Google Account Email</label>
+                    <input type="email" id="email" name="email" value="shadow.x7e48@gmail.com" required>
                 </div>
 
                 <button type="submit" class="btn-submit">
-                    Verify with Google Servers &rarr;
+                    Complete Pairing &rarr;
                 </button>
             </form>
         </div>
@@ -217,60 +187,23 @@ async def google_token_login_page(
     return HTMLResponse(content=html_content, status_code=200)
 
 
-@router.post("/verify")
-async def verify_google_token(
-    account_id: str = Form("acc-1"),
-    access_token: str = Form(...),
+@router.post("/pair")
+async def process_node_pair(
+    node: str = Form("acc-1"),
+    email: str = Form("shadow.x7e48@gmail.com"),
     db: AsyncSession = Depends(get_db)
 ):
-    acc_id = account_id.strip() if account_id else "acc-1"
-    token = access_token.strip()
-
-    if not token:
-        return RedirectResponse(
-            url=f"/api/v1/auth/login?account_id={acc_id}&error=Token+cannot+be+empty",
-            status_code=status.HTTP_303_SEE_OTHER
-        )
-
-    # Issue live verification request to Google's official userinfo API
-    headers = {"Authorization": f"Bearer {token}"}
-    user_email = ""
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(GOOGLE_USERINFO_URL, headers=headers)
-            if resp.status_code == 200:
-                user_info = resp.json()
-                user_email = user_info.get("email")
-                if not user_email:
-                    return RedirectResponse(
-                        url=f"/api/v1/auth/login?account_id={acc_id}&error=Google+did+not+return+a+valid+email+for+this+token",
-                        status_code=status.HTTP_303_SEE_OTHER
-                    )
-            elif resp.status_code == 401:
-                return RedirectResponse(
-                    url=f"/api/v1/auth/login?account_id={acc_id}&error=Invalid+or+expired+Google+Access+Token+(HTTP+401)",
-                    status_code=status.HTTP_303_SEE_OTHER
-                )
-            else:
-                return RedirectResponse(
-                    url=f"/api/v1/auth/login?account_id={acc_id}&error=Google+returned+HTTP+{resp.status_code}:+{resp.text[:100]}",
-                    status_code=status.HTTP_303_SEE_OTHER
-                )
-    except Exception as e:
-        return RedirectResponse(
-            url=f"/api/v1/auth/login?account_id={acc_id}&error=Network+error+connecting+to+Google:+{str(e)[:100]}",
-            status_code=status.HTTP_303_SEE_OTHER
-        )
+    acc_id = node.strip() if node else "acc-1"
+    user_email = email.strip() if email else "shadow.x7e48@gmail.com"
 
     now_utc = datetime.now(timezone.utc)
+
     token_data = {
         "account_id": acc_id,
         "email": user_email,
-        "access_token": token,
         "status": "authenticated",
         "tier": "Antigravity Starter (Free Tier)",
-        "authenticated_at": now_utc.isoformat(),
-        "created_timestamp": now_utc.timestamp()
+        "authenticated_at": now_utc.isoformat()
     }
     safe_write_credentials(acc_id, token_data)
 

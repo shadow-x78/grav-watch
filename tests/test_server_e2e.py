@@ -31,10 +31,10 @@ class TestServerE2E(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data["status"], "healthy")
 
     async def test_auth_endpoints(self):
-        # 1. Test Google Token Login Page (HTTP 200)
-        login_res = await self.client.get("/api/v1/auth/login?account_id=acc-1", follow_redirects=False)
+        # 1. Test Node Pair Page (HTTP 200)
+        login_res = await self.client.get("/api/v1/auth/pair?node=acc-1", follow_redirects=False)
         self.assertEqual(login_res.status_code, 200)
-        self.assertIn("Connect Google Account", login_res.text)
+        self.assertIn("agy auth login", login_res.text)
 
         # 2. Test URL Endpoint
         url_res = await self.client.get("/api/v1/auth/url?account_id=acc-1")
