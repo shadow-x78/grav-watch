@@ -31,16 +31,16 @@ class TestServerE2E(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data["status"], "healthy")
 
     async def test_auth_endpoints(self):
-        # 1. Test Direct Google OAuth 307 Redirect
+        # 1. Test Login Page (HTTP 200)
         login_res = await self.client.get("/api/v1/auth/login?account_id=acc-1", follow_redirects=False)
-        self.assertEqual(login_res.status_code, 307)
-        self.assertIn("accounts.google.com", login_res.headers["location"])
+        self.assertEqual(login_res.status_code, 200)
+        self.assertIn("Sign in with Antigravity", login_res.text)
 
         # 2. Test URL Endpoint
         url_res = await self.client.get("/api/v1/auth/url?account_id=acc-1")
         self.assertEqual(url_res.status_code, 200)
         data = url_res.json()
-        self.assertIn("accounts.google.com", data["auth_url"])
+        self.assertIn("/api/v1/auth/login", data["auth_url"])
 
         # 3. Test Status Endpoint
         status_res = await self.client.get("/api/v1/auth/status")
@@ -55,7 +55,7 @@ class TestServerE2E(unittest.IsolatedAsyncioTestCase):
             "account_id": "acc-1",
             "account_label": "Account 1 (Primary)",
             "email": "shadow.x7e48@gmail.com",
-            "tier": "Antigravity Starter (Free Tier)",
+            "tier": "Antigravity Starter",
             "status": "healthy",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "categories": telemetry1["categories"],

@@ -20,7 +20,7 @@ def parse_agy_output(raw_output: str, account_id: str, account_label: str) -> di
     cleaned = clean_ansi(raw_output)
 
     email = "shadow.x7e48@gmail.com"
-    tier = "Antigravity Starter (Free Tier)"
+    tier = "Antigravity Starter"
 
     # Extract account email
     email_match = re.search(r"Account:\s*([^\s│]+)", cleaned)
@@ -33,15 +33,15 @@ def parse_agy_output(raw_output: str, account_id: str, account_label: str) -> di
         tier = tier_match.group(1).strip()
 
     # Extract Gemini weekly & 5h limits
-    gemini_weekly = 47.0
-    gemini_weekly_txt = "fully refresh in 4 days, 21 hours"
+    gemini_weekly = 100.0
+    gemini_weekly_txt = "refreshes weekly"
     gw_match = re.search(r"Gemini Models:.*?Weekly Limit Remaining:\s*([0-9.]+)%\s*\(([^)]+)\)", cleaned, re.DOTALL)
     if gw_match:
         gemini_weekly = float(gw_match.group(1))
         gemini_weekly_txt = gw_match.group(2).strip()
 
-    gemini_5h = 38.0
-    gemini_5h_txt = "fully refresh in 1 hour, 46 minutes"
+    gemini_5h = 100.0
+    gemini_5h_txt = "refreshes every 5 hours"
     g5_match = re.search(r"Gemini Models:.*?Five Hour Limit Remaining:\s*([0-9.]+)%\s*\(([^)]+)\)", cleaned, re.DOTALL)
     if g5_match:
         gemini_5h = float(g5_match.group(1))
@@ -87,43 +87,36 @@ def parse_agy_output(raw_output: str, account_id: str, account_label: str) -> di
 
     models = [
         {
-            "model_id": "gemini-3-6-flash",
-            "model_name": "Gemini 3.6 Flash (High)",
+            "model_id": "gemini-flash",
+            "model_name": "Gemini Flash",
             "category_id": "gemini-models",
             "weekly_limit": {"percentage_remaining": gemini_weekly, "refresh_in_human": gemini_weekly_txt},
             "five_hour_limit": {"percentage_remaining": gemini_5h, "refresh_in_human": gemini_5h_txt}
         },
         {
-            "model_id": "gemini-3-5-flash",
-            "model_name": "Gemini 3.5 Flash (High)",
+            "model_id": "gemini-pro",
+            "model_name": "Gemini Pro",
             "category_id": "gemini-models",
             "weekly_limit": {"percentage_remaining": gemini_weekly, "refresh_in_human": gemini_weekly_txt},
             "five_hour_limit": {"percentage_remaining": gemini_5h, "refresh_in_human": gemini_5h_txt}
         },
         {
-            "model_id": "gemini-3-1-pro",
-            "model_name": "Gemini 3.1 Pro (High)",
-            "category_id": "gemini-models",
-            "weekly_limit": {"percentage_remaining": gemini_weekly, "refresh_in_human": gemini_weekly_txt},
-            "five_hour_limit": {"percentage_remaining": gemini_5h, "refresh_in_human": gemini_5h_txt}
-        },
-        {
-            "model_id": "claude-sonnet-4-6",
-            "model_name": "Claude Sonnet 4.6 (Thinking)",
+            "model_id": "claude-sonnet",
+            "model_name": "Claude Sonnet",
             "category_id": "claude-gpt-models",
             "weekly_limit": {"percentage_remaining": claude_weekly, "refresh_in_human": "refreshes weekly"},
             "five_hour_limit": {"percentage_remaining": claude_5h, "refresh_in_human": "refreshes every 5 hours"}
         },
         {
-            "model_id": "claude-opus-4-6",
-            "model_name": "Claude Opus 4.6 (Thinking)",
+            "model_id": "claude-opus",
+            "model_name": "Claude Opus",
             "category_id": "claude-gpt-models",
             "weekly_limit": {"percentage_remaining": claude_weekly, "refresh_in_human": "refreshes weekly"},
             "five_hour_limit": {"percentage_remaining": claude_5h, "refresh_in_human": "refreshes every 5 hours"}
         },
         {
-            "model_id": "gpt-oss-120b",
-            "model_name": "GPT-OSS 120B (Medium)",
+            "model_id": "gpt-oss",
+            "model_name": "GPT OSS",
             "category_id": "claude-gpt-models",
             "weekly_limit": {"percentage_remaining": claude_weekly, "refresh_in_human": "refreshes weekly"},
             "five_hour_limit": {"percentage_remaining": claude_5h, "refresh_in_human": "refreshes every 5 hours"}

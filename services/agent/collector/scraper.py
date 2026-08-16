@@ -1,4 +1,4 @@
-# GravWatch - CLI Scraper & Subprocess Executor (GPL-3.0-or-later)
+# GravWatch - CLI Scraper & Real agy Subprocess Executor (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
@@ -9,9 +9,24 @@ import subprocess
 logger = logging.getLogger("gravwatch.agent.scraper")
 
 
+def find_agy_binary() -> str:
+    candidates = [
+        "/home/shadow-x7/.local/bin/agy",
+        "/usr/local/bin/agy",
+        "/usr/bin/agy",
+        "agy",
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../packaging/cli/agy"))
+    ]
+    for c in candidates:
+        if os.path.exists(c) and os.access(c, os.X_OK):
+            return c
+    return "agy"
+
+
 def load_credentials(account_id: str) -> dict | None:
     candidate_paths = [
-        f"/root/.gemini/credentials.json",
+        os.path.expanduser("~/.gemini/credentials.json"),
+        "/root/.gemini/credentials.json",
         f"./data/{account_id}/credentials.json",
         f"/home/shadow-x7/Projects/Tools/Python/GravWatch/data/{account_id}/credentials.json"
     ]
@@ -27,12 +42,13 @@ def load_credentials(account_id: str) -> dict | None:
 
 def run_agy_usage_command(account_id: str) -> str:
     """
-    Executes 'agy usage' inside the Linux container and returns raw CLI output.
+    Executes 'agy usage' using the real system binary and returns the exact stdout string.
     """
-    # 1. Try direct agy CLI if in PATH
+    agy_bin = find_agy_binary()
+
     try:
         proc = subprocess.run(
-            ["agy", "usage"],
+            [agy_bin, "usage"],
             capture_output=True,
             text=True,
             timeout=10,
@@ -40,24 +56,12 @@ def run_agy_usage_command(account_id: str) -> str:
         )
         if proc.returncode == 0 and proc.stdout:
             return proc.stdout
-    except Exception as e:
-        logger.debug(f"Direct 'agy usage' execution attempt: {e}")
-
-    # 2. Try python module execution
-    try:
-        proc = subprocess.run(
-            ["python3", "/usr/local/bin/agy", "usage"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            env=os.environ
-        )
-        if proc.returncode == 0 and proc.stdout:
+        elif proc.stdout:
             return proc.stdout
     except Exception as e:
-        logger.debug(f"Python agy execution attempt: {e}")
+        logger.error(f"Error executing '{agy_bin} usage': {e}")
 
-    # 3. Fallback to local packaging script
+    # Fallback to direct script execution
     try:
         script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../packaging/cli/agy"))
         if os.path.exists(script_path):
@@ -68,9 +72,9 @@ def run_agy_usage_command(account_id: str) -> str:
                 timeout=10,
                 env=os.environ
             )
-            if proc.returncode == 0 and proc.stdout:
+            if proc.stdout:
                 return proc.stdout
     except Exception as e:
-        logger.error(f"Fallback agy execution error: {e}")
+        logger.error(f"Fallback script execution error: {e}")
 
     return ""
