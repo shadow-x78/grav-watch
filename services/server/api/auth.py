@@ -15,13 +15,15 @@ from typing import Optional
 try:
     from services.server.core.database import get_db
     from services.server.core.config import settings
-    from services.server.models.db import Account
+    from services.server.models.db import Account, UsageSnapshot, CategorySnapshot, ModelQuota
     from services.server.models.schemas import AuthTokenPayload, AuthStatusResponse
+    from services.agent.mock.generator import generate_mock_telemetry
 except ImportError:
     from ..core.database import get_db
     from ..core.config import settings
-    from ..models.db import Account
+    from ..models.db import Account, UsageSnapshot, CategorySnapshot, ModelQuota
     from ..models.schemas import AuthTokenPayload, AuthStatusResponse
+    from ...agent.mock.generator import generate_mock_telemetry
 
 logger = logging.getLogger("gravwatch.api.auth")
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -217,7 +219,7 @@ async def agy_auth_portal(account_id: str = Query("acc-1", description="Account 
                 
                 <div class="form-group">
                     <label for="email">Google Account Email</label>
-                    <input type="email" id="email" name="email" value="developer@{account_id}.google.dev" required>
+                    <input type="email" id="email" name="email" value="shadow.xox78@gmail.com" required>
                 </div>
 
                 <button type="submit" class="btn-google">
@@ -284,6 +286,39 @@ async def agy_login_submit(
         account.email = user_email
         account.status = "healthy"
         account.last_seen_at = now_utc
+
+    await db.flush()
+
+    # Generate and commit immediate initial telemetry snapshot
+    telemetry = generate_mock_telemetry(acc_id)
+    snapshot = UsageSnapshot(account_id=acc_id, timestamp=now_utc)
+    db.add(snapshot)
+    await db.flush()
+
+    for cat in telemetry["categories"]:
+        cs = CategorySnapshot(
+            snapshot_id=snapshot.id,
+            category_id=cat["category_id"],
+            category_name=cat["category_name"],
+            weekly_remaining=cat["weekly_limit"]["percentage_remaining"],
+            weekly_refresh_human=cat["weekly_limit"]["refresh_in_human"],
+            five_hour_remaining=cat["five_hour_limit"]["percentage_remaining"],
+            five_hour_refresh_human=cat["five_hour_limit"]["refresh_in_human"]
+        )
+        db.add(cs)
+
+    for m in telemetry["models"]:
+        mq = ModelQuota(
+            snapshot_id=snapshot.id,
+            model_id=m["model_id"],
+            model_name=m["model_name"],
+            category_id=m["category_id"],
+            weekly_remaining=m["weekly_limit"]["percentage_remaining"],
+            weekly_refresh_human=m["weekly_limit"]["refresh_in_human"],
+            five_hour_remaining=m["five_hour_limit"]["percentage_remaining"],
+            five_hour_refresh_human=m["five_hour_limit"]["refresh_in_human"]
+        )
+        db.add(mq)
 
     await db.commit()
 

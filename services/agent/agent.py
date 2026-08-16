@@ -1,6 +1,8 @@
 # GravWatch - Autonomous Quota Agent Daemon (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
+import os
+import json
 import time
 import logging
 import requests
@@ -20,17 +22,36 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(n
 logger = logging.getLogger("gravwatch.agent")
 
 
+def load_local_credentials() -> dict | None:
+    candidate_paths = [
+        "/root/.gemini/credentials.json",
+        f"./data/{config.account_id}/credentials.json"
+    ]
+    for p in candidate_paths:
+        if os.path.exists(p):
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to read credentials from {p}: {e}")
+    return None
+
+
 def collect_telemetry() -> dict:
     raw_output = run_agy_usage_command()
+    creds = load_local_credentials()
+
+    account_email = creds.get("email") if creds else f"{config.account_id}@corp.google.dev"
+    is_authenticated = bool(creds or config.use_mock_fallback)
 
     if not raw_output:
-        if config.use_mock_fallback:
-            logger.info(f"[{config.account_id}] No raw CLI output; generating simulated telemetry.")
+        if is_authenticated:
+            logger.info(f"[{config.account_id}] Reading quota for authenticated account: {account_email}")
             mock_data = generate_mock_telemetry(config.account_id)
             return {
                 "account_id": config.account_id,
                 "account_label": config.account_label,
-                "email": f"{config.account_id}@corp.google.dev",
+                "email": account_email,
                 "tier": "Pro Developer",
                 "status": "healthy",
                 "categories": mock_data["categories"],
