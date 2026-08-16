@@ -29,7 +29,7 @@ def collect_telemetry() -> dict:
         return {
             "account_id": config.account_id,
             "account_label": config.account_label,
-            "email": f"{config.account_id}@unauthenticated.google",
+            "email": None,
             "tier": "Unauthenticated",
             "status": "unauthenticated",
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -37,37 +37,23 @@ def collect_telemetry() -> dict:
             "models": []
         }
 
-    # Execute 'agy usage' inside the Linux container
+    # Execute 'agy usage' using the real system binary
     raw_output = run_agy_usage_command(config.account_id)
     if raw_output:
-        logger.info(f"[{config.account_id}] Scraped real 'agy usage' output from container environment.")
-        return parse_agy_output(raw_output, config.account_id, config.account_label)
+        logger.info(f"[{config.account_id}] Scraped real 'agy usage' output.")
+        parsed = parse_agy_output(raw_output, config.account_id, config.account_label)
+        if parsed.get("categories"):
+            return parsed
 
-    # Fallback to direct credentials reading if CLI was empty
-    user_email = creds.get("email", "shadow.x7e48@gmail.com")
-    tier = creds.get("tier", "Antigravity Starter (Free Tier)")
-
+    # If CLI execution had no categories, do not fake them
     return {
         "account_id": config.account_id,
         "account_label": config.account_label,
-        "email": user_email,
-        "tier": tier,
+        "email": creds.get("email"),
+        "tier": creds.get("tier", "Antigravity Starter"),
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "categories": [
-            {
-                "category_id": "gemini-models",
-                "category_name": "Gemini Models",
-                "weekly_limit": {"percentage_remaining": 47.0, "refresh_in_human": "fully refresh in 4 days, 21 hours"},
-                "five_hour_limit": {"percentage_remaining": 38.0, "refresh_in_human": "fully refresh in 1 hour, 46 minutes"}
-            },
-            {
-                "category_id": "claude-gpt-models",
-                "category_name": "Claude and GPT models",
-                "weekly_limit": {"percentage_remaining": 100.0, "refresh_in_human": "refreshes weekly"},
-                "five_hour_limit": {"percentage_remaining": 100.0, "refresh_in_human": "refreshes every 5 hours"}
-            }
-        ],
+        "categories": [],
         "models": []
     }
 

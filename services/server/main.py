@@ -133,13 +133,13 @@ DASHBOARD_HTML = """
         }
         .unauth-banner h3 { font-size: 17px; color: #fff; margin-bottom: 8px; font-weight: 600; }
         .unauth-banner p { font-size: 13.5px; color: #9ca3af; margin-bottom: 20px; line-height: 1.5; }
-        .btn-google {
+        .btn-connect {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            background: #ffffff;
-            color: #1f2937;
+            background: #2563eb;
+            color: #ffffff;
             border: none;
             padding: 12px 24px;
             border-radius: 10px;
@@ -147,11 +147,10 @@ DASHBOARD_HTML = """
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
             transition: all 0.2s;
         }
-        .btn-google:hover { background: #f3f4f6; transform: translateY(-1px); }
-        .btn-google svg { width: 18px; height: 18px; }
+        .btn-connect:hover { background: #1d4ed8; transform: translateY(-1px); }
         .section-header {
             display: flex;
             align-items: center;
@@ -246,7 +245,7 @@ DASHBOARD_HTML = """
                 <h1>GravWatch</h1>
             </div>
             <div class="header-actions">
-                <a href="/api/v1/auth/login?account_id=acc-1" class="account-badge">
+                <a href="/api/v1/auth/login?account_id=acc-1" class="account-badge" id="accountBadge">
                     <div class="status-dot" id="statusDot"></div>
                     <span id="accountEmail">Checking session...</span>
                 </a>
@@ -258,16 +257,10 @@ DASHBOARD_HTML = """
         </div>
 
         <div class="unauth-banner" id="unauthBanner" style="display: none;">
-            <h3>Sign in with Google</h3>
-            <p>Connect your official Google account to stream live Antigravity quotas directly to node <strong>acc-1</strong>.</p>
-            <a href="/api/v1/auth/login?account_id=acc-1" class="btn-google">
-                <svg viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                </svg>
-                Connect with Google &rarr;
+            <h3>Connect Antigravity (agy)</h3>
+            <p>Sign in to your Antigravity account to stream real live quotas for node <strong>acc-1</strong>.</p>
+            <a href="/api/v1/auth/login?account_id=acc-1" class="btn-connect">
+                Sign in with Antigravity &rarr;
             </a>
         </div>
 
@@ -279,7 +272,7 @@ DASHBOARD_HTML = """
             <div class="quota-row">
                 <div class="quota-text">
                     <div class="quota-name">Weekly Limit Remaining</div>
-                    <div class="quota-desc" id="geminiWeeklyDesc">Awaiting Google authentication...</div>
+                    <div class="quota-desc" id="geminiWeeklyDesc">Awaiting agy authentication...</div>
                 </div>
                 <div class="gauge-wrap">
                     <div class="gauge-pct" id="geminiWeeklyPct">--%</div>
@@ -294,7 +287,7 @@ DASHBOARD_HTML = """
             <div class="quota-row">
                 <div class="quota-text">
                     <div class="quota-name">Five Hour Limit Remaining</div>
-                    <div class="quota-desc" id="gemini5hDesc">Awaiting Google authentication...</div>
+                    <div class="quota-desc" id="gemini5hDesc">Awaiting agy authentication...</div>
                 </div>
                 <div class="gauge-wrap">
                     <div class="gauge-pct" id="gemini5hPct">--%</div>
@@ -316,7 +309,7 @@ DASHBOARD_HTML = """
             <div class="quota-row">
                 <div class="quota-text">
                     <div class="quota-name">Weekly Limit Remaining</div>
-                    <div class="quota-desc" id="claudeWeeklyDesc">Awaiting Google authentication...</div>
+                    <div class="quota-desc" id="claudeWeeklyDesc">Awaiting agy authentication...</div>
                 </div>
                 <div class="gauge-wrap">
                     <div class="gauge-pct" id="claudeWeeklyPct">--%</div>
@@ -331,7 +324,7 @@ DASHBOARD_HTML = """
             <div class="quota-row">
                 <div class="quota-text">
                     <div class="quota-name">Five Hour Limit Remaining</div>
-                    <div class="quota-desc" id="claude5hDesc">Awaiting Google authentication...</div>
+                    <div class="quota-desc" id="claude5hDesc">Awaiting agy authentication...</div>
                 </div>
                 <div class="gauge-wrap">
                     <div class="gauge-pct" id="claude5hPct">--%</div>
@@ -346,7 +339,7 @@ DASHBOARD_HTML = """
         </div>
 
         <div class="footer-info">
-            Official Google Cloud OAuth 2.0 &bull; <a href="/docs" style="color: #3b82f6; text-decoration: none;">API Docs (Swagger)</a>
+            Antigravity CLI Live Engine &bull; <a href="/docs" style="color: #3b82f6; text-decoration: none;">API Docs (Swagger)</a>
         </div>
     </div>
 
@@ -400,19 +393,19 @@ DASHBOARD_HTML = """
 
                     document.getElementById('geminiWeeklyPct').innerText = '--%';
                     setRing('geminiWeeklyCircle', null);
-                    document.getElementById('geminiWeeklyDesc').innerText = 'Unauthenticated. Sign in with Google to view live limits.';
+                    document.getElementById('geminiWeeklyDesc').innerText = 'Unauthenticated. Sign in with Antigravity to view live limits.';
 
                     document.getElementById('gemini5hPct').innerText = '--%';
                     setRing('gemini5hCircle', null);
-                    document.getElementById('gemini5hDesc').innerText = 'Unauthenticated. Sign in with Google to view live limits.';
+                    document.getElementById('gemini5hDesc').innerText = 'Unauthenticated. Sign in with Antigravity to view live limits.';
 
                     document.getElementById('claudeWeeklyPct').innerText = '--%';
                     setRing('claudeWeeklyCircle', null);
-                    document.getElementById('claudeWeeklyDesc').innerText = 'Unauthenticated. Sign in with Google to view live limits.';
+                    document.getElementById('claudeWeeklyDesc').innerText = 'Unauthenticated. Sign in with Antigravity to view live limits.';
 
                     document.getElementById('claude5hPct').innerText = '--%';
                     setRing('claude5hCircle', null);
-                    document.getElementById('claude5hDesc').innerText = 'Unauthenticated. Sign in with Google to view live limits.';
+                    document.getElementById('claude5hDesc').innerText = 'Unauthenticated. Sign in with Antigravity to view live limits.';
                     return;
                 }
 
@@ -422,31 +415,39 @@ DASHBOARD_HTML = """
                 unauthBanner.style.display = 'none';
                 btnSwitch.style.display = 'inline-flex';
 
-                const catSummaries = data.pool_summary.category_summaries || [];
-                const geminiCat = catSummaries.find(c => c.category_id === 'gemini-models');
-                const claudeCat = catSummaries.find(c => c.category_id === 'claude-gpt-models');
+                const categories = primary.categories || [];
+                const geminiCat = categories.find(c => c.category_id === 'gemini-models');
+                const claudeCat = categories.find(c => c.category_id === 'claude-gpt-models');
 
                 if (geminiCat) {
-                    document.getElementById('geminiWeeklyPct').innerText = Math.round(geminiCat.weekly_limit_remaining) + '%';
-                    setRing('geminiWeeklyCircle', geminiCat.weekly_limit_remaining);
-                    if (geminiCat.weekly_refresh_human) {
-                        document.getElementById('geminiWeeklyDesc').innerText = 'You have used some of your weekly limit, it will ' + geminiCat.weekly_refresh_human + '.';
+                    const wVal = geminiCat.weekly_limit.percentage_remaining;
+                    const wTxt = geminiCat.weekly_limit.refresh_in_human;
+                    const fiveVal = geminiCat.five_hour_limit.percentage_remaining;
+                    const fiveTxt = geminiCat.five_hour_limit.refresh_in_human;
+
+                    document.getElementById('geminiWeeklyPct').innerText = Math.round(wVal) + '%';
+                    setRing('geminiWeeklyCircle', wVal);
+                    if (wTxt) {
+                        document.getElementById('geminiWeeklyDesc').innerText = 'You have used some of your weekly limit, it will ' + wTxt + '.';
                     }
 
-                    document.getElementById('gemini5hPct').innerText = Math.round(geminiCat.five_hour_limit_remaining) + '%';
-                    setRing('gemini5hCircle', geminiCat.five_hour_limit_remaining);
-                    if (geminiCat.five_hour_refresh_human) {
-                        document.getElementById('gemini5hDesc').innerText = 'You have used some of your 5-hour limit, it will ' + geminiCat.five_hour_refresh_human + '.';
+                    document.getElementById('gemini5hPct').innerText = Math.round(fiveVal) + '%';
+                    setRing('gemini5hCircle', fiveVal);
+                    if (fiveTxt) {
+                        document.getElementById('gemini5hDesc').innerText = 'You have used some of your 5-hour limit, it will ' + fiveTxt + '.';
                     }
                 }
 
                 if (claudeCat) {
-                    document.getElementById('claudeWeeklyPct').innerText = Math.round(claudeCat.weekly_limit_remaining) + '%';
-                    setRing('claudeWeeklyCircle', claudeCat.weekly_limit_remaining);
+                    const wVal = claudeCat.weekly_limit.percentage_remaining;
+                    const fiveVal = claudeCat.five_hour_limit.percentage_remaining;
+
+                    document.getElementById('claudeWeeklyPct').innerText = Math.round(wVal) + '%';
+                    setRing('claudeWeeklyCircle', wVal);
                     document.getElementById('claudeWeeklyDesc').innerText = 'Full capacity remaining, refreshes weekly.';
 
-                    document.getElementById('claude5hPct').innerText = Math.round(claudeCat.five_hour_limit_remaining) + '%';
-                    setRing('claude5hCircle', claudeCat.five_hour_limit_remaining);
+                    document.getElementById('claude5hPct').innerText = Math.round(fiveVal) + '%';
+                    setRing('claude5hCircle', fiveVal);
                     document.getElementById('claude5hDesc').innerText = 'Full capacity remaining, refreshes every 5 hours.';
                 }
             } catch (e) {
