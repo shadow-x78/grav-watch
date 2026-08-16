@@ -1,4 +1,4 @@
-# GravWatch - Real agy CLI Execution & Auth Engine (GPL-3.0-or-later)
+# GravWatch - Real agy CLI Execution & Dynamic Auth Engine (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
@@ -62,7 +62,7 @@ def execute_agy_auth_login(email: str) -> bool:
             timeout=10,
             env=os.environ
         )
-        logger.info(f"Executed '{agy_bin} auth login' (code {proc.returncode}): {proc.stdout.strip()}")
+        logger.info(f"Executed '{agy_bin} auth login' for {email}: {proc.stdout.strip()}")
         return proc.returncode == 0
     except Exception as e:
         logger.error(f"Error executing '{agy_bin} auth login': {e}")
@@ -211,7 +211,7 @@ async def login_page(account_id: str = Query("acc-1", description="Account ident
 
                 <div class="form-group">
                     <label for="email">Google Account Email</label>
-                    <input type="email" id="email" name="email" placeholder="e.g. shadow.x7e48@gmail.com" required autofocus>
+                    <input type="email" id="email" name="email" placeholder="Enter your email address" required autofocus>
                 </div>
 
                 <button type="submit" class="btn-submit">
@@ -233,28 +233,26 @@ async def process_login(
 ):
     acc_id = account_id.strip() if account_id else "acc-1"
     user_email = email.strip()
-
-    # 1. Execute authentic host/container 'agy auth login'
-    execute_agy_auth_login(user_email)
-
-    # 2. Run authentic 'agy usage' to parse real quota output
-    raw_usage = run_agy_usage_command(acc_id)
-    parsed = parse_agy_output(raw_usage, acc_id, f"Account ({acc_id})")
-
-    actual_email = parsed.get("email") or user_email
-    actual_tier = parsed.get("tier") or "Antigravity Starter"
-
     now_utc = datetime.now(timezone.utc)
 
-    # 3. Save credentials
+    # 1. Save user credentials directly
     token_data = {
         "account_id": acc_id,
-        "email": actual_email,
-        "tier": actual_tier,
+        "email": user_email,
+        "tier": "Antigravity Starter",
         "status": "authenticated",
         "authenticated_at": now_utc.isoformat()
     }
     safe_write_credentials(acc_id, token_data)
+
+    # 2. Execute authentic host/container 'agy auth login'
+    execute_agy_auth_login(user_email)
+
+    # 3. Run authentic 'agy usage' to parse real quota output
+    raw_usage = run_agy_usage_command(acc_id)
+    parsed = parse_agy_output(raw_usage, acc_id, f"Account ({acc_id})")
+
+    actual_tier = parsed.get("tier") or "Antigravity Starter"
 
     # 4. Update Database Account
     stmt = select(Account).where(Account.id == acc_id)
@@ -265,14 +263,14 @@ async def process_login(
         account = Account(
             id=acc_id,
             label=f"Account ({acc_id})",
-            email=actual_email,
+            email=user_email,
             tier=actual_tier,
             status="healthy",
             last_seen_at=now_utc
         )
         db.add(account)
     else:
-        account.email = actual_email
+        account.email = user_email
         account.tier = actual_tier
         account.status = "healthy"
         account.last_seen_at = now_utc

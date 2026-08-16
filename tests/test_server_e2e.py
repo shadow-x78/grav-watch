@@ -54,7 +54,7 @@ class TestServerE2E(unittest.IsolatedAsyncioTestCase):
         payload1 = {
             "account_id": "acc-1",
             "account_label": "Account 1 (Primary)",
-            "email": "shadow.x7e48@gmail.com",
+            "email": "shadow.xox78@gmail.com",
             "tier": "Antigravity Starter",
             "status": "healthy",
             "timestamp": datetime.now(timezone.utc).isoformat(),

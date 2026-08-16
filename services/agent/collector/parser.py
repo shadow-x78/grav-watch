@@ -19,15 +19,15 @@ def clean_ansi(text: str) -> str:
 def parse_agy_output(raw_output: str, account_id: str, account_label: str) -> dict:
     cleaned = clean_ansi(raw_output)
 
-    email = "shadow.x7e48@gmail.com"
+    email = None
     tier = "Antigravity Starter"
 
-    # Extract account email
+    # Extract account email dynamically from CLI output
     email_match = re.search(r"Account:\s*([^\s│]+)", cleaned)
     if email_match:
         email = email_match.group(1).strip()
 
-    # Extract tier
+    # Extract tier dynamically from CLI output
     tier_match = re.search(r"Tier:\s*([^\s│]+(?:\s+[^\s│]+)*)", cleaned)
     if tier_match:
         tier = tier_match.group(1).strip()
@@ -126,7 +126,7 @@ def parse_agy_output(raw_output: str, account_id: str, account_label: str) -> di
     return {
         "account_id": account_id,
         "account_label": account_label,
-        "email": email,
+        "email": email or f"{account_id}@google.com",
         "tier": tier,
         "status": "healthy",
         "timestamp": datetime.now(timezone.utc).isoformat(),
