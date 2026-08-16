@@ -1,11 +1,11 @@
-# GravWatch - One-Click Google Antigravity Auth API (GPL-3.0-or-later)
+# GravWatch - Real Google Access Token Auth Engine (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
 import json
 import logging
-import secrets
-from datetime import datetime, timezone, timedelta
+import httpx
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Form
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +25,8 @@ except ImportError:
 
 logger = logging.getLogger("gravwatch.api.auth")
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
 def safe_write_credentials(acc_id: str, token_data: dict):
@@ -58,39 +60,51 @@ async def get_auth_url(account_id: str = Query("acc-1", description="Account ide
     return {
         "account_id": account_id,
         "auth_url": auth_url,
-        "message": f"Open the auth_url to sign in with Google for [{account_id}]."
+        "message": f"Open the auth_url to connect your real Google token for [{account_id}]."
     }
 
 
 @router.get("/login", response_class=HTMLResponse)
-async def one_click_login_page(account_id: str = Query("acc-1", description="Account identifier to pair")):
+async def google_token_login_page(
+    account_id: str = Query("acc-1", description="Account identifier to pair"),
+    error: Optional[str] = None
+):
+    error_banner = ""
+    if error:
+        error_banner = f"""
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; color: #f87171; font-size: 13.5px; text-align: left;">
+            <strong>❌ Google Verification Failed:</strong><br>
+            {error}
+        </div>
+        """
+
     html_content = f"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Sign In - Google Antigravity</title>
+        <title>Connect Google Account - GravWatch</title>
         <style>
             * {{ box-sizing: border-box; margin: 0; padding: 0; }}
             body {{
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                background: #18191a;
+                background: #111213;
                 color: #e4e6eb;
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 min-height: 100vh;
-                padding: 20px;
+                padding: 24px;
             }}
             .card {{
-                background: #242526;
-                border: 1px solid #3a3b3c;
-                border-radius: 16px;
+                background: #1e1f20;
+                border: 1px solid #333538;
+                border-radius: 20px;
                 padding: 36px;
-                max-width: 440px;
+                max-width: 520px;
                 width: 100%;
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+                box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
                 text-align: center;
             }}
             .logo-icon {{
@@ -104,58 +118,55 @@ async def one_click_login_page(account_id: str = Query("acc-1", description="Acc
                 margin-bottom: 16px;
             }}
             .logo-icon svg {{ width: 26px; height: 26px; fill: white; }}
-            h1 {{ font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; }}
+            h1 {{ font-size: 21px; font-weight: 700; color: #fff; margin-bottom: 8px; }}
             p {{ color: #9ca3af; font-size: 13.5px; line-height: 1.5; margin-bottom: 24px; }}
-            .form-group {{ text-align: left; margin-bottom: 16px; }}
-            label {{ display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: #cbd5e1; }}
-            input[type="email"] {{
+            .form-group {{ text-align: left; margin-bottom: 18px; }}
+            label {{ display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #cbd5e1; }}
+            textarea {{
                 width: 100%;
+                height: 90px;
                 padding: 12px 14px;
-                background: #111213;
+                background: #0f1011;
                 border: 1px solid #374151;
                 border-radius: 10px;
                 color: #fff;
-                font-size: 14px;
+                font-family: monospace;
+                font-size: 13px;
                 outline: none;
+                resize: vertical;
                 transition: border-color 0.2s;
             }}
-            input[type="email"]:focus {{ border-color: #3b82f6; }}
-            .quick-btn {{
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                width: 100%;
-                padding: 10px 14px;
-                background: #1e1f20;
-                border: 1px solid #374151;
+            textarea:focus {{ border-color: #3b82f6; }}
+            .helper-box {{
+                background: #141517;
+                border: 1px solid #2d2f31;
                 border-radius: 10px;
-                color: #e4e6eb;
-                font-size: 13px;
-                margin-bottom: 16px;
-                cursor: pointer;
+                padding: 14px;
+                margin-bottom: 20px;
                 text-align: left;
-                transition: all 0.2s;
+                font-size: 12.5px;
+                color: #9ca3af;
+                line-height: 1.6;
             }}
-            .quick-btn:hover {{ border-color: #3b82f6; background: #2a2b2c; }}
-            .avatar {{
-                width: 24px;
-                height: 24px;
-                background: #3b82f6;
-                border-radius: 50%;
+            .code-line {{
                 display: flex;
                 align-items: center;
-                justify-content: center;
-                font-weight: 700;
-                font-size: 11px;
-                color: white;
+                justify-content: space-between;
+                background: #090a0b;
+                border: 1px solid #2d2f31;
+                border-radius: 6px;
+                padding: 8px 12px;
+                font-family: monospace;
+                color: #38bdf8;
+                margin-top: 6px;
             }}
             .btn-submit {{
                 display: flex;
                 align-items: center;
                 justify-content: center;
                 gap: 10px;
-                background: #ffffff;
-                color: #1f2937;
+                background: #2563eb;
+                color: #ffffff;
                 border: none;
                 padding: 13px;
                 width: 100%;
@@ -163,13 +174,10 @@ async def one_click_login_page(account_id: str = Query("acc-1", description="Acc
                 font-weight: 600;
                 font-size: 14.5px;
                 cursor: pointer;
-                margin-top: 8px;
-                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+                box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
                 transition: all 0.2s;
             }}
-            .btn-submit:hover {{ background: #f3f4f6; transform: translateY(-1px); }}
-            .btn-submit svg {{ width: 18px; height: 18px; }}
-            .footer-note {{ font-size: 12px; color: #6b7280; margin-top: 20px; }}
+            .btn-submit:hover {{ background: #1d4ed8; transform: translateY(-1px); }}
         </style>
     </head>
     <body>
@@ -177,39 +185,31 @@ async def one_click_login_page(account_id: str = Query("acc-1", description="Acc
             <div class="logo-icon">
                 <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
             </div>
-            <h1>Sign in with Google</h1>
-            <p>Pair account node <strong>{account_id}</strong> with your Google profile to start live Antigravity quota monitoring.</p>
+            <h1>Connect Google Account</h1>
+            <p>Authorize node <strong>{account_id}</strong> by connecting a real Google OAuth Access Token for live server quota monitoring.</p>
             
-            <form action="/api/v1/auth/login" method="POST">
+            {error_banner}
+
+            <form action="/api/v1/auth/verify" method="POST">
                 <input type="hidden" name="account_id" value="{account_id}">
 
-                <div class="quick-btn" onclick="document.getElementById('email').value='shadow.x7e48@gmail.com'">
-                    <div class="avatar">S</div>
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; font-size: 13px; color: #fff;">shadow.x7e48@gmail.com</div>
-                        <div style="font-size: 11.5px; color: #9ca3af;">Click to auto-fill primary account</div>
+                <div class="form-group">
+                    <label for="access_token">Google Access Token (ya29...)</label>
+                    <textarea id="access_token" name="access_token" placeholder="Paste ya29... token here" required></textarea>
+                </div>
+
+                <div class="helper-box">
+                    <strong>💡 How to get your Google Access Token instantly:</strong>
+                    <div style="margin-top: 4px;">Run this command in your terminal to copy your active Google token:</div>
+                    <div class="code-line">
+                        <span>gcloud auth print-access-token</span>
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="email">Google Account Email</label>
-                    <input type="email" id="email" name="email" value="shadow.x7e48@gmail.com" placeholder="name@gmail.com" required>
-                </div>
-
                 <button type="submit" class="btn-submit">
-                    <svg viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                    </svg>
-                    Continue to GravWatch &rarr;
+                    Verify with Google Servers &rarr;
                 </button>
             </form>
-
-            <div class="footer-note">
-                Autonomous node session &bull; Antigravity 2.2.0
-            </div>
         </div>
     </body>
     </html>
@@ -217,28 +217,61 @@ async def one_click_login_page(account_id: str = Query("acc-1", description="Acc
     return HTMLResponse(content=html_content, status_code=200)
 
 
-@router.post("/login")
-async def process_one_click_login(
+@router.post("/verify")
+async def verify_google_token(
     account_id: str = Form("acc-1"),
-    email: str = Form("shadow.x7e48@gmail.com"),
+    access_token: str = Form(...),
     db: AsyncSession = Depends(get_db)
 ):
     acc_id = account_id.strip() if account_id else "acc-1"
-    user_email = email.strip() if email else "shadow.x7e48@gmail.com"
+    token = access_token.strip()
+
+    if not token:
+        return RedirectResponse(
+            url=f"/api/v1/auth/login?account_id={acc_id}&error=Token+cannot+be+empty",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
+
+    # Issue live verification request to Google's official userinfo API
+    headers = {"Authorization": f"Bearer {token}"}
+    user_email = ""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(GOOGLE_USERINFO_URL, headers=headers)
+            if resp.status_code == 200:
+                user_info = resp.json()
+                user_email = user_info.get("email")
+                if not user_email:
+                    return RedirectResponse(
+                        url=f"/api/v1/auth/login?account_id={acc_id}&error=Google+did+not+return+a+valid+email+for+this+token",
+                        status_code=status.HTTP_303_SEE_OTHER
+                    )
+            elif resp.status_code == 401:
+                return RedirectResponse(
+                    url=f"/api/v1/auth/login?account_id={acc_id}&error=Invalid+or+expired+Google+Access+Token+(HTTP+401)",
+                    status_code=status.HTTP_303_SEE_OTHER
+                )
+            else:
+                return RedirectResponse(
+                    url=f"/api/v1/auth/login?account_id={acc_id}&error=Google+returned+HTTP+{resp.status_code}:+{resp.text[:100]}",
+                    status_code=status.HTTP_303_SEE_OTHER
+                )
+    except Exception as e:
+        return RedirectResponse(
+            url=f"/api/v1/auth/login?account_id={acc_id}&error=Network+error+connecting+to+Google:+{str(e)[:100]}",
+            status_code=status.HTTP_303_SEE_OTHER
+        )
 
     now_utc = datetime.now(timezone.utc)
-
     token_data = {
         "account_id": acc_id,
         "email": user_email,
-        "access_token": f"ya29.agy_live_{secrets.token_urlsafe(32)}",
-        "refresh_token": f"1//agy_live_{secrets.token_urlsafe(32)}",
-        "tier": "Antigravity Starter (Free Tier)",
+        "access_token": token,
         "status": "authenticated",
+        "tier": "Antigravity Starter (Free Tier)",
         "authenticated_at": now_utc.isoformat(),
         "created_timestamp": now_utc.timestamp()
     }
-
     safe_write_credentials(acc_id, token_data)
 
     stmt = select(Account).where(Account.id == acc_id)
@@ -260,7 +293,7 @@ async def process_one_click_login(
         account.status = "healthy"
         account.last_seen_at = now_utc
 
-    # Initial live snapshot with real dynamic refresh countdown
+    # Initial live snapshot
     snapshot = UsageSnapshot(account_id=acc_id, timestamp=now_utc)
     db.add(snapshot)
     await db.flush()
@@ -305,12 +338,8 @@ async def process_one_click_login(
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/callback", response_class=HTMLResponse)
-async def oauth_callback(
-    code: Optional[str] = None,
-    state: str = Query("acc-1"),
-    db: AsyncSession = Depends(get_db)
-):
+@router.get("/callback")
+async def oauth_callback():
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
