@@ -31,17 +31,17 @@ class TestServerE2E(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data["status"], "healthy")
 
     async def test_auth_endpoints(self):
-        auth_payload = {
-            "account_id": "acc-test",
-            "account_label": "Test Account",
-            "email": "test@google.dev",
-            "access_token": "mock-access-token-12345",
-            "refresh_token": "mock-refresh-token-67890"
-        }
-        res = await self.client.post("/api/v1/auth/token", json=auth_payload)
-        self.assertEqual(res.status_code, 200)
-        self.assertTrue(res.json()["authenticated"])
+        # 1. Test Auth URL Generation (Automated Google OAuth flow)
+        url_res = await self.client.get("/api/v1/auth/url?account_id=acc-1")
+        self.assertEqual(url_res.status_code, 200)
+        self.assertIn("accounts.google.com", url_res.json()["auth_url"])
 
+        # 2. Test Callback Endpoint
+        cb_res = await self.client.get("/api/v1/auth/callback?code=mock_code_123&state=acc-1")
+        self.assertEqual(cb_res.status_code, 200)
+        self.assertIn("Google Account Connected", cb_res.text)
+
+        # 3. Test Status Endpoint
         status_res = await self.client.get("/api/v1/auth/status")
         self.assertEqual(status_res.status_code, 200)
         self.assertIsInstance(status_res.json(), list)
