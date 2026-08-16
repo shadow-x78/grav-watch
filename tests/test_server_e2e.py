@@ -31,15 +31,20 @@ class TestServerE2E(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data["status"], "healthy")
 
     async def test_auth_endpoints(self):
-        # 1. Test Auth URL Generation (Automated Google OAuth flow)
-        url_res = await self.client.get("/api/v1/auth/url?account_id=acc-1")
-        self.assertEqual(url_res.status_code, 200)
-        self.assertIn("accounts.google.com", url_res.json()["auth_url"])
+        # 1. Test Login Page (Antigravity Portal)
+        login_res = await self.client.get("/api/v1/auth/login?account_id=acc-1")
+        self.assertEqual(login_res.status_code, 200)
+        self.assertIn("Sign In to Antigravity", login_res.text)
 
-        # 2. Test Callback Endpoint
-        cb_res = await self.client.get("/api/v1/auth/callback?code=mock_code_123&state=acc-1")
-        self.assertEqual(cb_res.status_code, 200)
-        self.assertIn("Google Account Connected", cb_res.text)
+        # 2. Test agy-login Submit
+        post_data = {
+            "account_id": "acc-1",
+            "email": "developer@corp.dev",
+            "device_code": "AGY-TEST-CODE"
+        }
+        submit_res = await self.client.post("/api/v1/auth/agy-login", data=post_data)
+        self.assertEqual(submit_res.status_code, 200)
+        self.assertIn("Antigravity Session Active", submit_res.text)
 
         # 3. Test Status Endpoint
         status_res = await self.client.get("/api/v1/auth/status")
