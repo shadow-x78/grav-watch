@@ -39,7 +39,7 @@ DASHBOARD_HTML = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GravWatch - Antigravity Quota Monitor</title>
+    <title>GravWatch - Antigravity Live Quota Monitor</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -59,7 +59,7 @@ DASHBOARD_HTML = """
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
             padding-bottom: 16px;
             border-bottom: 1px solid #2d2f31;
         }
@@ -89,16 +89,46 @@ DASHBOARD_HTML = """
             align-items: center;
             gap: 8px;
             cursor: pointer;
-            transition: border-color 0.2s;
+            transition: all 0.2s;
         }
         .account-badge:hover { border-color: #3b82f6; }
         .status-dot {
             width: 8px;
             height: 8px;
-            background: #22c55e;
+            background: #ef4444;
             border-radius: 50%;
+            box-shadow: 0 0 8px #ef4444;
+        }
+        .status-dot.online {
+            background: #22c55e;
             box-shadow: 0 0 8px #22c55e;
         }
+        .unauth-banner {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .unauth-banner h3 { font-size: 16px; color: #f87171; margin-bottom: 6px; }
+        .unauth-banner p { font-size: 13px; color: #9ca3af; margin-bottom: 16px; }
+        .btn-connect {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .btn-connect:hover { background: #1d4ed8; }
         .section-header {
             display: flex;
             align-items: center;
@@ -112,7 +142,6 @@ DASHBOARD_HTML = """
             width: 15px;
             height: 15px;
             fill: #6b7280;
-            cursor: pointer;
         }
         .quota-card {
             background: #242526;
@@ -180,7 +209,7 @@ DASHBOARD_HTML = """
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             align-items: center;
             justify-content: center;
             padding: 20px;
@@ -190,32 +219,25 @@ DASHBOARD_HTML = """
             background: #1e1f20;
             border: 1px solid #374151;
             border-radius: 16px;
-            padding: 30px;
-            max-width: 440px;
+            padding: 32px;
+            max-width: 480px;
             width: 100%;
-            text-align: center;
+            text-align: left;
         }
+        .modal-card h2 { font-size: 18px; margin-bottom: 8px; color: #fff; }
+        .modal-card p { color: #9ca3af; font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
+        .modal-card label { display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 6px; }
         .modal-card input {
             width: 100%;
-            padding: 12px;
+            padding: 10px 12px;
             background: #111213;
             border: 1px solid #374151;
             border-radius: 8px;
             color: #fff;
-            margin: 14px 0;
+            margin-bottom: 14px;
             outline: none;
         }
-        .btn-action {
-            background: #3b82f6;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            width: 100%;
-            cursor: pointer;
-        }
-        .btn-action:hover { background: #2563eb; }
+        .modal-card input:focus { border-color: #3b82f6; }
         .footer-info {
             text-align: center;
             font-size: 12px;
@@ -234,9 +256,18 @@ DASHBOARD_HTML = """
                 <h1>GravWatch</h1>
             </div>
             <div class="account-badge" onclick="openAuthModal()">
-                <div class="status-dot"></div>
-                <span id="accountEmail">Loading...</span>
+                <div class="status-dot" id="statusDot"></div>
+                <span id="accountEmail">Checking connection...</span>
             </div>
+        </div>
+
+        <div class="unauth-banner" id="unauthBanner" style="display: none;">
+            <h3>Google Account Not Connected</h3>
+            <p>Connect your official Google Cloud OAuth credentials to stream live Google Antigravity quotas directly to node <strong>acc-1</strong>.</p>
+            <a href="/api/v1/auth/login?account_id=acc-1" class="btn-connect">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                Connect with Google OAuth &rarr;
+            </a>
         </div>
 
         <div class="section-header">
@@ -247,7 +278,7 @@ DASHBOARD_HTML = """
             <div class="quota-row">
                 <div class="quota-text">
                     <div class="quota-name">Weekly Limit Remaining</div>
-                    <div class="quota-desc" id="geminiWeeklyDesc">You have used some of your weekly limit, it will fully refresh in 5 days.</div>
+                    <div class="quota-desc" id="geminiWeeklyDesc">Awaiting Google OAuth authentication...</div>
                 </div>
                 <div class="gauge-wrap">
                     <div class="gauge-pct" id="geminiWeeklyPct">--%</div>
@@ -262,7 +293,7 @@ DASHBOARD_HTML = """
             <div class="quota-row">
                 <div class="quota-text">
                     <div class="quota-name">Five Hour Limit Remaining</div>
-                    <div class="quota-desc" id="gemini5hDesc">You have used some of your 5-hour limit, it will fully refresh in 4 hours, 18 minutes.</div>
+                    <div class="quota-desc" id="gemini5hDesc">Awaiting Google OAuth authentication...</div>
                 </div>
                 <div class="gauge-wrap">
                     <div class="gauge-pct" id="gemini5hPct">--%</div>
@@ -284,7 +315,7 @@ DASHBOARD_HTML = """
             <div class="quota-row">
                 <div class="quota-text">
                     <div class="quota-name">Weekly Limit Remaining</div>
-                    <div class="quota-desc" id="claudeWeeklyDesc">Full capacity remaining, refreshes weekly.</div>
+                    <div class="quota-desc" id="claudeWeeklyDesc">Awaiting Google OAuth authentication...</div>
                 </div>
                 <div class="gauge-wrap">
                     <div class="gauge-pct" id="claudeWeeklyPct">--%</div>
@@ -299,7 +330,7 @@ DASHBOARD_HTML = """
             <div class="quota-row">
                 <div class="quota-text">
                     <div class="quota-name">Five Hour Limit Remaining</div>
-                    <div class="quota-desc" id="claude5hDesc">Full capacity remaining, refreshes every 5 hours.</div>
+                    <div class="quota-desc" id="claude5hDesc">Awaiting Google OAuth authentication...</div>
                 </div>
                 <div class="gauge-wrap">
                     <div class="gauge-pct" id="claude5hPct">--%</div>
@@ -320,10 +351,19 @@ DASHBOARD_HTML = """
 
     <div class="auth-modal" id="authModal" onclick="closeAuthModal(event)">
         <div class="modal-card" onclick="event.stopPropagation()">
-            <h2 style="font-size: 18px; margin-bottom: 8px;">1-Click Google Account Connect</h2>
-            <p style="color: #9ca3af; font-size: 13px;">Connect your Google account automatically to node <strong>acc-1</strong>.</p>
-            <input type="email" id="modalEmail" value="shadow.xox78@gmail.com" placeholder="developer@gmail.com">
-            <button class="btn-action" onclick="submitAuth()">Connect Instantly</button>
+            <h2>Google Cloud OAuth Credentials</h2>
+            <p>Enter your Google OAuth Client ID & Secret to pair your account with node <strong>acc-1</strong>.</p>
+            
+            <form action="/api/v1/auth/configure" method="POST">
+                <input type="hidden" name="account_id" value="acc-1">
+                <label for="client_id">Google Client ID</label>
+                <input type="text" id="client_id" name="client_id" placeholder="your-client-id.apps.googleusercontent.com" required>
+                
+                <label for="client_secret">Google Client Secret</label>
+                <input type="password" id="client_secret" name="client_secret" placeholder="GOCSPX-..." required>
+                
+                <button type="submit" class="btn-connect" style="width: 100%; justify-content: center; padding: 12px;">Save & Authorize with Google &rarr;</button>
+            </form>
         </div>
     </div>
 
@@ -333,6 +373,10 @@ DASHBOARD_HTML = """
         function setRing(circleId, pct) {
             const circle = document.getElementById(circleId);
             if (!circle) return;
+            if (pct === null || isNaN(pct)) {
+                circle.style.strokeDashoffset = CIRCUMFERENCE;
+                return;
+            }
             const val = Math.max(0, Math.min(100, pct));
             const offset = CIRCUMFERENCE - (val / 100) * CIRCUMFERENCE;
             circle.style.strokeDashoffset = offset;
@@ -347,9 +391,39 @@ DASHBOARD_HTML = """
                 if (!res.ok) return;
                 const data = await res.json();
 
-                if (data.accounts && data.accounts.length > 0) {
-                    document.getElementById('accountEmail').innerText = data.accounts[0].email;
+                const accounts = data.accounts || [];
+                const primary = accounts.find(a => a.id === 'acc-1') || accounts[0];
+
+                const statusDot = document.getElementById('statusDot');
+                const unauthBanner = document.getElementById('unauthBanner');
+
+                if (!primary || primary.status === 'unauthenticated' || !primary.categories || primary.categories.length === 0) {
+                    statusDot.className = 'status-dot';
+                    document.getElementById('accountEmail').innerText = 'Unauthenticated (Click to Pair)';
+                    unauthBanner.style.display = 'block';
+
+                    document.getElementById('geminiWeeklyPct').innerText = '--%';
+                    setRing('geminiWeeklyCircle', null);
+                    document.getElementById('geminiWeeklyDesc').innerText = 'Unauthenticated. Sign in with Google to view live limits.';
+
+                    document.getElementById('gemini5hPct').innerText = '--%';
+                    setRing('gemini5hCircle', null);
+                    document.getElementById('gemini5hDesc').innerText = 'Unauthenticated. Sign in with Google to view live limits.';
+
+                    document.getElementById('claudeWeeklyPct').innerText = '--%';
+                    setRing('claudeWeeklyCircle', null);
+                    document.getElementById('claudeWeeklyDesc').innerText = 'Unauthenticated. Sign in with Google to view live limits.';
+
+                    document.getElementById('claude5hPct').innerText = '--%';
+                    setRing('claude5hCircle', null);
+                    document.getElementById('claude5hDesc').innerText = 'Unauthenticated. Sign in with Google to view live limits.';
+                    return;
                 }
+
+                // Authenticated
+                statusDot.className = 'status-dot online';
+                document.getElementById('accountEmail').innerText = primary.email || 'Connected';
+                unauthBanner.style.display = 'none';
 
                 const catSummaries = data.pool_summary.category_summaries || [];
                 const geminiCat = catSummaries.find(c => c.category_id === 'gemini-models');
@@ -372,9 +446,11 @@ DASHBOARD_HTML = """
                 if (claudeCat) {
                     document.getElementById('claudeWeeklyPct').innerText = Math.round(claudeCat.weekly_limit_remaining) + '%';
                     setRing('claudeWeeklyCircle', claudeCat.weekly_limit_remaining);
+                    document.getElementById('claudeWeeklyDesc').innerText = 'Full capacity remaining, refreshes weekly.';
 
                     document.getElementById('claude5hPct').innerText = Math.round(claudeCat.five_hour_limit_remaining) + '%';
                     setRing('claude5hCircle', claudeCat.five_hour_limit_remaining);
+                    document.getElementById('claude5hDesc').innerText = 'Full capacity remaining, refreshes every 5 hours.';
                 }
             } catch (e) {
                 console.error("Failed fetching quota:", e);
@@ -387,21 +463,6 @@ DASHBOARD_HTML = """
 
         function closeAuthModal(e) {
             document.getElementById('authModal').style.display = 'none';
-        }
-
-        async function submitAuth() {
-            const email = document.getElementById('modalEmail').value;
-            const formData = new FormData();
-            formData.append('account_id', 'acc-1');
-            formData.append('email', email);
-
-            await fetch('/api/v1/auth/agy-login', {
-                method: 'POST',
-                body: formData
-            });
-
-            closeAuthModal();
-            fetchQuota();
         }
 
         fetchQuota();

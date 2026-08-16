@@ -1,72 +1,50 @@
-# GravWatch - CLI & Host Session Scraping Engine (GPL-3.0-or-later)
+# GravWatch - Google Cloud Quota Scraper & API Client (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
-import sqlite3
-import base64
-import subprocess
+import json
 import logging
+import requests
 
 logger = logging.getLogger("gravwatch.agent.scraper")
 
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
-def read_live_antigravity_state() -> dict | None:
+
+def load_credentials(account_id: str) -> dict | None:
     candidate_paths = [
-        "/root/.config/antigravity/state.vscdb",
-        os.path.expanduser("~/.config/Antigravity IDE/User/globalStorage/state.vscdb")
+        f"/root/.gemini/credentials.json",
+        f"./data/{account_id}/credentials.json"
     ]
-    for db_path in candidate_paths:
-        if os.path.exists(db_path):
+    for p in candidate_paths:
+        if os.path.exists(p):
             try:
-                conn = sqlite3.connect(db_path)
-                cur = conn.cursor()
-                cur.execute("SELECT value FROM ItemTable WHERE key = 'antigravityUnifiedStateSync.userStatus'")
-                row = cur.fetchone()
-                if row and row[0]:
-                    raw = base64.b64decode(row[0])
-                    text = raw.decode("latin1", "ignore")
-                    
-                    tier = "Antigravity Starter (Free Tier)"
-                    if "pro" in text.lower():
-                        tier = "Google AI Pro"
-                    
-                    models_list = [
-                        {"id": "gemini-3-6-flash", "name": "Gemini 3.6 Flash (High)", "cat": "gemini-models", "w_pct": 54.0, "5h_pct": 79.0},
-                        {"id": "gemini-3-5-flash", "name": "Gemini 3.5 Flash (High)", "cat": "gemini-models", "w_pct": 54.0, "5h_pct": 79.0},
-                        {"id": "gemini-3-1-pro", "name": "Gemini 3.1 Pro (High)", "cat": "gemini-models", "w_pct": 45.0, "5h_pct": 79.0},
-                        {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6 (Thinking)", "cat": "claude-gpt-models", "w_pct": 100.0, "5h_pct": 100.0},
-                        {"id": "claude-opus-4-6", "name": "Claude Opus 4.6 (Thinking)", "cat": "claude-gpt-models", "w_pct": 100.0, "5h_pct": 100.0},
-                        {"id": "gpt-oss-120b", "name": "GPT-OSS 120B (Medium)", "cat": "claude-gpt-models", "w_pct": 100.0, "5h_pct": 100.0}
-                    ]
-                    
-                    return {
-                        "tier": tier,
-                        "models": models_list
-                    }
+                with open(p, "r", encoding="utf-8") as f:
+                    return json.load(f)
             except Exception as e:
-                logger.warning(f"Failed reading live Antigravity state from {db_path}: {e}")
+                logger.warning(f"Could not read credentials from {p}: {e}")
     return None
 
 
-def run_agy_usage_command(timeout_seconds: int = 15) -> str:
+def fetch_google_quota(access_token: str) -> dict | None:
+    headers = {"Authorization": f"Bearer {access_token}"}
     try:
-        proc = subprocess.run(
-            ["agy", "-p", "/usage"],
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds,
-            check=False
-        )
-        if proc.returncode == 0 and proc.stdout.strip():
-            return proc.stdout
-        logger.warning(f"agy CLI exited with code {proc.returncode}: {proc.stderr}")
-        return proc.stdout or proc.stderr
-    except FileNotFoundError:
-        logger.warning("agy binary not found on PATH.")
-        return ""
-    except subprocess.TimeoutExpired:
-        logger.error(f"agy CLI timed out after {timeout_seconds}s.")
-        return ""
+        # Check token validity with Google
+        user_res = requests.get(GOOGLE_USERINFO_URL, headers=headers, timeout=10)
+        if user_res.status_code == 200:
+            user_data = user_res.json()
+            return {
+                "authenticated": True,
+                "email": user_data.get("email"),
+                "name": user_data.get("name"),
+                "picture": user_data.get("picture")
+            }
+        elif user_res.status_code == 401:
+            logger.warning("Google Access Token has expired. Needs refresh.")
+            return {"authenticated": False, "expired": True}
+        else:
+            logger.warning(f"Google API returned HTTP {user_res.status_code}: {user_res.text}")
+            return None
     except Exception as e:
-        logger.error(f"Unexpected error executing agy CLI: {e}")
-        return ""
+        logger.error(f"Error connecting to Google API: {e}")
+        return None
