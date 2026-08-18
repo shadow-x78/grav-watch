@@ -143,7 +143,7 @@ def cmd_usage(args):
 
 def main():
     parser = argparse.ArgumentParser(prog="agy", description="Google Antigravity CLI")
-    parser.add_argument("-v", "--version", action="version", version="agy 2.2.0")
+    parser.add_argument("-v", "--version", action="version", version="agy 2.3.0")
     parser.add_argument("-p", "--prompt", help="Execute single prompt or slash command (e.g. /usage)")
 
     subparsers = parser.add_subparsers(dest="subcommand")

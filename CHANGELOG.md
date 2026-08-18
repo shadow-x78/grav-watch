@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.3.0] - 2026-08-19
+
+### Added
+- **Interactive Next.js Web Client Integration:** Merged and fully integrated the modern Next.js 16 + Tailwind CSS v4 + TypeScript dashboard directly into `clients/web`.
+- **Live FastAPI Telemetry Ingestion & Polling:** Implemented live backend synchronization with `GET /api/v1/usage/latest` in `GravWatchContext` with graceful offline fallback to local mock engine.
+- **Docker Compose Web Service:** Added `packaging/docker/Dockerfile.web` and integrated `web` container service on port 3000 into `docker-compose.yml`.
+- **Bilingual Header Switcher:** Integrated an instant one-click Arabic (RTL) and English (LTR) language toggle in the global navigation header.
+- **Project Co-Ownership:** Officially registered `mohmed-hegaze` as repository co-owner alongside `shadow-x78` across package configurations and documentation.
+
+### Changed
+- **Automated Dev Setup:** Updated `scripts/setup-dev-env.sh` to automatically install web dependencies and prepare local environments.
+- **Documentation & Badges:** Standardized all README badge formats and updated full bilingual architectural specifications to reflect active web client status.
+
+---
+
 ## [2.2.0] - 2026-08-16
 
 ### Added
@@ -62,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <div align="center">
 
-Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+Built by <a href="https://github.com/shadow-x78">shadow-x78</a> & <a href="https://github.com/mohmed-hegaze">mohmed-hegaze</a> ·
 [Back to README](README.md)
 
 <sub>&copy; 2026 GravWatch</sub>

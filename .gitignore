@@ -37,9 +37,9 @@ develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
-lib/
-lib64/
+/lib/
+/lib64/
+!clients/web/src/lib/
 parts/
 sdist/
 var/
@@ -70,3 +70,13 @@ gravwatch.db
 .env.*.local
 docker/.env
 !docker/.env.example
+
+# Web Client (Node / Next.js)
+clients/web/node_modules/
+clients/web/.next/
+clients/web/.env.local
+clients/web/.env.*.local
+clients/web/tsconfig.tsbuildinfo
+clients/web/out/
+clients/web/build/
+
