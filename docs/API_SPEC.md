@@ -6,7 +6,7 @@
 
 ---
 
-> Applies to **v2.2.0** and later. Base path: `/api/v1`
+> Applies to **v2.3.0** and later. Base path: `/api/v1`
 
 ---
 
@@ -169,7 +169,7 @@ Returns consolidated pool capacity, category averages, and individual account me
 {
   "status": "healthy",
   "service": "gravwatch-server",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "timestamp": "2026-08-16T19:50:00Z"
 }
 ```
@@ -188,7 +188,7 @@ Returns consolidated pool capacity, category averages, and individual account me
 
 <div align="center">
 
-Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+Built by <a href="https://github.com/shadow-x78">shadow-x78</a> & <a href="https://github.com/mohmed-hegaze">mohmed-hegaze</a> ·
 [Changelog](../CHANGELOG.md) ·
 [Back to README](../README.md)
 

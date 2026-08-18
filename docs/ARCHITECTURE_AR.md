@@ -66,11 +66,11 @@ graph TD
 | `services/agent/core` | إعدادات بيئة الـ Agent داخل الحاوية | `dataclasses` |
 | `services/agent/collector` | تنفيذ أوامر CLI وتحليل جداول كوتا ANSI | `re`, `subprocess` |
 | `services/agent/mock` | مولد الكوتا المحاكاة لنماذج Antigravity الخمسة | `random` |
-| `clients/web` | لوحة تحكم المتصفح الحية (HTML5, Vanilla JS, CSS) | معايير الويب الخالصة |
+| `clients/web` | لوحة تحكم المتصفح الحية ومحاكي توجيه الأوامر (Next.js 16, Tailwind CSS v4, TypeScript) | `next`, `react`, `tailwindcss`, `recharts`, `lucide-react` |
 | `clients/android` | تطبيق أندرويد الأصلي للأجهزة الذكية واللوحية | `Jetpack Compose`, `Material 3` |
-| `packaging/docker` | تعريفات Docker Compose وملفات Dockerfile وسكربت نقطة الدخول | `docker-compose v2`, `debian:bookworm-slim` |
+| `packaging/docker` | تعريفات Docker Compose وملفات Dockerfile وسكربت نقطة الدخول | `docker-compose v2`, `debian:bookworm-slim`, `node:20-alpine` |
 | `tests` | اختبارات الوحدة للمحلل واختبارات التكامل للخادم وقاعدة البيانات | `httpx`, `unittest` |
-| `scripts` | سكربتات الأتمتة المباشرة للإعداد، والتثبيت، والإدارة | `bash`, `docker`, `python3` |
+| `scripts` | سكربتات الأتمتة المباشرة للإعداد، والتثبيت، والإدارة | `bash`, `docker`, `python3`, `npm` |
 
 ---
 

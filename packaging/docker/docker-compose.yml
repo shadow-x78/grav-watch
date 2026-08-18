@@ -25,6 +25,28 @@ services:
       timeout: 5s
       retries: 3
 
+  web:
+    build:
+      context: ../..
+      dockerfile: packaging/docker/Dockerfile.web
+    container_name: gravwatch-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://server:8000
+      - NODE_ENV=production
+    depends_on:
+      server:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 384M
+    networks:
+      - gravwatch-net
+
   acc-1:
     build:
       context: ../..

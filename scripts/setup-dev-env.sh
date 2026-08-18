@@ -29,6 +29,18 @@ mkdir -p "$ROOT_DIR/data/server"
 mkdir -p "$ROOT_DIR/data/acc-1" "$ROOT_DIR/data/acc-2" "$ROOT_DIR/data/acc-3" "$ROOT_DIR/data/acc-4"
 chmod 700 "$ROOT_DIR/data/acc-"* 2>/dev/null || true
 
+if command -v npm >/dev/null 2>&1; then
+    if [ -d "$ROOT_DIR/clients/web" ]; then
+        echo "[GravWatch] Setting up Web Dashboard client..."
+        if [ ! -f "$ROOT_DIR/clients/web/.env.local" ] && [ -f "$ROOT_DIR/clients/web/.env.example" ]; then
+            cp "$ROOT_DIR/clients/web/.env.example" "$ROOT_DIR/clients/web/.env.local"
+        fi
+        npm --prefix "$ROOT_DIR/clients/web" install >/dev/null
+    fi
+fi
+
 echo ""
 echo "[GravWatch] Environment setup complete."
 echo "Activate environment: source .venv/bin/activate"
+echo "Start Web Dashboard: npm --prefix clients/web run dev"
+

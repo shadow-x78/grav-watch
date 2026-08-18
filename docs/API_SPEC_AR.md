@@ -6,7 +6,7 @@
 
 ---
 
-> يسري هذا التوثيق على الإصدار **v2.2.0** فما فوق. المسار الأساسي: `/api/v1`
+> يسري هذا التوثيق على الإصدار **v2.3.0** فما فوق. المسار الأساسي: `/api/v1`
 
 ---
 
@@ -156,7 +156,7 @@ X-Agent-Key: gravwatch-agent-secret-key
 {
   "status": "healthy",
   "service": "gravwatch-server",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "timestamp": "2026-08-16T19:50:00Z"
 }
 ```
@@ -175,7 +175,7 @@ X-Agent-Key: gravwatch-agent-secret-key
 
 <div align="center">
 
-بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> و <a href="https://github.com/mohmed-hegaze">mohmed-hegaze</a> ·
 [سجل التغييرات](../CHANGELOG.md) ·
 [العودة للرئيسية](../README_AR.md)
 

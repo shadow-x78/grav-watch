@@ -4,15 +4,18 @@
 
 # GravWatch
 
-محرك مراقبة وتجميع كوتا Antigravity CLI عبر عدة حسابات معزولة في حاويات Docker - خادم API وسعة مجمعة
+<p align="center">
+  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.3.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.3.0"></a>
+</p>
 
-[![الإصدار](https://img.shields.io/badge/version-2.2.0-2563eb?style=flat-square&logo=semver)](CHANGELOG.md)
-[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python)
-![FastAPI](https://img.shields.io/badge/fastapi-0.109%2B-009688?style=flat-square&logo=fastapi)
-![Docker](https://img.shields.io/badge/docker-compose%20v2-2496ed?style=flat-square&logo=docker)
-[![Stars](https://img.shields.io/github/stars/shadow-x78/grav-watch?style=flat-square&color=eab308&logo=github)](https://github.com/shadow-x78/grav-watch/stargazers)
-
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/fastapi-0.109%2B-009688?style=flat-square&logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/docker-compose%20v2-2496ed?style=flat-square&logo=docker" alt="Docker">
+  <a href="https://github.com/shadow-x78/grav-watch/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/grav-watch?style=flat-square&color=eab308&logo=github" alt="Stars"></a>
+</p>
 </div>
 
 ---
@@ -80,7 +83,7 @@
 | **عزل الحسابات** | Docker Compose (`debian:bookworm-slim`) | عزل توكنات الحسابات المتعددة | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **جامع الكوتا (Agent)** | Python 3.11 (`subprocess` + `requests`) | خدمة جمع خلفية بدون واجهة | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **الخادم المركزي** | FastAPI + SQLAlchemy (Async) | خادم استقبال وتجميع البيانات | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
-| **لوحة تحكم الويب** | Vanilla JS + Modern CSS Tokens | عرض مرئي مباشر للمؤشرات عبر المتصفح | ![Coming Soon](https://img.shields.io/badge/status-coming_soon-f59e0b?style=flat-square) |
+| **لوحة تحكم الويب** | Next.js 16 + Tailwind CSS v4 + TypeScript | لوحة تحكم تفاعلية ومحاكي توزيع الأوامر | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **تطبيق Android** | Jetpack Compose + Material 3 | عميل أصلي للهواتف والأجهزة اللوحية | ![Coming Soon](https://img.shields.io/badge/status-coming_soon-f59e0b?style=flat-square) |
 
 ---
@@ -93,16 +96,20 @@
 git clone https://github.com/shadow-x78/grav-watch.git ~/GravWatch
 cd ~/GravWatch
 
-# إعداد البيئة والاعتماديات ومجلدات التخزين
+# إعداد البيئة والاعتماديات ومجلدات التخزين (بايثون + عميل الويب)
 ./scripts/setup-dev-env.sh
 
 # مساعد تسجيل الدخول وتوثيق الحسابات تفاعلياً
 ./scripts/setup-auth.sh
 
-# تشغيل النظام بالكامل عبر Docker Compose
+# تشغيل النظام بالكامل عبر Docker Compose (الخادم + الويب + الحاويات)
 docker compose -f packaging/docker/docker-compose.yml up -d
+
+# أو تشغيل لوحة تحكم الويب محلياً:
+npm --prefix clients/web run dev
 ```
 
+- **لوحة تحكم الويب**: [http://localhost:3000](http://localhost:3000)
 - **توثيق الـ API التفاعلي (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **نقطة جلب الكوتا المجمعة**: [http://localhost:8000/api/v1/usage/latest](http://localhost:8000/api/v1/usage/latest)
 - **فحص صحة الخادم**: [http://localhost:8000/api/v1/health](http://localhost:8000/api/v1/health)
@@ -114,9 +121,10 @@ docker compose -f packaging/docker/docker-compose.yml up -d
 
 | الأمر | الوصف |
 |---|---|
-| `./scripts/setup-dev-env.sh` | تثبيت بيئة التطوير واعتماديات بايثون وتجهيز المجلدات محلياً |
+| `./scripts/setup-dev-env.sh` | تثبيت بيئة التطوير واعتماديات بايثون وعميل الويب وتجهيز المجلدات محلياً |
 | `./scripts/setup-auth.sh` | مساعد تسجيل دخول Google OAuth التفاعلي للحسابات |
-| `docker compose -f packaging/docker/docker-compose.yml up -d` | بناء وتشغيل جميع الحاويات عبر Docker Compose |
+| `npm --prefix clients/web run dev` | تشغيل لوحة تحكم الويب محلياً على المنفذ 3000 |
+| `docker compose -f packaging/docker/docker-compose.yml up -d` | بناء وتشغيل جميع الحاويات (الخادم، الويب، وجامعي الكوتا) عبر Docker Compose |
 | `docker compose -f packaging/docker/docker-compose.yml ps` | فحص حالة الحاويات الشغالة |
 | `docker compose -f packaging/docker/docker-compose.yml logs -f` | متابعة سجلات الحاويات حياً |
 | `docker compose -f packaging/docker/docker-compose.yml down` | إيقاف جميع الحاويات الشغالة |
@@ -132,8 +140,8 @@ docker compose -f packaging/docker/docker-compose.yml logs -f server
 <a id="منظومة-التطبيقات-والعملاء"></a>
 ## 🖥️ منظومة التطبيقات والعملاء
 
-### 🖥️ لوحة تحكم الويب *(قريباً)*
-لوحة تحكم خفيفة للمتصفح تعرض بيانات الكوتا المجمعة وحالة الحسابات والرسوم البيانية المباشرة دون الحاجة لأدوات بناء معقدة.
+### 🖥️ لوحة تحكم الويب
+لوحة تحكم تفاعلية متطورة للمتصفح مبنية بـ **Next.js 16 + Tailwind CSS v4 + TypeScript + Recharts + Lucide** تعرض بيانات الكوتا اللحظية، ومؤشرات السعة المزدوجة (الأسبوعية ولكل 5 ساعات)، ومحاكي توجيه الأوامر، مع دعم كامل للغتين العربية والإنجليزية.
 
 ### 📱 تطبيق Android *(قريباً)*
 تطبيق مراقبة أصلي مبني بـ **Material 3 + Jetpack Compose** يتصل مباشرة بخادم GravWatch لعرض الكوتا والتنبيهات على الهواتف والأجهزة اللوحية.
@@ -241,7 +249,7 @@ grav-watch | v2.0.0 | release: major production release
 
 <div align="center">
 
-بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+بُني بواسطة <a href="https://github.com/shadow-x78">shadow-x78</a> و <a href="https://github.com/mohmed-hegaze">mohmed-hegaze</a> ·
 [السجل](CHANGELOG.md) ·
 [الأمان](SECURITY.md)
 

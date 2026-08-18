@@ -49,7 +49,7 @@ All file headers must match the GravWatch style:
 
 <div align="center">
 
-Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+Built by <a href="https://github.com/shadow-x78">shadow-x78</a> & <a href="https://github.com/mohmed-hegaze">mohmed-hegaze</a> ·
 [Back to README](README.md)
 
 <sub>&copy; 2026 GravWatch</sub>

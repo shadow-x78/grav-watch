@@ -7,14 +7,17 @@
 Multi-account Google Antigravity CLI quota monitoring & telemetry engine - isolated containers & centralized API
 
 <p align="center">
-  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.2.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.2.0"></a>
+  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.3.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.3.0"></a>
 </p>
-[![License](https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square)](LICENSE)
-![Python](https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python)
-![FastAPI](https://img.shields.io/badge/fastapi-0.109%2B-009688?style=flat-square&logo=fastapi)
-![Docker](https://img.shields.io/badge/docker-compose%20v2-2496ed?style=flat-square&logo=docker)
-[![Stars](https://img.shields.io/github/stars/shadow-x78/grav-watch?style=flat-square&color=eab308&logo=github)](https://github.com/shadow-x78/grav-watch/stargazers)
 
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-dc2626?style=flat-square" alt="License"></a>
+  <img src="https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/fastapi-0.109%2B-009688?style=flat-square&logo=fastapi" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/docker-compose%20v2-2496ed?style=flat-square&logo=docker" alt="Docker">
+  <a href="https://github.com/shadow-x78/grav-watch/stargazers"><img src="https://img.shields.io/github/stars/shadow-x78/grav-watch?style=flat-square&color=eab308&logo=github" alt="Stars"></a>
+</p>
 </div>
 
 ---
@@ -82,7 +85,7 @@ Each containerized agent periodically parses quota metrics for **Gemini Flash, G
 | **Account Isolation** | Docker Compose (`debian:bookworm-slim`) | Multi-account token sandboxing | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **Agent Collector** | Python 3.11 (`subprocess` + `requests`) | Headless quota daemon | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **API Server** | FastAPI + SQLAlchemy (Async) | Central telemetry ingestion hub | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
-| **Web Dashboard** | Vanilla JS + Modern CSS Tokens | Browser telemetry visualization | ![Coming Soon](https://img.shields.io/badge/status-coming_soon-f59e0b?style=flat-square) |
+| **Web Dashboard** | Next.js 16 + Tailwind CSS v4 + TypeScript | Interactive telemetry visualization & prompt simulator | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **Android App** | Jetpack Compose + Material 3 | Mobile quota monitoring client | ![Coming Soon](https://img.shields.io/badge/status-coming_soon-f59e0b?style=flat-square) |
 
 ---
@@ -95,16 +98,20 @@ Each containerized agent periodically parses quota metrics for **Gemini Flash, G
 git clone https://github.com/shadow-x78/grav-watch.git ~/GravWatch
 cd ~/GravWatch
 
-# Configure environment and dependencies
+# Configure environment and dependencies (Python + Web client)
 ./scripts/setup-dev-env.sh
 
 # Interactive OAuth account pairing assistant
 ./scripts/setup-auth.sh
 
-# Start the multi-account stack
+# Start the multi-account stack (Server + Web + Agents)
 docker compose -f packaging/docker/docker-compose.yml up -d
+
+# Or run the Web Dashboard locally:
+npm --prefix clients/web run dev
 ```
 
+- **Web Dashboard**: [http://localhost:3000](http://localhost:3000)
 - **API Swagger Documentation**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **Live Pooled Telemetry**: [http://localhost:8000/api/v1/usage/latest](http://localhost:8000/api/v1/usage/latest)
 - **Health Check**: [http://localhost:8000/api/v1/health](http://localhost:8000/api/v1/health)
@@ -116,9 +123,10 @@ docker compose -f packaging/docker/docker-compose.yml up -d
 
 | Command | Description |
 |---------|-------------|
-| `./scripts/setup-dev-env.sh` | Set up Python development environment and data directories |
+| `./scripts/setup-dev-env.sh` | Set up Python development environment, web client dependencies, and data directories |
 | `./scripts/setup-auth.sh` | Interactive Google OAuth account pairing assistant |
-| `docker compose -f packaging/docker/docker-compose.yml up -d` | Build and start all containers via Docker Compose |
+| `npm --prefix clients/web run dev` | Start the Next.js Web Dashboard locally (Port 3000) |
+| `docker compose -f packaging/docker/docker-compose.yml up -d` | Build and start all containers (Server, Web UI, and Agents) via Docker Compose |
 | `docker compose -f packaging/docker/docker-compose.yml ps` | Check container statuses |
 | `docker compose -f packaging/docker/docker-compose.yml logs -f` | Stream container logs in real time |
 | `docker compose -f packaging/docker/docker-compose.yml down` | Stop all running containers |
@@ -134,8 +142,8 @@ docker compose -f packaging/docker/docker-compose.yml logs -f server
 <a id="clients-ecosystem"></a>
 ## 🖥️ Clients Ecosystem
 
-### 🖥️ Web Dashboard *(Coming Soon)*
-A lightweight browser dashboard visualizing live telemetry metrics, account states, and pooled model utilization without requiring external build tools.
+### 🖥️ Web Dashboard
+A modern, rich browser dashboard built with **Next.js 16 + Tailwind CSS v4 + TypeScript + Recharts + Lucide** visualizing live telemetry metrics, account states, twin-tier quota gauges (Weekly & 5-Hour limits), prompt simulation router, and bilingual (English/Arabic) UI support.
 
 ### 📱 Android App *(Coming Soon)*
 A native **Material 3 + Jetpack Compose** companion app for Android tablets and smartphones, connecting directly to the GravWatch API hub with quick glance widgets and status cards.
@@ -243,7 +251,7 @@ Distributed under the [GPL-3.0 License](LICENSE).
 
 <div align="center">
 
-Built by <a href="https://github.com/shadow-x78">shadow-x78</a> ·
+Built by <a href="https://github.com/shadow-x78">shadow-x78</a> & <a href="https://github.com/mohmed-hegaze">mohmed-hegaze</a> ·
 [Changelog](CHANGELOG.md) ·
 [Security](SECURITY.md)
 

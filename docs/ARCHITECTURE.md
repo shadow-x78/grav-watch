@@ -66,11 +66,11 @@ graph TD
 | `services/agent/core` | Container agent environment configuration | `dataclasses` |
 | `services/agent/collector` | Subprocess CLI execution and ANSI quota table parsing | `re`, `subprocess` |
 | `services/agent/mock` | Deterministic realistic telemetry simulator for Antigravity models | `random` |
-| `clients/web` | Browser-based live quota monitoring dashboard (HTML5, Vanilla JS, CSS) | Pure Web Standards |
+| `clients/web` | Browser-based live quota dashboard and prompt router (Next.js 16, Tailwind CSS v4, TypeScript) | `next`, `react`, `tailwindcss`, `recharts`, `lucide-react` |
 | `clients/android` | Native companion client for mobile devices | `Jetpack Compose`, `Material 3` |
-| `packaging/docker` | Multi-container Docker Compose definitions, Dockerfiles, entrypoint scripts | `docker-compose v2`, `debian:bookworm-slim` |
+| `packaging/docker` | Multi-container Docker Compose definitions, Dockerfiles, entrypoint scripts | `docker-compose v2`, `debian:bookworm-slim`, `node:20-alpine` |
 | `tests` | Unit tests for ANSI parser, e2e integration tests for REST API & DB | `httpx`, `unittest` |
-| `scripts` | Direct automation scripts for setup, testing, install, and container management | `bash`, `docker`, `python3` |
+| `scripts` | Direct automation scripts for setup, testing, install, and container management | `bash`, `docker`, `python3`, `npm` |
 
 ---
 
