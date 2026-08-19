@@ -260,6 +260,18 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const deleteAccount = async (id: string) => {
+    setAccounts((prev) => {
+      const remaining = prev.filter((a) => a.id !== id);
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("gravwatch_accounts_cache", JSON.stringify(remaining));
+        } catch {}
+      }
+      return remaining;
+    });
+    if (selectedAccountId === id) {
+      setSelectedAccountId("all");
+    }
     try {
       await fetch(`/api/v1/auth/token?account_id=${encodeURIComponent(id)}`, {
         method: "DELETE",
@@ -269,10 +281,6 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
     } catch (err) {
       console.warn("Failed to delete account on server:", err);
-    }
-    setAccounts((prev) => prev.filter((a) => a.id !== id));
-    if (selectedAccountId === id) {
-      setSelectedAccountId("all");
     }
     await fetchLiveAccounts();
   };

@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "GravWatch"
-    VERSION: str = "2.4.4"
+    VERSION: str = "2.5.0"
     SERVER_PORT: int = 8000
     DATABASE_URL: str = "sqlite+aiosqlite:///./data/gravwatch.db"
     AGENT_API_KEY: str = ""

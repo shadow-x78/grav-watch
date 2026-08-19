@@ -79,15 +79,7 @@ def _seed_onboarding_state(acc_home: str):
     ]
     for d in dirs:
         try:
-            os.makedirs(d, exist_ok=True)
-            pbtxt = os.path.join(d, "jetski_state.pbtxt")
-            tmp_pbtxt = pbtxt + ".tmp"
-            with open(tmp_pbtxt, "w", encoding="utf-8") as f:
-                f.write(JETSKI_PRESET)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp_pbtxt, pbtxt)
-            
+            os.makedirs(d, mode=0o777, exist_ok=True)
             settings_file = os.path.join(d, "settings.json")
             tmp_settings = settings_file + ".tmp"
             with open(tmp_settings, "w", encoding="utf-8") as f:
@@ -102,20 +94,6 @@ def _seed_onboarding_state(acc_home: str):
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(tmp_settings, settings_file)
-
-            cache_dir = os.path.join(d, "cache")
-            os.makedirs(cache_dir, exist_ok=True)
-            onboarding_file = os.path.join(cache_dir, "onboarding.json")
-            tmp_onboarding = onboarding_file + ".tmp"
-            with open(tmp_onboarding, "w", encoding="utf-8") as f:
-                json.dump({
-                    "consumerOnboardingComplete": True,
-                    "enterpriseOnboardingComplete": True,
-                    "onboardingComplete": True
-                }, f, indent=2)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp_onboarding, onboarding_file)
         except Exception:
             pass
 
@@ -146,7 +124,7 @@ def start_agy_login_flow(account_id: str, timeout_seconds: float = 25.0) -> str:
     output = b""
     auth_url: Optional[str] = None
     start_time = time.time()
-    sent_select = False
+    last_enter_time = 0.0
 
     while time.time() - start_time < timeout_seconds:
         r, _, _ = select.select([master_fd], [], [], 0.3)
@@ -158,11 +136,18 @@ def start_agy_login_flow(account_id: str, timeout_seconds: float = 25.0) -> str:
                 output += chunk
                 text = output.decode("utf-8", errors="ignore")
 
-                if not sent_select and ("Select login method" in text or "Google OAuth" in text or "Welcome to the" in text or (time.time() - start_time > 2.0)):
-                    time.sleep(0.3)
+                now = time.time()
+                if ("Choose your color scheme" in text or "terminal" in text or "color scheme" in text or "[Next]" in text or "Welcome to" in text) and (now - last_enter_time > 0.8):
+                    time.sleep(0.2)
                     os.write(master_fd, b"\r\n")
-                    sent_select = True
-                    logger.info("Selected Google OAuth menu for %s", account_id)
+                    last_enter_time = now
+                    logger.info("Auto-advanced onboarding screen for %s", account_id)
+
+                if ("Select login method" in text or "Google OAuth" in text) and (now - last_enter_time > 0.8):
+                    time.sleep(0.2)
+                    os.write(master_fd, b"\r\n")
+                    last_enter_time = now
+                    logger.info("Auto-selected Google OAuth menu for %s", account_id)
 
                 if "https://accounts.google.com" in text:
                     found = _extract_google_oauth_url(text)
@@ -174,9 +159,10 @@ def start_agy_login_flow(account_id: str, timeout_seconds: float = 25.0) -> str:
                 logger.warning("Error reading from agy PTY: %s", e)
                 break
         else:
-            if not sent_select and (time.time() - start_time > 2.0):
+            now = time.time()
+            if not auth_url and (now - start_time > 1.5) and (now - last_enter_time > 1.0):
                 os.write(master_fd, b"\r\n")
-                sent_select = True
+                last_enter_time = now
 
     if not auth_url:
         try:

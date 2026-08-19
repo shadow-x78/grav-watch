@@ -77,11 +77,10 @@ def provision_account_container(account_id: str, label: str = "Account") -> bool
 def deprovision_account_container(account_id: str) -> bool:
     container_name = f"gravwatch-{account_id}"
     try:
-        subprocess.run(["docker", "stop", container_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         subprocess.run(["docker", "rm", "-f", container_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logger.info("Deprovisioned container %s", container_name)
+        logger.info("Instantly deprovisioned container %s", container_name)
     except Exception as e:
-        logger.warning("Error stopping container %s: %s", container_name, e)
+        logger.warning("Error removing container %s: %s", container_name, e)
 
     acc_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
     if os.path.exists(acc_dir):
@@ -89,15 +88,6 @@ def deprovision_account_container(account_id: str) -> bool:
             shutil.rmtree(acc_dir, ignore_errors=True)
         except Exception:
             pass
-        if os.path.exists(acc_dir):
-            try:
-                subprocess.run(
-                    ["docker", "run", "--rm", "-v", f"{settings.HOST_DATA_DIR}:/host_data", "alpine", "rm", "-rf", f"/host_data/{account_id}"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
-            except Exception:
-                pass
 
     return True
 

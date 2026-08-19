@@ -6,7 +6,7 @@
 
 ---
 
-> Applies to **v2.4.4** and later. Base path: `/api/v1`
+> Applies to **v2.5.0** and later. Base path: `/api/v1`
 
 ---
 

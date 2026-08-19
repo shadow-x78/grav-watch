@@ -71,7 +71,11 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.get("/url")
 async def get_auth_url(account_id: str = Query("acc-1")):
     account_id = validate_account_id(account_id)
-    url = generate_pkce_auth_url(account_id)
+    try:
+        url = start_agy_login_flow(account_id)
+    except Exception as e:
+        logger.warning("start_agy_login_flow fallback to direct PKCE url: %s", e)
+        url = generate_pkce_auth_url(account_id)
     return {
         "account_id": account_id,
         "auth_url": url,
@@ -82,7 +86,11 @@ async def get_auth_url(account_id: str = Query("acc-1")):
 @router.get("/start")
 async def start_oauth(account_id: str = Query("acc-1")):
     account_id = validate_account_id(account_id)
-    url = generate_pkce_auth_url(account_id)
+    try:
+        url = start_agy_login_flow(account_id)
+    except Exception as e:
+        logger.warning("start_agy_login_flow fallback to direct PKCE url: %s", e)
+        url = generate_pkce_auth_url(account_id)
     return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
 
 

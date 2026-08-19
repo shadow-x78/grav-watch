@@ -48,6 +48,19 @@ for t in targets:
     except Exception:
         pass
 
+JETSKI_PRESET = """post_onboarding:  {
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_COLOR_SCHEME
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_MANAGER_WELCOME
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_USAGE_MODE
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_AGENT_CONFIGURATION
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_ADD_WORKSPACE
+}
+installation_uuid:  "98d027cc-5310-4b0e-a832-fab3183df8b7"
+migrations:  { key:  3 value:  MIGRATION_STATUS_COMPLETED }
+migrations:  { key:  4 value:  MIGRATION_STATUS_COMPLETED }
+migrations:  { key:  5 value:  MIGRATION_STATUS_COMPLETED }
+"""
+
 for cli_dir in ["/root/.gemini/antigravity-cli", "/root/.gemini/.gemini/antigravity-cli"]:
     os.makedirs(cli_dir, exist_ok=True)
     settings_file = os.path.join(cli_dir, "settings.json")
@@ -58,15 +71,13 @@ for cli_dir in ["/root/.gemini/antigravity-cli", "/root/.gemini/.gemini/antigrav
         os.fsync(f.fileno())
     os.replace(tmp_settings, settings_file)
 
-    cache_dir = os.path.join(cli_dir, "cache")
-    os.makedirs(cache_dir, exist_ok=True)
-    onboarding_file = os.path.join(cache_dir, "onboarding.json")
-    tmp_onboarding = onboarding_file + ".tmp"
-    with open(tmp_onboarding, "w") as f:
-        json.dump({"consumerOnboardingComplete": True, "enterpriseOnboardingComplete": True, "onboardingComplete": True}, f, indent=2)
+    pbtxt_file = os.path.join(cli_dir, "jetski_state.pbtxt")
+    tmp_pbtxt = pbtxt_file + ".tmp"
+    with open(tmp_pbtxt, "w") as f:
+        f.write(JETSKI_PRESET)
         f.flush()
         os.fsync(f.fileno())
-    os.replace(tmp_onboarding, onboarding_file)
+    os.replace(tmp_pbtxt, pbtxt_file)
 ' 2>/dev/null || true
 
 if [ "$#" -gt 0 ]; then

@@ -139,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
           </Typography>
 
           <Chip
-            label="v2.4.4"
+            label="v2.5.0"
             size="small"
             sx={{
               height: 20,

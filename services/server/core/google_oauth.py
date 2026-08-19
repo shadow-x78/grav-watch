@@ -109,15 +109,31 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
 
     try:
         flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-        fd = os.open(target_file, flags, 0o666)
+        fd = os.open(target_file, flags, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-        os.chmod(target_file, 0o666)
+        os.chmod(target_file, 0o600)
     except Exception as e:
         logger.warning("Could not write credentials file %s: %s", target_file, e)
 
     access_token = data.get("access_token")
     if access_token:
+        real_at = access_token
+        real_rt = data.get("refresh_token") or ""
+        real_exp = "2030-01-01T00:00:00Z"
+        real_method = "consumer"
+
+        if isinstance(access_token, str) and access_token.strip().startswith("{"):
+            try:
+                parsed = json.loads(access_token)
+                t_block = parsed.get("token", {}) if isinstance(parsed.get("token"), dict) else parsed
+                real_at = t_block.get("access_token") or real_at
+                real_rt = t_block.get("refresh_token") or real_rt
+                real_exp = t_block.get("expiry") or real_exp
+                real_method = parsed.get("auth_method") or real_method
+            except Exception:
+                pass
+
         dirs = [
             os.path.join(target_dir, ".gemini", "antigravity-cli"),
             os.path.join(target_dir, "antigravity-cli"),
@@ -128,12 +144,12 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
                 token_file = os.path.join(d, "antigravity-oauth-token")
                 token_payload = {
                     "token": {
-                        "access_token": access_token,
+                        "access_token": real_at,
                         "token_type": "Bearer",
-                        "refresh_token": data.get("refresh_token") or "",
-                        "expiry": "2030-01-01T00:00:00Z",
+                        "refresh_token": real_rt,
+                        "expiry": real_exp,
                     },
-                    "auth_method": "consumer",
+                    "auth_method": real_method,
                 }
                 with open(token_file, "w", encoding="utf-8") as tf:
                     json.dump(token_payload, tf)
