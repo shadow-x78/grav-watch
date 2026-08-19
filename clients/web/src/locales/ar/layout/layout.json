@@ -1,0 +1,40 @@
+{
+  "header": {
+    "title": "GravWatch",
+    "allAccountsPooled": "جميع الحسابات (السعة المجمعة)",
+    "allPooledShort": "الكل (مجمع)",
+    "liveStream": "بث لحظي",
+    "liveRunningTooltip": "البث اللحظي للبيانات يعمل",
+    "livePausedTooltip": "البث اللحظي متوقف",
+    "switchLangTooltip": "التبديل إلى English",
+    "refreshTooltip": "مزامنة وجلب بيانات الكوتا",
+    "pairGoogleBtn": "ربط حساب Google",
+    "pairGoogleTooltip": "ربط حساب Google جديد",
+    "systemConfigTooltip": "إعدادات النظام",
+    "mobileMenuAria": "فتح قائمة التنقل",
+    "timeRanges": {
+      "1h": "ساعة",
+      "24h": "24 ساعة",
+      "7d": "7 أيام",
+      "30d": "30 يوم"
+    }
+  },
+  "sidebar": {
+    "navTitle": "التنقل الرئيسي",
+    "navOverview": "نظرة عامة والـ Pool",
+    "navAccounts": "الحسابات\nوالحاويات",
+    "navSimulator": "محاكي الأوامر",
+    "dockerCard": {
+      "title": "حاويات Docker",
+      "image": "الصورة:",
+      "memoryCap": "حد الذاكرة:",
+      "memoryValue": "256MB / عقدة",
+      "fastApiHub": "FastAPI Hub:",
+      "fastApiLive": "• :8000 (مباشر)"
+    },
+    "subtitle": "لوحة مراقبة وإدارة كوتا حسابات Google Antigravity المجمعة",
+    "issuesTooltip": "انقر لفحص المشاكل المكتشفة وحدود الـ 429",
+    "allHealthy": "جميع العقد سليمة",
+    "issuesDetected": "{count} مشكلة مكتشفة"
+  }
+}

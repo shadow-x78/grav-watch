@@ -19,6 +19,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import SecurityIcon from "@mui/icons-material/Security";
 import AddIcon from "@mui/icons-material/Add";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface GooglePairingModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ interface GooglePairingModalProps {
 
 export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, onClose }) => {
   const { accounts, refreshAllAccounts } = useGravWatch();
+  const { t, direction } = useLanguage();
 
   const [targetAccountId, setTargetAccountId] = useState("acc-2");
   const [authCode, setAuthCode] = useState("");
@@ -36,7 +38,6 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
 
-  // Auto-calculate next available account node ID
   useEffect(() => {
     if (isOpen) {
       const existingIds = new Set(accounts.map((a) => a.id));
@@ -54,7 +55,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
 
   const handleOpenGoogle = async () => {
     if (!targetAccountId.trim()) {
-      setErrorMsg("Please provide a valid Target Account ID.");
+      setErrorMsg(t("accounts.googlePairingModal.errors.missingId"));
       return;
     }
 
@@ -69,7 +70,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
       } else {
         window.open(`/api/v1/auth/start?account_id=${encodeURIComponent(targetAccountId.trim())}`, "_blank");
       }
-    } catch (e: any) {
+    } catch {
       window.open(`/api/v1/auth/start?account_id=${encodeURIComponent(targetAccountId.trim())}`, "_blank");
     } finally {
       setLoadingUrl(false);
@@ -79,11 +80,11 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
   const handleExchangeCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!authCode.trim()) {
-      setErrorMsg("Please paste the authorization code from Google.");
+      setErrorMsg(t("accounts.googlePairingModal.errors.missingCode"));
       return;
     }
     if (!targetAccountId.trim()) {
-      setErrorMsg("Please provide a valid Target Account ID.");
+      setErrorMsg(t("accounts.googlePairingModal.errors.missingId"));
       return;
     }
 
@@ -105,7 +106,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || data.detail || "Authentication failed. Please try again.");
+        throw new Error(data.error || data.detail || t("accounts.googlePairingModal.errors.failed"));
       }
 
       setSuccessEmail(data.email || `Account ${targetAccountId}`);
@@ -118,7 +119,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
         onClose();
       }, 1800);
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to exchange authorization code.");
+      setErrorMsg(err.message || t("accounts.googlePairingModal.errors.failed"));
       setLoading(false);
     }
   };
@@ -167,10 +168,10 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
           </Box>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
-              Pair Google Antigravity Account
+              {t("accounts.googlePairingModal.title")}
             </Typography>
             <Typography variant="caption" sx={{ color: "#9ca3af" }}>
-              Dynamic On-Demand Isolated Container Provisioning
+              {t("accounts.googlePairingModal.subtitle")}
             </Typography>
           </Box>
         </Box>
@@ -187,28 +188,27 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
           <Box sx={{ textAlign: "center", py: 4 }}>
             <CheckCircleIcon sx={{ fontSize: 56, color: "#22c55e", mb: 1.5 }} />
             <Typography variant="h6" sx={{ color: "#fff", fontWeight: 700, mb: 0.5 }}>
-              Successfully Authenticated!
+              {t("accounts.googlePairingModal.successTitle")}
             </Typography>
             <Typography variant="body2" sx={{ color: "#86efac" }}>
-              Container <strong>gravwatch-{targetAccountId}</strong> provisioned for <strong>{successEmail}</strong>
+              {t("accounts.googlePairingModal.successMessage", { id: targetAccountId, email: successEmail })}
             </Typography>
             <Typography variant="caption" sx={{ color: "#9ca3af", display: "block", mt: 2 }}>
-              Streaming live quota telemetry...
+              {t("accounts.googlePairingModal.successStreaming")}
             </Typography>
           </Box>
         ) : (
           <Box component="form" onSubmit={handleExchangeCode}>
-            {/* Target Account ID Input with Quick Select */}
             <Box sx={{ mb: 2.5 }}>
               <Typography variant="subtitle2" sx={{ color: "#e4e6eb", fontWeight: 600, mb: 0.8 }}>
-                Target Container ID (Unlimited Dynamic Nodes)
+                {t("accounts.googlePairingModal.targetIdLabel")}
               </Typography>
               <TextField
                 fullWidth
                 size="small"
                 value={targetAccountId}
                 onChange={(e) => setTargetAccountId(e.target.value)}
-                placeholder="e.g. acc-2, acc-3, my-node"
+                placeholder={t("accounts.googlePairingModal.targetIdPlaceholder")}
                 disabled={loading}
                 sx={{
                   "& .MuiOutlinedInput-root": {
@@ -223,11 +223,13 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
                 }}
               />
               <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap", alignItems: "center" }}>
-                <Typography variant="caption" sx={{ color: "#6b7280" }}>Quick suggestions:</Typography>
+                <Typography variant="caption" sx={{ color: "#6b7280" }}>
+                  {t("accounts.googlePairingModal.quickSuggestions")}
+                </Typography>
                 {accounts.map((a) => (
                   <Chip
                     key={a.id}
-                    label={`${a.id} (Re-auth)`}
+                    label={`${a.id} (${t("accounts.googlePairingModal.reAuth")})`}
                     size="small"
                     clickable
                     onClick={() => setTargetAccountId(a.id)}
@@ -241,7 +243,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
                 ))}
                 <Chip
                   icon={<AddIcon sx={{ fontSize: "14px !important" }} />}
-                  label={`acc-${accounts.length + 1} (New Node)`}
+                  label={`acc-${accounts.length + 1} (${t("accounts.googlePairingModal.newNode")})`}
                   size="small"
                   clickable
                   onClick={() => setTargetAccountId(`acc-${accounts.length + 1}`)}
@@ -265,6 +267,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
                 display: "flex",
                 alignItems: "center",
                 gap: 1.5,
+                direction: "ltr",
               }}
             >
               <TerminalIcon sx={{ color: "#38bdf8", fontSize: 20 }} />
@@ -275,14 +278,14 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
 
             <Box sx={{ mb: 3 }}>
               <Typography variant="subtitle2" sx={{ color: "#e4e6eb", fontWeight: 600, mb: 1 }}>
-                Step 1: Open Google Sign-in Page
+                {t("accounts.googlePairingModal.step1Title")}
               </Typography>
               <Button
                 variant="contained"
                 fullWidth
                 onClick={handleOpenGoogle}
                 disabled={loadingUrl || loading || !targetAccountId.trim()}
-                startIcon={<OpenInNewIcon />}
+                startIcon={<OpenInNewIcon sx={{ transform: direction === "rtl" ? "scaleX(-1)" : "none" }} />}
                 sx={{
                   py: 1.3,
                   bgcolor: "#2563eb",
@@ -292,26 +295,30 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
                   "&:hover": { bgcolor: "#1d4ed8" },
                 }}
               >
-                {loadingUrl ? "Generating Google Sign-in Link..." : `1. Open Google Sign-in for [${targetAccountId}] →`}
+                {loadingUrl
+                  ? t("accounts.googlePairingModal.step1Loading")
+                  : t("accounts.googlePairingModal.step1Btn", { id: targetAccountId })}
               </Button>
               {authUrl ? (
                 <Typography variant="caption" sx={{ color: "#38bdf8", display: "block", mt: 1, wordBreak: "break-all" }}>
-                  Popup blocked? <a href={authUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8", textDecoration: "underline" }}>Click here to open Google OAuth directly</a>
+                  <a href={authUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8", textDecoration: "underline" }}>
+                    {t("accounts.googlePairingModal.step1PopupBlocked")}
+                  </a>
                 </Typography>
               ) : (
                 <Typography variant="caption" sx={{ color: "#9ca3af", display: "block", mt: 0.8 }}>
-                  Opens the official Google Antigravity OAuth prompt in a new window.
+                  {t("accounts.googlePairingModal.step1Help")}
                 </Typography>
               )}
             </Box>
 
             <Box sx={{ mb: 2 }}>
               <Typography variant="subtitle2" sx={{ color: "#e4e6eb", fontWeight: 600, mb: 1 }}>
-                Step 2: Paste Authorization Code
+                {t("accounts.googlePairingModal.step2Title")}
               </Typography>
               <TextField
                 fullWidth
-                placeholder="4/0AeanS... or ya29..."
+                placeholder={t("accounts.googlePairingModal.step2Placeholder")}
                 value={authCode}
                 onChange={(e) => setAuthCode(e.target.value)}
                 disabled={loading}
@@ -332,7 +339,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
 
             <DialogActions sx={{ px: 0, pt: 2 }}>
               <Button onClick={handleClose} disabled={loading} sx={{ color: "#9ca3af" }}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 type="submit"
@@ -347,7 +354,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
                   "&:hover": { bgcolor: "#16a34a" },
                 }}
               >
-                {loading ? <CircularProgress size={20} color="inherit" /> : `Complete Pairing [${targetAccountId}]`}
+                {loading ? <CircularProgress size={20} color="inherit" /> : t("accounts.googlePairingModal.completeBtn", { id: targetAccountId })}
               </Button>
             </DialogActions>
           </Box>

@@ -22,14 +22,20 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import DnsIcon from "@mui/icons-material/Dns";
 import { formatTokens } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const PromptSimulator: React.FC = () => {
   const { executePromptSimulation, pooledTelemetry } = useGravWatch();
+  const { t, language } = useLanguage();
 
   const [modelGroup, setModelGroup] = useState<"Gemini Models" | "Claude & GPT Models">("Gemini Models");
   const [specificModel, setSpecificModel] = useState("gemini-3.7-flash-high");
   const [strategy, setStrategy] = useState<"least" | "round">("least");
-  const [prompt, setPrompt] = useState("Explain how GravWatch load balances Google Antigravity quotas in 2 sentences.");
+  const [prompt, setPrompt] = useState(
+    language === "ar"
+      ? "اشرح كيف يوازن GravWatch توزيع طلبات Google Antigravity في جملتين."
+      : "Explain how GravWatch load balances Google Antigravity quotas in 2 sentences."
+  );
   const [isExecuting, setIsExecuting] = useState(false);
   const [lastResult, setLastResult] = useState<{
     success: boolean;
@@ -41,22 +47,22 @@ export const PromptSimulator: React.FC = () => {
 
   const presets = [
     {
-      title: "Model Identification",
+      title: t("simulator.configCard.presets.modelId"),
       group: "Gemini Models" as const,
       model: "gemini-3.7-flash-high",
-      prompt: "What model are you and who built you?",
+      prompt: language === "ar" ? "ما هو هذا النموذج ومن قام بتطويره؟" : "What model are you and who built you?",
     },
     {
-      title: "Architecture Analysis",
+      title: t("simulator.configCard.presets.archAnalysis"),
       group: "Gemini Models" as const,
       model: "gemini-3.1-pro-high",
-      prompt: "Explain how multi-account quota monitoring works in 2 sentences.",
+      prompt: language === "ar" ? "اشرح كيف تعمل مراقبة كوتا الحسابات المتعددة في جملتين." : "Explain how multi-account quota monitoring works in 2 sentences.",
     },
     {
-      title: "Claude Reasoning",
+      title: t("simulator.configCard.presets.claudeReasoning"),
       group: "Claude & GPT Models" as const,
       model: "claude-sonnet-4-6",
-      prompt: "Write 1 line of poetry about the night sky.",
+      prompt: language === "ar" ? "اكتب بيت شعر قصير وجميل عن النجوم والكون." : "Write 1 line of poetry about the night sky.",
     },
   ];
 
@@ -69,7 +75,7 @@ export const PromptSimulator: React.FC = () => {
       const result = await executePromptSimulation(modelGroup, specificModel, prompt.trim(), strategy);
       setLastResult({
         ...result,
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: new Date().toLocaleTimeString(language === "ar" ? "ar-EG" : "en-US"),
       });
     } catch (err: any) {
       setLastResult({
@@ -77,7 +83,7 @@ export const PromptSimulator: React.FC = () => {
         accountAlias: "acc-1",
         tokensUsed: 0,
         response: `Error: ${err.message || err}`,
-        timestamp: new Date().toLocaleTimeString(),
+        timestamp: new Date().toLocaleTimeString(language === "ar" ? "ar-EG" : "en-US"),
       });
     } finally {
       setIsExecuting(false);
@@ -90,11 +96,11 @@ export const PromptSimulator: React.FC = () => {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <PlayArrowIcon sx={{ fontSize: 28, color: "primary.main" }} />
           <Typography variant="h6" sx={{ fontWeight: 800, color: "#ffffff" }}>
-            Antigravity CLI Live Prompt Execution
+            {t("simulator.title")}
           </Typography>
         </Box>
         <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
-          Execute real prompts against Google Gemini via the official Antigravity CLI container and observe live token drain.
+          {t("simulator.subtitle")}
         </Typography>
       </Box>
 
@@ -102,15 +108,15 @@ export const PromptSimulator: React.FC = () => {
         <div className="lg:col-span-2 space-y-4">
           <Card sx={{ border: "1px solid rgba(255, 255, 255, 0.08)", background: "rgba(13, 19, 34, 0.75)" }}>
             <CardHeader
-              title={<Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#ffffff" }}>Configure Live Request</Typography>}
-              subheader={<Typography variant="caption" sx={{ color: "text.secondary" }}>Target official agy CLI binary with live Google Gemini session</Typography>}
+              title={<Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#ffffff" }}>{t("simulator.configCard.title")}</Typography>}
+              subheader={<Typography variant="caption" sx={{ color: "text.secondary" }}>{t("simulator.configCard.subheader")}</Typography>}
               sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)", pb: 1.5 }}
             />
 
             <CardContent sx={{ p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 2.5 }}>
               <Box>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 1, display: "block" }}>
-                  Quick Presets:
+                  {t("simulator.configCard.quickPresets")}
                 </Typography>
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
                   {presets.map((p, idx) => (
@@ -136,10 +142,10 @@ export const PromptSimulator: React.FC = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormControl fullWidth size="small">
-                  <InputLabel sx={{ fontSize: "0.85rem" }}>Antigravity Model Category</InputLabel>
+                  <InputLabel sx={{ fontSize: "0.85rem" }}>{t("simulator.configCard.modelCategoryLabel")}</InputLabel>
                   <Select
                     value={modelGroup}
-                    label="Antigravity Model Category"
+                    label={t("simulator.configCard.modelCategoryLabel")}
                     onChange={(e) => {
                       const grp = e.target.value as "Gemini Models" | "Claude & GPT Models";
                       setModelGroup(grp);
@@ -147,16 +153,16 @@ export const PromptSimulator: React.FC = () => {
                     }}
                     sx={{ backgroundColor: "rgba(9, 13, 22, 0.7)", borderRadius: 2, fontSize: "0.8rem" }}
                   >
-                    <MenuItem value="Gemini Models">Gemini Models (Flash / Pro)</MenuItem>
-                    <MenuItem value="Claude & GPT Models">Claude & GPT Models</MenuItem>
+                    <MenuItem value="Gemini Models">{t("simulator.configCard.categoryGemini")}</MenuItem>
+                    <MenuItem value="Claude & GPT Models">{t("simulator.configCard.categoryClaude")}</MenuItem>
                   </Select>
                 </FormControl>
 
                 <FormControl fullWidth size="small">
-                  <InputLabel sx={{ fontSize: "0.85rem" }}>Specific Model (agy CLI)</InputLabel>
+                  <InputLabel sx={{ fontSize: "0.85rem" }}>{t("simulator.configCard.specificModelLabel")}</InputLabel>
                   <Select
                     value={specificModel}
-                    label="Specific Model (agy CLI)"
+                    label={t("simulator.configCard.specificModelLabel")}
                     onChange={(e) => setSpecificModel(e.target.value)}
                     sx={{ backgroundColor: "rgba(9, 13, 22, 0.7)", borderRadius: 2, fontSize: "0.8rem", fontFamily: "monospace" }}
                   >
@@ -178,7 +184,7 @@ export const PromptSimulator: React.FC = () => {
                 fullWidth
                 multiline
                 rows={3.5}
-                label="Live Command or Prompt"
+                label={t("simulator.configCard.promptLabel")}
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 sx={{
@@ -205,7 +211,7 @@ export const PromptSimulator: React.FC = () => {
                   fontSize: { xs: "0.82rem", sm: "0.9rem" },
                 }}
               >
-                {isExecuting ? "Executing live in Google Antigravity..." : "Execute Live via agy CLI"}
+                {isExecuting ? t("simulator.configCard.executing") : t("simulator.configCard.executeBtn")}
               </Button>
             </CardContent>
           </Card>
@@ -217,7 +223,7 @@ export const PromptSimulator: React.FC = () => {
               title={
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <TerminalIcon sx={{ fontSize: 18, color: "primary.main" }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#ffffff" }}>Live CLI Response</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#ffffff" }}>{t("simulator.responseCard.title")}</Typography>
                 </Box>
               }
               sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)", pb: 1.5 }}
@@ -238,7 +244,7 @@ export const PromptSimulator: React.FC = () => {
                   >
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, flexWrap: "wrap", gap: 0.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 800, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
-                        {lastResult.success ? "Executed Successfully" : "Execution Failed"}
+                        {lastResult.success ? t("simulator.responseCard.executedSuccess") : t("simulator.responseCard.executionFailed")}
                       </Typography>
                       <Typography variant="caption" sx={{ fontFamily: "monospace", opacity: 0.8, fontSize: "0.68rem" }}>
                         {lastResult.timestamp}
@@ -247,11 +253,11 @@ export const PromptSimulator: React.FC = () => {
 
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, fontFamily: "monospace", fontSize: { xs: "0.7rem", sm: "0.75rem" } }}>
                       <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
-                        <span style={{ opacity: 0.7 }}>Executed On:</span>
+                        <span style={{ opacity: 0.7 }}>{t("simulator.responseCard.executedOn")}</span>
                         <strong style={{ color: "#10b981" }}>{lastResult.accountAlias}</strong>
                       </Box>
                       <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
-                        <span style={{ opacity: 0.7 }}>Tokens:</span>
+                        <span style={{ opacity: 0.7 }}>{t("simulator.responseCard.tokens")}</span>
                         <strong style={{ color: "#f59e0b" }}>~{formatTokens(lastResult.tokensUsed)}</strong>
                       </Box>
                     </Box>
@@ -270,6 +276,8 @@ export const PromptSimulator: React.FC = () => {
                           whiteSpace: "pre-wrap",
                           maxHeight: 250,
                           overflowY: "auto",
+                          direction: "ltr",
+                          textAlign: "left",
                         }}
                       >
                         {lastResult.response}
@@ -281,7 +289,7 @@ export const PromptSimulator: React.FC = () => {
                 <Box sx={{ py: 6, textAlign: "center", color: "text.secondary" }}>
                   <DnsIcon sx={{ fontSize: 36, opacity: 0.4, mb: 1 }} />
                   <Typography variant="caption" sx={{ display: "block", fontFamily: "monospace" }}>
-                    Click Execute to run a real query on Google Antigravity
+                    {t("simulator.responseCard.emptyState")}
                   </Typography>
                 </Box>
               )}
@@ -303,15 +311,17 @@ export const PromptSimulator: React.FC = () => {
             }}
           >
             <Typography variant="caption" sx={{ fontWeight: 800, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.05em" }}>
-              Antigravity Node Pool
+              {t("simulator.poolStatus.title")}
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "var(--muted-foreground)" }}>Active Nodes:</span>
+              <span style={{ color: "#94a3b8" }}>{t("simulator.poolStatus.activeNodes")}</span>
               <strong style={{ color: "#10b981" }}>{pooledTelemetry.activeContainers} / {pooledTelemetry.totalAccounts}</strong>
             </Box>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "var(--muted-foreground)" }}>Pool Status:</span>
-              <strong style={{ color: "#06b6d4" }}>{pooledTelemetry.activeContainers > 0 ? "Online" : "No Active Nodes"}</strong>
+              <span style={{ color: "#94a3b8" }}>{t("simulator.poolStatus.status")}</span>
+              <strong style={{ color: "#06b6d4" }}>
+                {pooledTelemetry.activeContainers > 0 ? t("simulator.poolStatus.online") : t("simulator.poolStatus.noActive")}
+              </strong>
             </Box>
           </Paper>
         </div>

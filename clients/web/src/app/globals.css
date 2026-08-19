@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -31,6 +31,11 @@ body {
   color: var(--foreground);
   font-family: 'Inter', sans-serif;
   font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+html[dir="rtl"],
+html[dir="rtl"] body {
+  font-family: 'Cairo', 'Inter', sans-serif;
 }
 
 /* Custom Scrollbars */

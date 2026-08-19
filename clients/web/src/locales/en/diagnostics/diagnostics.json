@@ -1,0 +1,24 @@
+{
+  "title": "Cluster Diagnostics",
+  "chipIssues": "{count} Issues",
+  "chipHealthy": "All Healthy",
+  "subtitle": "Docker sandbox quota limits & health checks",
+  "healthyCard": {
+    "title": "All 5 Docker Sandbox Nodes Are Healthy!",
+    "description": "No 429 rate limit errors or severe quota depletion detected across active accounts."
+  },
+  "issueCard": {
+    "rateLimit429": "429 Rate Limit",
+    "warning": "Warning",
+    "depletedDesc": "The 5-hour rolling limit for Claude & GPT models on this node reached 0% (50,000 / 50,000 used). The Antigravity CLI will return HTTP 429 until the quota resets in {countdown}.",
+    "warningDesc": "Gemini and Claude 5-hour limits on this node are below 35% remaining. High token volume detected ({requests} requests today).",
+    "gemini5h": "Gemini 5h:",
+    "claude5h": "Claude 5h:",
+    "ram": "RAM:"
+  },
+  "clusterFooter": {
+    "dockerCluster": "Docker Cluster: {running} / {total} Containers Online",
+    "fastApiLive": "• FastAPI Hub :8000 Live"
+  },
+  "rescanBtn": "Re-scan Diagnostics"
+}

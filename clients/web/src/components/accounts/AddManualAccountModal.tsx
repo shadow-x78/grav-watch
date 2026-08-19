@@ -17,6 +17,7 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import { AntigravityPlan } from "@/types/gravwatch";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface AddManualAccountModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
   onClose,
 }) => {
   const { addAccount } = useGravWatch();
+  const { t } = useLanguage();
 
   const [alias, setAlias] = useState("");
   const [email, setEmail] = useState("");
@@ -84,10 +86,10 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
             </Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#ffffff", fontSize: { xs: "0.92rem", sm: "1.05rem" }, lineHeight: 1.3 }}>
-                Add Manual Account / Session Token
+                {t("accounts.manualModal.title")}
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary", fontSize: { xs: "0.7rem", sm: "0.75rem" }, display: "block" }}>
-                Configure a custom container node with explicit OAuth credentials and limits
+                {t("accounts.manualModal.subtitle")}
               </Typography>
             </Box>
           </Box>
@@ -99,8 +101,8 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
               required
               fullWidth
               size="small"
-              label="Account Alias"
-              placeholder="e.g. Europe Heavy Node 04"
+              label={t("accounts.manualModal.aliasLabel")}
+              placeholder={t("accounts.manualModal.aliasPlaceholder")}
               value={alias}
               onChange={(e) => setAlias(e.target.value)}
             />
@@ -109,17 +111,17 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
               <TextField
                 fullWidth
                 size="small"
-                label="Identifier Email"
-                placeholder="developer@corp.net"
+                label={t("accounts.manualModal.emailLabel")}
+                placeholder={t("accounts.manualModal.emailPlaceholder")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
 
               <FormControl fullWidth size="small">
-                <InputLabel>Plan Tier</InputLabel>
+                <InputLabel>{t("accounts.manualModal.planLabel")}</InputLabel>
                 <Select
                   value={plan}
-                  label="Plan Tier"
+                  label={t("accounts.manualModal.planLabel")}
                   onChange={(e) => setPlan(e.target.value as AntigravityPlan)}
                 >
                   <MenuItem value="Google AI Pro">Google AI Pro</MenuItem>
@@ -134,7 +136,7 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
               fullWidth
               size="small"
               type="password"
-              label="Session Token / Bearer Key (Optional)"
+              label={t("accounts.manualModal.tokenLabel")}
               placeholder="ya29.a0AfH6SM..."
               value={sessionToken}
               onChange={(e) => setSessionToken(e.target.value)}
@@ -144,8 +146,8 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
             <TextField
               fullWidth
               size="small"
-              label="Tags (comma separated)"
-              placeholder="Manual, Sandbox, Fast"
+              label={t("accounts.manualModal.tagsLabel")}
+              placeholder={t("accounts.manualModal.tagsPlaceholder")}
               value={tags}
               onChange={(e) => setTags(e.target.value)}
             />
@@ -155,8 +157,8 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
               multiline
               rows={2}
               size="small"
-              label="Notes"
-              placeholder="Details about this node..."
+              label={t("accounts.manualModal.notesLabel")}
+              placeholder={t("accounts.manualModal.notesPlaceholder")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -165,7 +167,7 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
 
         <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 1.75 }, gap: 1.25, borderTop: "1px solid rgba(255, 255, 255, 0.08)", backgroundColor: "rgba(9, 13, 22, 0.95)" }}>
           <Button variant="outlined" size="small" onClick={onClose} sx={{ borderColor: "rgba(255, 255, 255, 0.15)", color: "#cbd5e1" }}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             type="submit"
@@ -173,7 +175,7 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
             size="small"
             sx={{ background: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", color: "#ffffff", fontWeight: 700 }}
           >
-            Create & Provision Node
+            {t("accounts.manualModal.submitBtn")}
           </Button>
         </DialogActions>
       </form>

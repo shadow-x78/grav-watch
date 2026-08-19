@@ -5,12 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatNumber(num: number): string {
-  return new Intl.NumberFormat("en-US").format(num);
+export function formatNumber(num: number, lang: "ar" | "en" = "en"): string {
+  return new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-US").format(num);
 }
 
-export function formatCompactNumber(num: number): string {
-  return new Intl.NumberFormat("en-US", {
+export function formatCompactNumber(num: number, lang: "ar" | "en" = "en"): string {
+  return new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-US", {
     notation: "compact",
     compactDisplay: "short",
   }).format(num);
@@ -33,7 +33,7 @@ export function formatTokens(tokens: number): string {
 export function formatRelativeTime(date: Date | string, lang: "ar" | "en" = "ar"): string {
   const d = typeof date === "string" ? new Date(date) : date;
   const now = new Date();
-  const diffSec = Math.floor((now.getTime() - d.getTime()) / 1000);
+  const diffSec = Math.max(0, Math.floor((now.getTime() - d.getTime()) / 1000));
 
   if (diffSec < 5) return lang === "ar" ? "الآن" : "just now";
   if (diffSec < 60) return lang === "ar" ? `منذ ${diffSec} ثانية` : `${diffSec}s ago`;
@@ -45,9 +45,15 @@ export function formatRelativeTime(date: Date | string, lang: "ar" | "en" = "ar"
   return lang === "ar" ? `منذ ${diffDay} يوم` : `${diffDay}d ago`;
 }
 
-export function formatCountdownWithDays(raw: string | undefined | null): string {
-  if (!raw) return "Active";
+export function formatCountdownWithDays(raw: string | undefined | null, lang: "ar" | "en" = "en"): string {
+  if (!raw) return lang === "ar" ? "نشط" : "Active";
   const str = raw.trim();
+
+  if (str.toLowerCase() === "active") return lang === "ar" ? "نشط" : "Active";
+  if (str.toLowerCase() === "offline") return lang === "ar" ? "غير متصل" : "Offline";
+  if (str.toLowerCase() === "syncing...") return lang === "ar" ? "جاري المزامنة..." : "Syncing...";
+  if (str.toLowerCase().includes("full capacity")) return lang === "ar" ? "السعة الكاملة متاحة" : "Full capacity available";
+
   const match = str.match(/^(\d+)\s*h(?:\s*(\d+)\s*m)?/i);
   if (match) {
     const totalHours = parseInt(match[1], 10);
@@ -55,6 +61,19 @@ export function formatCountdownWithDays(raw: string | undefined | null): string 
     if (totalHours >= 24) {
       const days = Math.floor(totalHours / 24);
       const remHours = totalHours % 24;
+
+      if (lang === "ar") {
+        if (remHours > 0 && minutes) {
+          return `${days} يوم و ${remHours} س و ${minutes} د`;
+        } else if (remHours > 0) {
+          return `${days} يوم و ${remHours} ساعة`;
+        } else if (minutes) {
+          return `${days} يوم و ${minutes} دقيقة`;
+        } else {
+          return `${days} يوم`;
+        }
+      }
+
       if (remHours > 0 && minutes) {
         return `${days}d ${remHours}h ${minutes}m`;
       } else if (remHours > 0) {
@@ -63,6 +82,13 @@ export function formatCountdownWithDays(raw: string | undefined | null): string 
         return `${days}d ${minutes}m`;
       } else {
         return `${days}d`;
+      }
+    } else {
+      if (lang === "ar") {
+        if (minutes) {
+          return `${totalHours} س و ${minutes} د`;
+        }
+        return `${totalHours} ساعة`;
       }
     }
   }

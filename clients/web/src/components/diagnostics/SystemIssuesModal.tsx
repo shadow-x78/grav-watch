@@ -22,6 +22,8 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import DnsIcon from "@mui/icons-material/Dns";
 import TvIcon from "@mui/icons-material/Tv";
+import { formatCountdownWithDays } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface SystemIssuesModalProps {
   isOpen: boolean;
@@ -33,6 +35,7 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
   onClose,
 }) => {
   const { accounts, refreshAllAccounts, setActiveTab } = useGravWatch();
+  const { t, language, direction } = useLanguage();
 
   const issueAccounts = accounts.filter(
     (a) => a.status === "depleted" || a.status === "warning"
@@ -42,6 +45,9 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
     setActiveTab("accounts");
     onClose();
   };
+
+  const runningCount = accounts.filter((a) => a.containerStatus === "running").length;
+  const totalCount = accounts.length;
 
   return (
     <Dialog
@@ -83,17 +89,17 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
               <Typography variant="h6" sx={{ fontWeight: 800, color: "#ffffff", fontSize: { xs: "0.95rem", sm: "1.1rem" } }}>
-                Cluster Diagnostics
+                {t("diagnostics.title")}
               </Typography>
               <Chip
-                label={issueAccounts.length > 0 ? `${issueAccounts.length} Issues` : "All Healthy"}
+                label={issueAccounts.length > 0 ? t("diagnostics.chipIssues", { count: issueAccounts.length }) : t("diagnostics.chipHealthy")}
                 color={issueAccounts.length > 0 ? "error" : "success"}
                 size="small"
                 sx={{ height: 20, fontSize: "0.65rem", fontWeight: 800, fontFamily: "monospace" }}
               />
             </Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", fontSize: { xs: "0.68rem", sm: "0.75rem" } }}>
-              Docker sandbox quota limits & health checks
+              {t("diagnostics.subtitle")}
             </Typography>
           </Box>
         </Box>
@@ -118,10 +124,10 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
           >
             <CheckCircleIcon sx={{ fontSize: 48, color: "#10b981", mb: 1 }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#ffffff" }}>
-              All 5 Docker Sandbox Nodes Are Healthy!
+              {t("diagnostics.healthyCard.title")}
             </Typography>
             <Typography variant="caption" sx={{ color: "#94a3b8", display: "block", mt: 0.5 }}>
-              No 429 rate limit errors or severe quota depletion detected across active accounts.
+              {t("diagnostics.healthyCard.description")}
             </Typography>
           </Paper>
         ) : (
@@ -172,18 +178,18 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
 
                     <Chip
                       icon={isDepleted ? <ErrorIcon sx={{ fontSize: "14px !important" }} /> : <WarningAmberIcon sx={{ fontSize: "14px !important" }} />}
-                      label={isDepleted ? "429 Rate Limit" : "Warning"}
+                      label={isDepleted ? t("diagnostics.issueCard.rateLimit429") : t("diagnostics.issueCard.warning")}
                       color={isDepleted ? "error" : "warning"}
                       size="small"
                       sx={{ height: 22, fontSize: "0.68rem", fontWeight: 800, flexShrink: 0 }}
                     />
                   </Box>
 
-                  <Box sx={{ pl: { xs: 0, sm: 5.5 } }}>
+                  <Box sx={{ pl: direction === "rtl" ? 0 : { xs: 0, sm: 5.5 }, pr: direction === "rtl" ? { xs: 0, sm: 5.5 } : 0 }}>
                     <Typography variant="body2" sx={{ color: "#e2e8f0", fontSize: { xs: "0.75rem", sm: "0.82rem" }, lineHeight: 1.4, mb: 1 }}>
                       {isDepleted
-                        ? `The 5-hour rolling limit for Claude & GPT models on this node reached 0% (50,000 / 50,000 used). The Antigravity CLI will return HTTP 429 until the quota resets in ${account.claudeGptQuota.fiveHour.refreshCountdown}.`
-                        : `Gemini and Claude 5-hour limits on this node are below 35% remaining. High token volume detected (${account.totalRequestsToday} requests today).`}
+                        ? t("diagnostics.issueCard.depletedDesc", { countdown: formatCountdownWithDays(account.claudeGptQuota.fiveHour.refreshCountdown, language) })
+                        : t("diagnostics.issueCard.warningDesc", { requests: account.totalRequestsToday })}
                     </Typography>
 
                     <Box
@@ -200,17 +206,17 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
                       }}
                     >
                       <div>
-                        <span style={{ color: "#94a3b8" }}>Gemini 5h: </span>
+                        <span style={{ color: "#94a3b8" }}>{t("diagnostics.issueCard.gemini5h")} </span>
                         <span style={{ color: "#ffffff", fontWeight: 700 }}>{account.geminiQuota.fiveHour.percentRemaining}%</span>
                       </div>
                       <div>
-                        <span style={{ color: "#94a3b8" }}>Claude 5h: </span>
+                        <span style={{ color: "#94a3b8" }}>{t("diagnostics.issueCard.claude5h")} </span>
                         <span style={{ color: isDepleted ? "#f43f5e" : "#f59e0b", fontWeight: 700 }}>
                           {account.claudeGptQuota.fiveHour.percentRemaining}%
                         </span>
                       </div>
                       <div>
-                        <span style={{ color: "#94a3b8" }}>RAM: </span>
+                        <span style={{ color: "#94a3b8" }}>{t("diagnostics.issueCard.ram")} </span>
                         <span style={{ color: "#cbd5e1" }}>{account.ramUsageMb}MB / 256MB</span>
                       </div>
                     </Box>
@@ -240,10 +246,10 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <DnsIcon sx={{ fontSize: 15, color: "#10b981" }} />
-            <span>Docker Cluster: 5 / 5 Containers Online</span>
+            <span>{t("diagnostics.clusterFooter.dockerCluster", { running: runningCount, total: totalCount })}</span>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <span style={{ color: "#10b981" }}>• FastAPI Hub :8000 Live</span>
+            <span style={{ color: "#10b981" }}>{t("diagnostics.clusterFooter.fastApiLive")}</span>
           </Box>
         </Box>
       </DialogContent>
@@ -256,19 +262,19 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
           onClick={refreshAllAccounts}
           sx={{ color: "#94a3b8", fontSize: "0.75rem", justifyContent: { xs: "center", sm: "flex-start" }, "&:hover": { color: "#ffffff" } }}
         >
-          Re-scan Diagnostics
+          {t("diagnostics.rescanBtn")}
         </Button>
 
         <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
           <Button onClick={onClose} variant="outlined" size="small" sx={{ borderColor: "rgba(255, 255, 255, 0.15)", color: "#cbd5e1", flex: { xs: 1, sm: "initial" } }}>
-            Close
+            {t("common.close")}
           </Button>
 
           <Button
             onClick={handleFixAndNavigate}
             variant="contained"
             size="small"
-            endIcon={<ArrowForwardIcon sx={{ fontSize: 16 }} />}
+            endIcon={<ArrowForwardIcon sx={{ fontSize: 16, transform: direction === "rtl" ? "scaleX(-1)" : "none" }} />}
             sx={{
               background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
               color: "#ffffff",
@@ -276,7 +282,7 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
               flex: { xs: 1, sm: "initial" },
             }}
           >
-            Manage
+            {t("common.manage")}
           </Button>
         </Box>
       </DialogActions>

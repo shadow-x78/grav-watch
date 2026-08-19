@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
     timeRange,
     setTimeRange,
   } = useGravWatch();
-  const { language, toggleLanguage } = useLanguage();
+  const { language, toggleLanguage, t } = useLanguage();
 
   const [isSpinning, setIsSpinning] = useState(false);
 
@@ -100,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
             alignItems: "center",
             px: { xs: 1, sm: 2, lg: 2.5 },
             borderRight: { xs: "none", lg: "1px solid rgba(255, 255, 255, 0.08)" },
+            borderLeft: { xs: "none", lg: "none" },
             flexShrink: 0,
             gap: { xs: 0.75, sm: 1.25 },
           }}
@@ -108,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
             id="mobile-menu-toggle"
             onClick={onToggleMobileSidebar}
             size="small"
-            aria-label="Open navigation menu"
+            aria-label={t("layout.header.mobileMenuAria")}
             sx={{
               display: { xs: "flex", lg: "none" },
               color: "#94a3b8",
@@ -144,11 +145,11 @@ export const Header: React.FC<HeaderProps> = ({
               display: { xs: "none", sm: "block" },
             }}
           >
-            GravWatch
+            {t("layout.header.title")}
           </Typography>
 
           <Chip
-            label="v2.4.0"
+            label="v2.4.1"
             size="small"
             sx={{
               height: 20,
@@ -204,10 +205,10 @@ export const Header: React.FC<HeaderProps> = ({
                           }}
                         >
                           <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-                            All (Pooled)
+                            {t("layout.header.allPooledShort")}
                           </Box>
                           <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                            All Accounts (Pooled Capacity)
+                            {t("layout.header.allAccountsPooled")}
                           </Box>
                         </Typography>
                       </Box>
@@ -282,7 +283,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <MenuItem value="all" sx={{ fontSize: "0.82rem" }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <PublicIcon sx={{ fontSize: 16, color: "#38bdf8" }} />
-                    <span>All Accounts (Pooled Capacity)</span>
+                    <span>{t("layout.header.allAccountsPooled")}</span>
                   </Box>
                 </MenuItem>
                 {accounts.map((acc) => (
@@ -325,6 +326,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               {timeRanges.map((range) => {
                 const isActive = timeRange === range;
+                const label = t(`layout.header.timeRanges.${range}`);
                 return (
                   <Button
                     key={range}
@@ -346,13 +348,13 @@ export const Header: React.FC<HeaderProps> = ({
                       },
                     }}
                   >
-                    {range}
+                    {label}
                   </Button>
                 );
               })}
             </ButtonGroup>
 
-            <Tooltip title={isLiveStreaming ? "Live Telemetry Running" : "Live Stream Paused"}>
+            <Tooltip title={isLiveStreaming ? t("layout.header.liveRunningTooltip") : t("layout.header.livePausedTooltip")}>
               <Box sx={{ display: { xs: "flex", lg: "none" } }}>
                 <IconButton
                   size="small"
@@ -372,7 +374,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </IconButton>
               </Box>
             </Tooltip>
-            <Tooltip title={isLiveStreaming ? "Live Telemetry Running" : "Live Stream Paused"}>
+            <Tooltip title={isLiveStreaming ? t("layout.header.liveRunningTooltip") : t("layout.header.livePausedTooltip")}>
               <Button
                 variant="outlined"
                 size="small"
@@ -397,11 +399,11 @@ export const Header: React.FC<HeaderProps> = ({
                   },
                 }}
               >
-                Live Stream
+                {t("layout.header.liveStream")}
               </Button>
             </Tooltip>
 
-            <Tooltip title={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}>
+            <Tooltip title={t("layout.header.switchLangTooltip")}>
               <Button
                 size="small"
                 onClick={toggleLanguage}
@@ -428,11 +430,11 @@ export const Header: React.FC<HeaderProps> = ({
               </Button>
             </Tooltip>
 
-            <Tooltip title="Scrape & Sync Telemetry">
+            <Tooltip title={t("layout.header.refreshTooltip")}>
               <IconButton
                 size="small"
                 onClick={handleManualRefresh}
-                aria-label="Refresh and sync telemetry"
+                aria-label={t("layout.header.refreshTooltip")}
                 sx={{
                   color: "#94a3b8",
                   backgroundColor: "#0b1220",
@@ -452,12 +454,12 @@ export const Header: React.FC<HeaderProps> = ({
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Pair Google Account">
+            <Tooltip title={t("layout.header.pairGoogleTooltip")}>
               <Box sx={{ display: { xs: "flex", lg: "none" } }}>
                 <IconButton
                   size="small"
                   onClick={onOpenGooglePairing}
-                  aria-label="Pair Google Account"
+                  aria-label={t("layout.header.pairGoogleTooltip")}
                   sx={{
                     background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                     color: "#ffffff",
@@ -479,7 +481,7 @@ export const Header: React.FC<HeaderProps> = ({
               size="small"
               startIcon={<AddCircleIcon sx={{ fontSize: 18 }} />}
               onClick={onOpenGooglePairing}
-              aria-label="Pair Google Account"
+              aria-label={t("layout.header.pairGoogleTooltip")}
               sx={{
                 display: { xs: "none", lg: "inline-flex" },
                 background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
@@ -496,10 +498,10 @@ export const Header: React.FC<HeaderProps> = ({
                 },
               }}
             >
-              Pair Google Account
+              {t("layout.header.pairGoogleBtn")}
             </Button>
 
-            <Tooltip title="System Configuration">
+            <Tooltip title={t("layout.header.systemConfigTooltip")}>
               <IconButton
                 size="small"
                 sx={{

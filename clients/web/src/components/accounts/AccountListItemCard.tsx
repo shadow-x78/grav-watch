@@ -18,9 +18,9 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import DnsIcon from "@mui/icons-material/Dns";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { formatCountdownWithDays } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface AccountListItemCardProps {
   account: GravAccount;
@@ -34,6 +34,7 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
   onDelete,
 }) => {
   const { toggleAccountStatus, refreshAccount } = useGravWatch();
+  const { t, language } = useLanguage();
   const [isSpinning, setIsSpinning] = useState(false);
 
   const handleRefresh = () => {
@@ -147,7 +148,7 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
             }}
           >
             <Chip
-              label={account.status}
+              label={t(`common.${account.status}`)}
               size="small"
               color={
                 account.status === "active"
@@ -197,14 +198,14 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: "#ffffff", fontSize: "0.75rem" }}>
-                    Gemini Models
+                    {t("accounts.card.geminiModels")}
                   </Typography>
-                  <Tooltip title="Flash & Pro Quota">
+                  <Tooltip title={t("accounts.card.geminiTooltip")}>
                     <InfoOutlinedIcon sx={{ fontSize: 13, color: "text.secondary" }} />
                   </Tooltip>
                 </Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", fontFamily: "monospace" }}>
-                  Refreshes {formatCountdownWithDays(account.geminiQuota.fiveHour.refreshCountdown)}
+                  {t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.geminiQuota.fiveHour.refreshCountdown, language) })}
                 </Typography>
               </Box>
 
@@ -216,7 +217,7 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
                       {account.geminiQuota.fiveHour.percentRemaining}%
                     </Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.62rem" }}>
-                      5-Hour
+                      {t("accounts.card.label5h")}
                     </Typography>
                   </Box>
                 </Box>
@@ -230,7 +231,7 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
                       {account.geminiQuota.weekly.percentRemaining}%
                     </Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.62rem" }}>
-                      Weekly
+                      {t("accounts.card.labelWeekly")}
                     </Typography>
                   </Box>
                 </Box>
@@ -250,14 +251,14 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, color: "#ffffff", fontSize: "0.75rem" }}>
-                    Claude and GPT models
+                    {t("accounts.card.claudeGptModels")}
                   </Typography>
-                  <Tooltip title="Sonnet & Opus 4.6 Quota">
+                  <Tooltip title={t("accounts.card.claudeTooltip")}>
                     <InfoOutlinedIcon sx={{ fontSize: 13, color: "text.secondary" }} />
                   </Tooltip>
                 </Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", fontFamily: "monospace" }}>
-                  Refreshes {formatCountdownWithDays(account.claudeGptQuota.fiveHour.refreshCountdown)}
+                  {t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.claudeGptQuota.fiveHour.refreshCountdown, language) })}
                 </Typography>
               </Box>
 
@@ -269,7 +270,7 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
                       {account.claudeGptQuota.fiveHour.percentRemaining}%
                     </Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.62rem" }}>
-                      5-Hour
+                      {t("accounts.card.label5h")}
                     </Typography>
                   </Box>
                 </Box>
@@ -283,7 +284,7 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
                       {account.claudeGptQuota.weekly.percentRemaining}%
                     </Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.62rem" }}>
-                      Weekly
+                      {t("accounts.card.labelWeekly")}
                     </Typography>
                   </Box>
                 </Box>
@@ -301,7 +302,7 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
             }}
           >
             <Chip
-              label={account.status}
+              label={t(`common.${account.status}`)}
               size="small"
               color={
                 account.status === "active"
@@ -316,13 +317,13 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
             />
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              <Tooltip title="Scrape & Refresh Quota">
+              <Tooltip title={t("accounts.card.tooltips.refresh")}>
                 <IconButton size="small" onClick={handleRefresh} sx={{ color: "text.secondary", "&:hover": { color: "primary.main" } }}>
                   <RefreshIcon sx={{ fontSize: 16, animation: isSpinning ? "spin 1s linear infinite" : "none" }} />
                 </IconButton>
               </Tooltip>
 
-              <Tooltip title={account.status === "paused" ? "Resume Sandbox" : "Pause Sandbox"}>
+              <Tooltip title={account.status === "paused" ? t("accounts.card.tooltips.resume") : t("accounts.card.tooltips.pause")}>
                 <IconButton
                   size="small"
                   onClick={() => toggleAccountStatus(account.id)}
@@ -335,13 +336,13 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
                 </IconButton>
               </Tooltip>
 
-              <Tooltip title="Edit Node Settings">
+              <Tooltip title={t("accounts.card.tooltips.edit")}>
                 <IconButton size="small" onClick={() => onEdit(account)} sx={{ color: "text.secondary", "&:hover": { color: "secondary.main" } }}>
                   <EditIcon sx={{ fontSize: 16 }} />
                 </IconButton>
               </Tooltip>
 
-              <Tooltip title="Delete Node">
+              <Tooltip title={t("accounts.card.tooltips.delete")}>
                 <IconButton size="small" onClick={() => onDelete(account)} sx={{ color: "text.secondary", "&:hover": { color: "error.main" } }}>
                   <DeleteIcon sx={{ fontSize: 16 }} />
                 </IconButton>

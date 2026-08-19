@@ -10,11 +10,13 @@ import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import DonutLargeIcon from "@mui/icons-material/DonutLarge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useLanguage } from "@/context/LanguageContext";
 
 const COLORS = ["#10b981", "#06b6d4", "#f59e0b", "#8b5cf6", "#f43f5e", "#3b82f6"];
 
 export const PoolDonutChart: React.FC = () => {
   const { accounts, pooledTelemetry } = useGravWatch();
+  const { t } = useLanguage();
 
   const data = accounts.map((acc, idx) => {
     const avgRemaining = Math.round(
@@ -46,10 +48,12 @@ export const PoolDonutChart: React.FC = () => {
             <span>{item.name}</span>
           </div>
           <div className="text-slate-300 font-mono">
-            Plan: <span className="text-cyan-400 font-semibold">{item.plan}</span>
+            {t("overview.donut.tooltipPlan")}{" "}
+            <span className="text-cyan-400 font-semibold">{item.plan}</span>
           </div>
           <div className="text-slate-300 font-mono">
-            Average Remaining: <span className="font-bold text-emerald-400">{item.value}%</span>
+            {t("overview.donut.tooltipAvgRemaining")}{" "}
+            <span className="font-bold text-emerald-400">{item.value}%</span>
           </div>
         </div>
       );
@@ -64,13 +68,13 @@ export const PoolDonutChart: React.FC = () => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <DonutLargeIcon sx={{ fontSize: 20, color: "primary.main" }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#ffffff" }}>
-              Quota Pool Distribution
+              {t("overview.donut.title")}
             </Typography>
           </Box>
         }
         subheader={
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Capacity contribution per Google account
+            {t("overview.donut.subheader")}
           </Typography>
         }
         sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)", pb: 1.5 }}
@@ -114,7 +118,7 @@ export const PoolDonutChart: React.FC = () => {
             }}
           >
             <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem", fontWeight: 600 }}>
-              Pool Cap
+              {t("overview.donut.poolCap")}
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 800, fontFamily: "monospace", color: "primary.main" }}>
               {pooledTelemetry.overallPooledCapacity}%
@@ -145,7 +149,7 @@ export const PoolDonutChart: React.FC = () => {
                 </Typography>
               </Box>
               <Typography variant="caption" sx={{ color: "primary.main", fontWeight: 700, flexShrink: 0 }}>
-                {item.value}% cap
+                {t("overview.donut.capSuffix", { value: item.value })}
               </Typography>
             </Box>
           ))}

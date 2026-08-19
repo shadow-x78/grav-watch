@@ -16,9 +16,11 @@ import { ProgressRing } from "@/components/ui/progress-ring";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { formatCountdownWithDays } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const ModelQuotaMatrix: React.FC = () => {
   const { accounts, selectedAccountId, refreshAllAccounts, pooledTelemetry } = useGravWatch();
+  const { t, language } = useLanguage();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const selectedAccount =
@@ -26,7 +28,7 @@ export const ModelQuotaMatrix: React.FC = () => {
       ? null
       : accounts.find((a) => a.id === selectedAccountId);
 
-  const displayPlan = selectedAccount ? selectedAccount.plan : "Google AI Pro (Pooled Cluster)";
+  const displayPlan = selectedAccount ? selectedAccount.plan : (language === "ar" ? "Google AI Pro (عنقود مجمع)" : "Google AI Pro (Pooled Cluster)");
 
   const geminiWeeklyPct = selectedAccount
     ? selectedAccount.geminiQuota.weekly.percentRemaining
@@ -35,7 +37,8 @@ export const ModelQuotaMatrix: React.FC = () => {
   const geminiWeeklyCountdown = formatCountdownWithDays(
     selectedAccount
       ? selectedAccount.geminiQuota.weekly.refreshCountdown
-      : accounts[0]?.geminiQuota.weekly.refreshCountdown || "Active"
+      : accounts[0]?.geminiQuota.weekly.refreshCountdown || "Active",
+    language
   );
 
   const gemini5hPct = selectedAccount
@@ -45,7 +48,8 @@ export const ModelQuotaMatrix: React.FC = () => {
   const gemini5hCountdown = formatCountdownWithDays(
     selectedAccount
       ? selectedAccount.geminiQuota.fiveHour.refreshCountdown
-      : accounts[0]?.geminiQuota.fiveHour.refreshCountdown || "Active"
+      : accounts[0]?.geminiQuota.fiveHour.refreshCountdown || "Active",
+    language
   );
 
   const claudeWeeklyPct = selectedAccount
@@ -55,7 +59,8 @@ export const ModelQuotaMatrix: React.FC = () => {
   const claudeWeeklyCountdown = formatCountdownWithDays(
     selectedAccount
       ? selectedAccount.claudeGptQuota.weekly.refreshCountdown
-      : accounts[0]?.claudeGptQuota.weekly.refreshCountdown || "Active"
+      : accounts[0]?.claudeGptQuota.weekly.refreshCountdown || "Active",
+    language
   );
 
   const claude5hPct = selectedAccount
@@ -65,7 +70,8 @@ export const ModelQuotaMatrix: React.FC = () => {
   const claude5hCountdown = formatCountdownWithDays(
     selectedAccount
       ? selectedAccount.claudeGptQuota.fiveHour.refreshCountdown
-      : accounts[0]?.claudeGptQuota.fiveHour.refreshCountdown || "Active"
+      : accounts[0]?.claudeGptQuota.fiveHour.refreshCountdown || "Active",
+    language
   );
 
   const handleManualRefresh = () => {
@@ -87,9 +93,9 @@ export const ModelQuotaMatrix: React.FC = () => {
         title={
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, color: "#ffffff" }}>
-              Models & Usage
+              {t("overview.matrix.title")}
             </Typography>
-            <Tooltip title="Refresh Quota Telemetry">
+            <Tooltip title={t("overview.matrix.refreshTooltip")}>
               <IconButton
                 size="small"
                 onClick={handleManualRefresh}
@@ -108,13 +114,13 @@ export const ModelQuotaMatrix: React.FC = () => {
         subheader={
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
             {selectedAccount
-              ? `Managing quota & credits for ${selectedAccount.alias} (${selectedAccount.email})`
-              : "Manage your pooled multi-account model quota and credits across all Docker sandboxes."}
+              ? t("overview.matrix.subheaderManaging", { alias: selectedAccount.alias, email: selectedAccount.email })
+              : t("overview.matrix.subheaderPooled")}
           </Typography>
         }
         action={
           <Chip
-            label={selectedAccount ? selectedAccount.containerName : "Multi-Account Pool"}
+            label={selectedAccount ? selectedAccount.containerName : t("overview.matrix.multiAccountPool")}
             size="small"
             color="primary"
             variant="outlined"
@@ -137,7 +143,7 @@ export const ModelQuotaMatrix: React.FC = () => {
               display: "block",
             }}
           >
-            Plan
+            {t("overview.matrix.planSection")}
           </Typography>
           <Paper
             elevation={0}
@@ -157,10 +163,10 @@ export const ModelQuotaMatrix: React.FC = () => {
                 variant="subtitle2"
                 sx={{ fontWeight: 700, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.95rem" } }}
               >
-                Your Plan: {displayPlan}
+                {t("overview.matrix.yourPlan", { plan: displayPlan })}
               </Typography>
               <Chip
-                label="ACTIVE"
+                label={t("common.active").toUpperCase()}
                 size="small"
                 color="success"
                 sx={{ height: 20, fontSize: "0.65rem", fontWeight: 800 }}
@@ -172,9 +178,9 @@ export const ModelQuotaMatrix: React.FC = () => {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.85rem" }}>
-              Gemini Models
+              {t("overview.matrix.geminiModels")}
             </Typography>
-            <Tooltip title="Flash and Pro models share this quota pool">
+            <Tooltip title={t("overview.matrix.geminiTooltip")}>
               <InfoOutlinedIcon sx={{ fontSize: 15, color: "text.secondary", cursor: "pointer" }} />
             </Tooltip>
           </Box>
@@ -202,7 +208,7 @@ export const ModelQuotaMatrix: React.FC = () => {
                   variant="body2"
                   sx={{ fontWeight: 600, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.9rem" } }}
                 >
-                  Weekly Limit Remaining
+                  {t("overview.matrix.weeklyLimitRemaining")}
                 </Typography>
                 <Typography
                   variant="caption"
@@ -214,8 +220,8 @@ export const ModelQuotaMatrix: React.FC = () => {
                   }}
                 >
                   {geminiWeeklyPct < 100
-                    ? `You have used some of your weekly limit, it will fully refresh in ${geminiWeeklyCountdown}.`
-                    : "You have full weekly limit capacity available."}
+                    ? t("overview.matrix.weeklyPartialUsed", { time: geminiWeeklyCountdown })
+                    : t("overview.matrix.fullWeeklyCapacity")}
                 </Typography>
               </Box>
 
@@ -251,7 +257,7 @@ export const ModelQuotaMatrix: React.FC = () => {
                   variant="body2"
                   sx={{ fontWeight: 600, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.9rem" } }}
                 >
-                  Five Hour Limit Remaining
+                  {t("overview.matrix.fiveHourLimitRemaining")}
                 </Typography>
                 <Typography
                   variant="caption"
@@ -263,8 +269,8 @@ export const ModelQuotaMatrix: React.FC = () => {
                   }}
                 >
                   {gemini5hPct < 100
-                    ? `You have used some of your 5-hour limit, it will fully refresh in ${gemini5hCountdown}.`
-                    : "You have full 5-hour limit capacity available."}
+                    ? t("overview.matrix.fiveHourPartialUsed", { time: gemini5hCountdown })
+                    : t("overview.matrix.fullFiveHourCapacity")}
                 </Typography>
               </Box>
 
@@ -289,9 +295,9 @@ export const ModelQuotaMatrix: React.FC = () => {
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.85rem" }}>
-              Claude and GPT models
+              {t("overview.matrix.claudeGptModels")}
             </Typography>
-            <Tooltip title="Sonnet 4.6, Opus 4.6, and GPT-OSS share this quota pool">
+            <Tooltip title={t("overview.matrix.claudeTooltip")}>
               <InfoOutlinedIcon sx={{ fontSize: 15, color: "text.secondary", cursor: "pointer" }} />
             </Tooltip>
           </Box>
@@ -319,7 +325,7 @@ export const ModelQuotaMatrix: React.FC = () => {
                   variant="body2"
                   sx={{ fontWeight: 600, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.9rem" } }}
                 >
-                  Weekly Limit Remaining
+                  {t("overview.matrix.weeklyLimitRemaining")}
                 </Typography>
                 <Typography
                   variant="caption"
@@ -331,8 +337,8 @@ export const ModelQuotaMatrix: React.FC = () => {
                   }}
                 >
                   {claudeWeeklyPct < 100
-                    ? `You have used some of your weekly limit, it will fully refresh in ${claudeWeeklyCountdown}.`
-                    : "You have full weekly limit capacity available."}
+                    ? t("overview.matrix.weeklyPartialUsed", { time: claudeWeeklyCountdown })
+                    : t("overview.matrix.fullWeeklyCapacity")}
                 </Typography>
               </Box>
 
@@ -368,7 +374,7 @@ export const ModelQuotaMatrix: React.FC = () => {
                   variant="body2"
                   sx={{ fontWeight: 600, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.9rem" } }}
                 >
-                  Five Hour Limit Remaining
+                  {t("overview.matrix.fiveHourLimitRemaining")}
                 </Typography>
                 <Typography
                   variant="caption"
@@ -380,8 +386,8 @@ export const ModelQuotaMatrix: React.FC = () => {
                   }}
                 >
                   {claude5hPct < 100
-                    ? `You have used some of your 5-hour limit, it will fully refresh in ${claude5hCountdown}.`
-                    : "You have full 5-hour limit capacity available."}
+                    ? t("overview.matrix.fiveHourPartialUsed", { time: claude5hCountdown })
+                    : t("overview.matrix.fullFiveHourCapacity")}
                 </Typography>
               </Box>
 

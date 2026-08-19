@@ -10,12 +10,12 @@ import Drawer from "@mui/material/Drawer";
 import GridViewIcon from "@mui/icons-material/GridView";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import PlayCircleOutlineIcon from "@mui/icons-material/PlayArrow";
-import TerminalIcon from "@mui/icons-material/Terminal";
 import DnsIcon from "@mui/icons-material/Dns";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useGravWatch } from "@/context/GravWatchContext";
 import { TabView } from "@/types/gravwatch";
 import { SystemIssuesModal } from "@/components/diagnostics/SystemIssuesModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface SidebarProps {
   activeTab?: TabView;
@@ -31,6 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobileOpen = false,
 }) => {
   const { accounts, activeTab: contextActiveTab, setActiveTab } = useGravWatch();
+  const { t, direction } = useLanguage();
   const [isIssuesModalOpen, setIsIssuesModalOpen] = useState(false);
 
   const currentTab = propActiveTab || contextActiveTab;
@@ -46,18 +47,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = [
     {
       id: "overview" as const,
-      label: "Overview & Pool",
+      label: t("layout.sidebar.navOverview"),
       icon: GridViewIcon,
     },
     {
       id: "accounts" as const,
-      label: "Accounts &\nSandboxes",
+      label: t("layout.sidebar.navAccounts"),
       icon: PeopleAltOutlinedIcon,
       badge: `${accounts.length}`,
     },
     {
       id: "simulator" as const,
-      label: "Prompt Router",
+      label: t("layout.sidebar.navSimulator"),
       icon: PlayCircleOutlineIcon,
     },
   ];
@@ -80,7 +81,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         justifyContent: "space-between",
         p: 2.5,
         backgroundColor: "#070b14",
-        borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+        borderRight: direction === "rtl" ? "none" : "1px solid rgba(255, 255, 255, 0.08)",
+        borderLeft: direction === "rtl" ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
         flexShrink: 0,
         overflowY: "auto",
         scrollbarWidth: "none",
@@ -101,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             px: 0.5,
           }}
         >
-          NAVIGATION
+          {t("layout.sidebar.navTitle")}
         </Typography>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
@@ -184,7 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <DnsIcon sx={{ fontSize: 16, color: "#10b981" }} />
               <Typography variant="caption" sx={{ fontWeight: 800, color: "#ffffff", fontSize: "0.78rem" }}>
-                Docker Sandboxes
+                {t("layout.sidebar.dockerCard.title")}
               </Typography>
             </Box>
 
@@ -206,16 +208,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8, fontSize: "0.7rem", fontFamily: "monospace" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#64748b" }}>Image:</span>
+              <span style={{ color: "#64748b" }}>{t("layout.sidebar.dockerCard.image")}</span>
               <span style={{ color: "#cbd5e1" }}>debian:bookworm</span>
             </Box>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#64748b" }}>Memory Cap:</span>
-              <span style={{ color: "#cbd5e1" }}>256MB / Node</span>
+              <span style={{ color: "#64748b" }}>{t("layout.sidebar.dockerCard.memoryCap")}</span>
+              <span style={{ color: "#cbd5e1" }}>{t("layout.sidebar.dockerCard.memoryValue")}</span>
             </Box>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#64748b" }}>FastAPI Hub:</span>
-              <span style={{ color: "#10b981", fontWeight: 700 }}>• :8000 (Live)</span>
+              <span style={{ color: "#64748b" }}>{t("layout.sidebar.dockerCard.fastApiHub")}</span>
+              <span style={{ color: "#10b981", fontWeight: 700 }}>{t("layout.sidebar.dockerCard.fastApiLive")}</span>
             </Box>
           </Box>
         </Box>
@@ -234,10 +236,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             px: 0.5,
           }}
         >
-          Multi-Account Google Antigravity Telemetry Hub
+          {t("layout.sidebar.subtitle")}
         </Typography>
 
-        <Tooltip title="Click to inspect detected cluster issues & rate limits" arrow>
+        <Tooltip title={t("layout.sidebar.issuesTooltip")} arrow>
           <Box
             id="sidebar-issues-button"
             onClick={() => setIsIssuesModalOpen(true)}
@@ -280,7 +282,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 {warningCount > 0 ? "!" : "✓"}
               </Box>
-              <span>{warningCount > 0 ? `${warningCount} Issue Detected` : "All Nodes Healthy"}</span>
+              <span>{warningCount > 0 ? t("layout.sidebar.issuesDetected", { count: warningCount }) : t("layout.sidebar.allHealthy")}</span>
             </Box>
 
             <Box
@@ -294,7 +296,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 color: warningCount > 0 ? "#fda4af" : "#86efac",
               }}
             >
-              <OpenInNewIcon sx={{ fontSize: 13 }} />
+              <OpenInNewIcon sx={{ fontSize: 13, transform: direction === "rtl" ? "scaleX(-1)" : "none" }} />
             </Box>
           </Box>
         </Tooltip>
@@ -319,7 +321,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </Box>
 
       <Drawer
-        anchor="left"
+        anchor={direction === "rtl" ? "right" : "left"}
         open={isMobileOpen}
         onClose={onCloseMobile}
         sx={{
@@ -328,7 +330,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
             width: 250,
             backgroundColor: "#070b14",
             backgroundImage: "none",
-            borderRight: "1px solid rgba(255, 255, 255, 0.08)",
+            borderRight: direction === "rtl" ? "none" : "1px solid rgba(255, 255, 255, 0.08)",
+            borderLeft: direction === "rtl" ? "1px solid rgba(255, 255, 255, 0.08)" : "none",
             boxSizing: "border-box",
           },
           "& .MuiBackdrop-root": {

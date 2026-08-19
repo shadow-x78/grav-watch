@@ -4,15 +4,18 @@ import React from "react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import { useTheme } from "./ThemeContext";
+import { useLanguage } from "./LanguageContext";
 
 export const MuiAppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { theme } = useTheme();
+  const { direction } = useLanguage();
 
   const isDark = theme === "dark";
 
   const muiTheme = React.useMemo(
     () =>
       createTheme({
+        direction: direction,
         palette: {
           mode: isDark ? "dark" : "light",
           primary: {
@@ -58,7 +61,7 @@ export const MuiAppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ c
           divider: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
         },
         typography: {
-          fontFamily: "'Inter', sans-serif",
+          fontFamily: direction === "rtl" ? "'Cairo', 'Inter', sans-serif" : "'Inter', sans-serif",
           button: {
             textTransform: "none",
             fontWeight: 600,
@@ -133,7 +136,7 @@ export const MuiAppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ c
           },
         },
       }),
-    [isDark]
+    [isDark, direction]
   );
 
   return (

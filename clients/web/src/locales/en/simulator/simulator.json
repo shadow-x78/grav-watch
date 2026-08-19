@@ -1,0 +1,36 @@
+{
+  "title": "Antigravity CLI Live Prompt Execution",
+  "subtitle": "Execute real prompts against Google Gemini via the official Antigravity CLI container and observe live token drain.",
+  "configCard": {
+    "title": "Configure Live Request",
+    "subheader": "Target official agy CLI binary with live Google Gemini session",
+    "quickPresets": "Quick Presets:",
+    "presets": {
+      "modelId": "Model Identification",
+      "archAnalysis": "Architecture Analysis",
+      "claudeReasoning": "Claude Reasoning"
+    },
+    "modelCategoryLabel": "Antigravity Model Category",
+    "categoryGemini": "Gemini Models (Flash / Pro)",
+    "categoryClaude": "Claude & GPT Models",
+    "specificModelLabel": "Specific Model (agy CLI)",
+    "promptLabel": "Live Command or Prompt",
+    "executeBtn": "Execute Live via agy CLI",
+    "executing": "Executing live in Google Antigravity..."
+  },
+  "responseCard": {
+    "title": "Live CLI Response",
+    "executedSuccess": "Executed Successfully",
+    "executionFailed": "Execution Failed",
+    "executedOn": "Executed On:",
+    "tokens": "Tokens:",
+    "emptyState": "Click Execute to run a real query on Google Antigravity"
+  },
+  "poolStatus": {
+    "title": "Antigravity Node Pool",
+    "activeNodes": "Active Nodes:",
+    "status": "Pool Status:",
+    "online": "Online",
+    "noActive": "No Active Nodes"
+  }
+}

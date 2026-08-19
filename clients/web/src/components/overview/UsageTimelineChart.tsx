@@ -20,19 +20,22 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { formatTokens } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const UsageTimelineChart: React.FC = () => {
   const { timelineData } = useGravWatch();
+  const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState<"all" | "gemini" | "claude">("all");
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const total = payload.reduce((acc: number, p: any) => acc + (p.value || 0), 0);
       return (
         <div className="rounded-xl border border-slate-750 bg-dark-900/95 p-3.5 shadow-2xl backdrop-blur-xl text-xs space-y-2 min-w-[200px]">
           <div className="flex items-center justify-between border-b border-slate-800 pb-1.5 font-mono text-slate-300 font-semibold">
             <span>⏰ {label}</span>
             <span className="text-emerald-400">
-              {formatTokens(payload.reduce((acc: number, p: any) => acc + (p.value || 0), 0))} Tokens
+              {t("overview.timeline.tooltipTokens", { tokens: formatTokens(total) })}
             </span>
           </div>
           <div className="space-y-1.5 font-mono">
@@ -62,13 +65,13 @@ export const UsageTimelineChart: React.FC = () => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <TrendingUpIcon sx={{ fontSize: 20, color: "primary.main" }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#ffffff", fontSize: { xs: "0.9rem", sm: "1rem" } }}>
-              Pooled Usage Timeline
+              {t("overview.timeline.title")}
             </Typography>
           </Box>
         }
         subheader={
           <Typography variant="caption" sx={{ color: "text.secondary", fontSize: { xs: "0.7rem", sm: "0.75rem" } }}>
-            Token consumption and request volume over time across Antigravity model tiers
+            {t("overview.timeline.subheader")}
           </Typography>
         }
         action={
@@ -86,9 +89,9 @@ export const UsageTimelineChart: React.FC = () => {
           >
             {(
               [
-                { id: "all", label: "All Models" },
-                { id: "gemini", label: "Gemini Models" },
-                { id: "claude", label: "Claude & GPT" },
+                { id: "all", label: t("overview.timeline.filterAll") },
+                { id: "gemini", label: t("overview.timeline.filterGemini") },
+                { id: "claude", label: t("overview.timeline.filterClaude") },
               ] as const
             ).map((tab) => (
               <Button
@@ -166,7 +169,7 @@ export const UsageTimelineChart: React.FC = () => {
                 <Area
                   type="monotone"
                   dataKey="geminiTokens"
-                  name="Gemini Models (Flash/Pro)"
+                  name={t("overview.timeline.seriesGemini")}
                   stroke="#38bdf8"
                   strokeWidth={2}
                   fillOpacity={1}
@@ -179,7 +182,7 @@ export const UsageTimelineChart: React.FC = () => {
                 <Area
                   type="monotone"
                   dataKey="claudeGptTokens"
-                  name="Claude & GPT (Sonnet/Opus 4.6)"
+                  name={t("overview.timeline.seriesClaude")}
                   stroke="#f59e0b"
                   strokeWidth={2}
                   fillOpacity={1}

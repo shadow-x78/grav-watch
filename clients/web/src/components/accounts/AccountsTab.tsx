@@ -29,9 +29,11 @@ import ViewListIcon from "@mui/icons-material/ViewList";
 import GridViewIcon from "@mui/icons-material/GridView";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import KeyIcon from "@mui/icons-material/VpnKey";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const AccountsTab: React.FC = () => {
   const { accounts, pooledTelemetry } = useGravWatch();
+  const { t } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -74,11 +76,11 @@ export const AccountsTab: React.FC = () => {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <PeopleIcon sx={{ fontSize: 26, color: "primary.main" }} />
             <Typography variant="h6" sx={{ fontWeight: 800, color: "#ffffff" }}>
-              Google Accounts & Sandboxes
+              {t("accounts.page.title")}
             </Typography>
           </Box>
           <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
-            Manage isolated Docker containers, OAuth sessions, and monitor twin Antigravity quota tiers
+            {t("accounts.page.subtitle")}
           </Typography>
         </Box>
 
@@ -94,7 +96,7 @@ export const AccountsTab: React.FC = () => {
               "&:hover": { borderColor: "secondary.main", color: "secondary.main" },
             }}
           >
-            Add Manual Node
+            {t("accounts.page.addManualBtn")}
           </Button>
 
           <Button
@@ -108,14 +110,14 @@ export const AccountsTab: React.FC = () => {
               fontWeight: 700,
             }}
           >
-            Pair Google OAuth
+            {t("accounts.page.pairGoogleBtn")}
           </Button>
         </Box>
       </Box>
 
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
         <Chip
-          label={`Total Accounts: ${accounts.length}`}
+          label={t("accounts.page.totalAccountsChip", { count: accounts.length })}
           size="small"
           sx={{
             backgroundColor: "rgba(255, 255, 255, 0.05)",
@@ -126,7 +128,7 @@ export const AccountsTab: React.FC = () => {
           }}
         />
         <Chip
-          label={`Active Sandboxes: ${activeCount}`}
+          label={t("accounts.page.activeSandboxesChip", { count: activeCount })}
           size="small"
           color="success"
           variant="outlined"
@@ -134,7 +136,7 @@ export const AccountsTab: React.FC = () => {
         />
         {warningCount > 0 && (
           <Chip
-            label={`Quota Warnings / Depleted: ${warningCount}`}
+            label={t("accounts.page.warningsChip", { count: warningCount })}
             size="small"
             color="warning"
             variant="outlined"
@@ -156,7 +158,7 @@ export const AccountsTab: React.FC = () => {
           >
             <TextField
               size="small"
-              placeholder="Search alias, email, container, plan..."
+              placeholder={t("accounts.page.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               slotProps={{
@@ -202,11 +204,11 @@ export const AccountsTab: React.FC = () => {
                     fontSize: "0.8rem",
                   }}
                 >
-                  <MenuItem value="all">All Statuses</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="warning">Warning</MenuItem>
-                  <MenuItem value="depleted">Depleted</MenuItem>
-                  <MenuItem value="paused">Paused</MenuItem>
+                  <MenuItem value="all">{t("accounts.page.filterStatus.all")}</MenuItem>
+                  <MenuItem value="active">{t("accounts.page.filterStatus.active")}</MenuItem>
+                  <MenuItem value="warning">{t("accounts.page.filterStatus.warning")}</MenuItem>
+                  <MenuItem value="depleted">{t("accounts.page.filterStatus.depleted")}</MenuItem>
+                  <MenuItem value="paused">{t("accounts.page.filterStatus.paused")}</MenuItem>
                 </Select>
               </FormControl>
 
@@ -228,16 +230,16 @@ export const AccountsTab: React.FC = () => {
                   },
                 }}
               >
-                <ToggleButton value="grid" title="Rich Grid Cards">
+                <ToggleButton value="grid" title={t("accounts.page.viewMode.cardsTooltip")}>
                   <GridViewIcon sx={{ fontSize: 18, mr: 0.5 }} />
                   <Typography variant="caption" sx={{ display: { xs: "none", sm: "inline" }, fontWeight: 700 }}>
-                    Cards
+                    {t("accounts.page.viewMode.cards")}
                   </Typography>
                 </ToggleButton>
-                <ToggleButton value="list" title="Compact Cards List">
+                <ToggleButton value="list" title={t("accounts.page.viewMode.compactTooltip")}>
                   <ViewListIcon sx={{ fontSize: 18, mr: 0.5 }} />
                   <Typography variant="caption" sx={{ display: { xs: "none", sm: "inline" }, fontWeight: 700 }}>
-                    Compact
+                    {t("accounts.page.viewMode.compact")}
                   </Typography>
                 </ToggleButton>
               </ToggleButtonGroup>
@@ -250,14 +252,13 @@ export const AccountsTab: React.FC = () => {
         <Card sx={{ p: 6, textAlign: "center", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 3.5 }}>
           <PeopleIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.5 }} />
           <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#ffffff" }}>
-            No Matching Accounts Found
+            {t("accounts.page.emptyState.title")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Try adjusting your search filter or pair a new Google account
+            {t("accounts.page.emptyState.description")}
           </Typography>
         </Card>
       ) : viewMode === "grid" ? (
-        
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
           {filteredAccounts.map((account) => (
             <AccountCard
@@ -269,7 +270,6 @@ export const AccountsTab: React.FC = () => {
           ))}
         </div>
       ) : (
-        
         <div className="flex flex-col gap-3">
           {filteredAccounts.map((account) => (
             <AccountListItemCard

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.1] - 2026-08-19
+
+### Added
+- **Modular i18n Internationalization Architecture:** Comprehensive localization system with dedicated `src/locales/` hierarchy split into independent `ar/` and `en/` packages, organizing per-page and per-component dictionaries (`common`, `layout`, `overview`, `accounts`, `simulator`, `diagnostics`).
+- **Dynamic Parameter Interpolation Engine:** Added support for dynamic token, time, countdown, and account name interpolation (`{time}`, `{count}`, `{alias}`, `{email}`) across all translation strings with recursive fallback resolution.
+- **Bi-Directional Layout & Native RTL Typography:** Full RTL (`dir="rtl"`) and LTR (`dir="ltr"`) layout handling with automatic HTML attribute injection, drawer flipping, and elegant Arabic typography using Google Fonts `Cairo`.
+- **Localized Multi-Unit Countdowns & Relative Times:** Updated `formatCountdownWithDays` and `formatRelativeTime` utilities to format live scraping countdowns and telemetry streams in fluent Arabic and English.
+- **100% UI String Localization:** Completely eliminated all hardcoded English and Arabic strings across the entire web client, covering KPIs, charts, modals, live tickers, error alerts, tooltips, and badges.
+
+### Changed
+- **Upgraded LanguageContext:** Modernized state management for language switching with local storage persistence (`gravwatch_lang`) and zero-flicker rehydration.
+- **MUI Theme Multi-Language Support:** Configured Material-UI theme provider to dynamically switch font families and direction based on active locale.
+
+---
+
 ## [2.4.0] - 2026-08-19
 
 ### Added

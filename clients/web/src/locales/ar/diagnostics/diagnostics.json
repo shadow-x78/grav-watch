@@ -1,0 +1,24 @@
+{
+  "title": "تشخيص وفحص العنقود",
+  "chipIssues": "{count} مشاكل",
+  "chipHealthy": "جميع العقد سليمة",
+  "subtitle": "فحص كوتا وحدود الحاويات المعزولة واختبارات الصحة",
+  "healthyCard": {
+    "title": "جميع عقد Docker الخمس سليمة وتعمل بكفاءة!",
+    "description": "لم يتم رصد أي أخطاء 429 أو استنفاد حاد في الكوتا عبر الحسابات النشطة."
+  },
+  "issueCard": {
+    "rateLimit429": "تجاوز حد الطلبات (429)",
+    "warning": "تحذير",
+    "depletedDesc": "وصل حد الـ 5 ساعات لنماذج Claude و GPT في هذه العقدة إلى 0% (50,000 / 50,000 مستهلكة). سيرد Antigravity CLI بالرمز 429 حتى إعادة التعيين خلال {countdown}.",
+    "warningDesc": "حدود Gemini و Claude لدورة 5 ساعات في هذه العقدة أقل من 35%. تم رصد استهلاك مرتفع ({requests} طلب اليوم).",
+    "gemini5h": "Gemini 5h:",
+    "claude5h": "Claude 5h:",
+    "ram": "الذاكرة:"
+  },
+  "clusterFooter": {
+    "dockerCluster": "عنقود Docker: {running} / {total} حاويات متصلة",
+    "fastApiLive": "• FastAPI Hub :8000 متصل"
+  },
+  "rescanBtn": "إعادة فحص وتشخيص النظام"
+}

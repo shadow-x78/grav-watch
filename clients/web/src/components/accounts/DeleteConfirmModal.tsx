@@ -13,6 +13,7 @@ import Box from "@mui/material/Box";
 import Avatar from "@mui/material/Avatar";
 import Paper from "@mui/material/Paper";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface DeleteConfirmModalProps {
   account: GravAccount | null;
@@ -26,6 +27,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   onClose,
 }) => {
   const { deleteAccount } = useGravWatch();
+  const { t } = useLanguage();
 
   if (!account) return null;
 
@@ -61,10 +63,10 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           </Avatar>
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#ffffff", fontSize: { xs: "0.92rem", sm: "1.05rem" }, lineHeight: 1.3 }}>
-              Delete Account Sandbox
+              {t("accounts.deleteModal.title")}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", fontSize: { xs: "0.7rem", sm: "0.75rem" }, display: "block" }}>
-              Permanent deletion of container and session tokens
+              {t("accounts.deleteModal.subtitle")}
             </Typography>
           </Box>
         </Box>
@@ -72,7 +74,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 
       <DialogContent dividers sx={{ borderColor: "rgba(255, 255, 255, 0.08)", px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 2.5 }, overflowY: "auto" }}>
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontSize: { xs: "0.82rem", sm: "0.875rem" }, wordBreak: "break-word" }}>
-          Are you sure you want to remove <strong>{account.alias}</strong> ({account.email})?
+          {t("accounts.deleteModal.confirmText", { alias: account.alias, email: account.email })}
         </Typography>
 
         <Paper
@@ -86,15 +88,21 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
             fontSize: { xs: "0.7rem", sm: "0.75rem" },
           }}
         >
-          <Box sx={{ color: "error.main", fontWeight: 700, mb: 0.5 }}>⚠️ Irreversible Action:</Box>
-          <Box sx={{ color: "text.secondary" }}>• Docker container {account.containerName} will be stopped & pruned.</Box>
-          <Box sx={{ color: "text.secondary" }}>• Quota capacity will be deducted from the pooled telemetry.</Box>
+          <Box sx={{ color: "error.main", fontWeight: 700, mb: 0.5 }}>
+            {t("accounts.deleteModal.irreversibleWarning")}
+          </Box>
+          <Box sx={{ color: "text.secondary" }}>
+            {t("accounts.deleteModal.warningContainer", { container: account.containerName })}
+          </Box>
+          <Box sx={{ color: "text.secondary" }}>
+            {t("accounts.deleteModal.warningQuota")}
+          </Box>
         </Paper>
       </DialogContent>
 
       <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 1.75 }, gap: 1.25, borderTop: "1px solid rgba(255, 255, 255, 0.08)", backgroundColor: "rgba(9, 13, 22, 0.95)" }}>
         <Button variant="outlined" size="small" onClick={onClose} sx={{ borderColor: "rgba(255, 255, 255, 0.15)", color: "#cbd5e1" }}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           variant="contained"
@@ -103,7 +111,7 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
           onClick={handleDelete}
           sx={{ fontWeight: 700 }}
         >
-          Confirm Delete
+          {t("accounts.deleteModal.confirmBtn")}
         </Button>
       </DialogActions>
     </Dialog>

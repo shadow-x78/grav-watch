@@ -1,0 +1,108 @@
+{
+  "page": {
+    "title": "Google Accounts & Sandboxes",
+    "subtitle": "Manage isolated Docker containers, OAuth sessions, and monitor twin Antigravity quota tiers",
+    "addManualBtn": "Add Manual Node",
+    "pairGoogleBtn": "Pair Google OAuth",
+    "totalAccountsChip": "Total Accounts: {count}",
+    "activeSandboxesChip": "Active Sandboxes: {count}",
+    "warningsChip": "Quota Warnings / Depleted: {count}",
+    "searchPlaceholder": "Search alias, email, container, plan...",
+    "filterStatus": {
+      "all": "All Statuses",
+      "active": "Active",
+      "warning": "Warning",
+      "depleted": "Depleted",
+      "paused": "Paused"
+    },
+    "viewMode": {
+      "cards": "Cards",
+      "compact": "Compact",
+      "cardsTooltip": "Rich Grid Cards",
+      "compactTooltip": "Compact Cards List"
+    },
+    "emptyState": {
+      "title": "No Matching Accounts Found",
+      "description": "Try adjusting your search filter or pair a new Google account"
+    }
+  },
+  "card": {
+    "geminiModels": "Gemini Models",
+    "claudeGptModels": "Claude and GPT models",
+    "geminiTooltip": "Flash and Pro models share this quota pool",
+    "claudeTooltip": "Sonnet 4.6, Opus 4.6, and GPT-OSS share this quota pool",
+    "weeklyRemaining": "Weekly Limit Remaining",
+    "fiveHourRemaining": "Five Hour Limit Remaining",
+    "refreshesIn": "Refreshes in {time}",
+    "fullCapacity": "Full capacity available",
+    "label5h": "5-Hour",
+    "labelWeekly": "Weekly",
+    "nodeId": "ID: {id}",
+    "tooltips": {
+      "refresh": "Scrape & Refresh Quota",
+      "resume": "Resume Sandbox",
+      "pause": "Pause Sandbox",
+      "edit": "Edit Node Settings",
+      "delete": "Delete Node"
+    }
+  },
+  "googlePairingModal": {
+    "title": "Pair Google Antigravity Account",
+    "subtitle": "Dynamic On-Demand Isolated Container Provisioning",
+    "successTitle": "Successfully Authenticated!",
+    "successMessage": "Container gravwatch-{id} provisioned for {email}",
+    "successStreaming": "Streaming live quota telemetry...",
+    "targetIdLabel": "Target Container ID (Unlimited Dynamic Nodes)",
+    "targetIdPlaceholder": "e.g. acc-2, acc-3, my-node",
+    "quickSuggestions": "Quick suggestions:",
+    "reAuth": "Re-auth",
+    "newNode": "New Node",
+    "step1Title": "Step 1: Open Google Sign-in Page",
+    "step1Btn": "1. Open Google Sign-in for [{id}] →",
+    "step1Loading": "Generating Google Sign-in Link...",
+    "step1PopupBlocked": "Popup blocked? Click here to open Google OAuth directly",
+    "step1Help": "Opens the official Google Antigravity OAuth prompt in a new window.",
+    "step2Title": "Step 2: Paste Authorization Code",
+    "step2Placeholder": "4/0AeanS... or ya29...",
+    "completeBtn": "Complete Pairing [{id}]",
+    "errors": {
+      "missingId": "Please provide a valid Target Account ID.",
+      "missingCode": "Please paste the authorization code from Google.",
+      "failed": "Authentication failed. Please try again."
+    }
+  },
+  "manualModal": {
+    "title": "Add Manual Account / Session Token",
+    "subtitle": "Configure a custom container node with explicit OAuth credentials and limits",
+    "aliasLabel": "Account Alias",
+    "aliasPlaceholder": "e.g. Europe Heavy Node 04",
+    "emailLabel": "Identifier Email",
+    "emailPlaceholder": "developer@corp.net",
+    "planLabel": "Plan Tier",
+    "tokenLabel": "Session Token / Bearer Key (Optional)",
+    "tagsLabel": "Tags (comma separated)",
+    "tagsPlaceholder": "Manual, Sandbox, Fast",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Details about this node...",
+    "submitBtn": "Create & Provision Node"
+  },
+  "editModal": {
+    "title": "Edit Sandbox Account: {alias}",
+    "subtitle": "Modify plan tier, tags and container parameters",
+    "aliasLabel": "Account Alias",
+    "emailLabel": "Email",
+    "planLabel": "Plan Tier",
+    "statusLabel": "Node Status",
+    "tagsLabel": "Tags (comma separated)",
+    "notesLabel": "Notes"
+  },
+  "deleteModal": {
+    "title": "Delete Account Sandbox",
+    "subtitle": "Permanent deletion of container and session tokens",
+    "confirmText": "Are you sure you want to remove {alias} ({email})?",
+    "irreversibleWarning": "⚠️ Irreversible Action:",
+    "warningContainer": "• Docker container {container} will be stopped & pruned.",
+    "warningQuota": "• Quota capacity will be deducted from the pooled telemetry.",
+    "confirmBtn": "Confirm Delete"
+  }
+}

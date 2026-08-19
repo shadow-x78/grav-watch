@@ -15,9 +15,11 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import ErrorIcon from "@mui/icons-material/Error";
 import { formatRelativeTime, formatTokens } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const LiveActivityFeed: React.FC = () => {
   const { events, isLiveStreaming } = useGravWatch();
+  const { t, language } = useLanguage();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => { setIsMounted(true); }, []);
@@ -33,18 +35,18 @@ export const LiveActivityFeed: React.FC = () => {
               <RadioButtonUncheckedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
             )}
             <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#ffffff", fontSize: { xs: "0.9rem", sm: "1rem" } }}>
-              Live Antigravity Telemetry Stream
+              {t("overview.activity.title")}
             </Typography>
           </Box>
         }
         subheader={
           <Typography variant="caption" sx={{ color: "text.secondary", fontSize: { xs: "0.7rem", sm: "0.75rem" } }}>
-            Real-time agy command executions and quota drains across isolated Docker nodes
+            {t("overview.activity.subheader")}
           </Typography>
         }
         action={
           <Chip
-            label={`${events.length} Packets`}
+            label={t("overview.activity.packetsChip", { count: events.length })}
             size="small"
             variant="outlined"
             sx={{ fontSize: "0.65rem", fontFamily: "monospace", borderColor: "rgba(255, 255, 255, 0.12)", display: { xs: "none", sm: "inline-flex" } }}
@@ -159,10 +161,10 @@ export const LiveActivityFeed: React.FC = () => {
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 800, color: isError ? "error.main" : "primary.main", fontSize: { xs: "0.78rem", sm: "0.85rem" } }}>
-                    {evt.tokensUsed > 0 ? `-${formatTokens(evt.tokensUsed)} tok` : "429 Limit"}
+                    {evt.tokensUsed > 0 ? t("overview.activity.tokensDrained", { tokens: formatTokens(evt.tokensUsed) }) : t("overview.activity.rateLimitError")}
                   </Typography>
                   <Typography variant="caption" sx={{ color: "text.secondary", fontSize: { xs: "0.68rem", sm: "0.72rem" }, display: "block" }}>
-                    {isMounted ? `${formatRelativeTime(evt.timestamp, "en")} • ${evt.latencyMs}ms` : `${evt.latencyMs}ms`}
+                    {isMounted ? `${formatRelativeTime(evt.timestamp, language)} • ${evt.latencyMs}ms` : `${evt.latencyMs}ms`}
                   </Typography>
                 </Box>
               </Paper>

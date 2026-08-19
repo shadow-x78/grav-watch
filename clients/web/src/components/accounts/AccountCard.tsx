@@ -22,6 +22,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import DnsIcon from "@mui/icons-material/Dns";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { formatCountdownWithDays } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface AccountCardProps {
   account: GravAccount;
@@ -35,6 +36,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
   onDelete,
 }) => {
   const { toggleAccountStatus, refreshAccount } = useGravWatch();
+  const { t, language } = useLanguage();
   const [isSpinning, setIsSpinning] = useState(false);
 
   const handleRefresh = () => {
@@ -140,7 +142,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           </Box>
 
           <Chip
-            label={account.status}
+            label={t(`common.${account.status}`)}
             size="small"
             color={
               account.status === "active"
@@ -177,9 +179,9 @@ export const AccountCard: React.FC<AccountCardProps> = ({
         <Box sx={{ mb: 1.75 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
             <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem" }}>
-              Gemini Models
+              {t("accounts.card.geminiModels")}
             </Typography>
-            <Tooltip title="Flash and Pro models share this quota pool">
+            <Tooltip title={t("accounts.card.geminiTooltip")}>
               <InfoOutlinedIcon sx={{ fontSize: 13, color: "text.secondary", cursor: "pointer" }} />
             </Tooltip>
           </Box>
@@ -204,12 +206,12 @@ export const AccountCard: React.FC<AccountCardProps> = ({
             >
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: "#ffffff", display: "block", fontSize: "0.78rem" }}>
-                  Weekly Limit Remaining
+                  {t("accounts.card.weeklyRemaining")}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
                   {account.geminiQuota.weekly.percentRemaining < 100
-                    ? `Refreshes in ${formatCountdownWithDays(account.geminiQuota.weekly.refreshCountdown)}`
-                    : "Full capacity available"}
+                    ? t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.geminiQuota.weekly.refreshCountdown, language) })
+                    : t("accounts.card.fullCapacity")}
                 </Typography>
               </Box>
 
@@ -234,12 +236,12 @@ export const AccountCard: React.FC<AccountCardProps> = ({
             >
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: "#ffffff", display: "block", fontSize: "0.78rem" }}>
-                  Five Hour Limit Remaining
+                  {t("accounts.card.fiveHourRemaining")}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
                   {account.geminiQuota.fiveHour.percentRemaining < 100
-                    ? `Refreshes in ${formatCountdownWithDays(account.geminiQuota.fiveHour.refreshCountdown)}`
-                    : "Full capacity available"}
+                    ? t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.geminiQuota.fiveHour.refreshCountdown, language) })
+                    : t("accounts.card.fullCapacity")}
                 </Typography>
               </Box>
 
@@ -256,9 +258,9 @@ export const AccountCard: React.FC<AccountCardProps> = ({
         <Box sx={{ mb: 1.75 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
             <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem" }}>
-              Claude and GPT models
+              {t("accounts.card.claudeGptModels")}
             </Typography>
-            <Tooltip title="Sonnet 4.6, Opus 4.6, and GPT-OSS share this quota pool">
+            <Tooltip title={t("accounts.card.claudeTooltip")}>
               <InfoOutlinedIcon sx={{ fontSize: 13, color: "text.secondary", cursor: "pointer" }} />
             </Tooltip>
           </Box>
@@ -283,12 +285,12 @@ export const AccountCard: React.FC<AccountCardProps> = ({
             >
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: "#ffffff", display: "block", fontSize: "0.78rem" }}>
-                  Weekly Limit Remaining
+                  {t("accounts.card.weeklyRemaining")}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
                   {account.claudeGptQuota.weekly.percentRemaining < 100
-                    ? `Refreshes in ${formatCountdownWithDays(account.claudeGptQuota.weekly.refreshCountdown)}`
-                    : "Full capacity available"}
+                    ? t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.claudeGptQuota.weekly.refreshCountdown, language) })
+                    : t("accounts.card.fullCapacity")}
                 </Typography>
               </Box>
 
@@ -313,12 +315,12 @@ export const AccountCard: React.FC<AccountCardProps> = ({
             >
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: "#ffffff", display: "block", fontSize: "0.78rem" }}>
-                  Five Hour Limit Remaining
+                  {t("accounts.card.fiveHourRemaining")}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
                   {account.claudeGptQuota.fiveHour.percentRemaining < 100
-                    ? `Refreshes in ${formatCountdownWithDays(account.claudeGptQuota.fiveHour.refreshCountdown)}`
-                    : "Full capacity available"}
+                    ? t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.claudeGptQuota.fiveHour.refreshCountdown, language) })
+                    : t("accounts.card.fullCapacity")}
                 </Typography>
               </Box>
 
@@ -353,7 +355,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
             </Typography>
           </Box>
           <Chip
-            label={account.containerStatus === "running" ? "ONLINE" : "OFFLINE"}
+            label={account.containerStatus === "running" ? t("common.online") : t("common.offline")}
             size="small"
             color={account.containerStatus === "running" ? "success" : "default"}
             variant="outlined"
@@ -366,17 +368,17 @@ export const AccountCard: React.FC<AccountCardProps> = ({
 
       <CardActions sx={{ px: 2, py: 1.25, justifyContent: "space-between" }}>
         <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "monospace", fontSize: "0.7rem" }}>
-          ID: {account.id}
+          {t("accounts.card.nodeId", { id: account.id })}
         </Typography>
 
         <Box sx={{ display: "flex", gap: 0.5 }}>
-          <Tooltip title="Scrape & Refresh Quota">
+          <Tooltip title={t("accounts.card.tooltips.refresh")}>
             <IconButton size="small" onClick={handleRefresh} sx={{ color: "text.secondary", "&:hover": { color: "primary.main" } }}>
               <RefreshIcon sx={{ fontSize: 16, animation: isSpinning ? "spin 1s linear infinite" : "none" }} />
             </IconButton>
           </Tooltip>
 
-          <Tooltip title={account.status === "paused" ? "Resume Sandbox" : "Pause Sandbox"}>
+          <Tooltip title={account.status === "paused" ? t("accounts.card.tooltips.resume") : t("accounts.card.tooltips.pause")}>
             <IconButton
               size="small"
               onClick={() => toggleAccountStatus(account.id)}
@@ -389,13 +391,13 @@ export const AccountCard: React.FC<AccountCardProps> = ({
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Edit Node Settings">
+          <Tooltip title={t("accounts.card.tooltips.edit")}>
             <IconButton size="small" onClick={() => onEdit(account)} sx={{ color: "text.secondary", "&:hover": { color: "secondary.main" } }}>
               <EditIcon sx={{ fontSize: 16 }} />
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Delete Node">
+          <Tooltip title={t("accounts.card.tooltips.delete")}>
             <IconButton size="small" onClick={() => onDelete(account)} sx={{ color: "text.secondary", "&:hover": { color: "error.main" } }}>
               <DeleteIcon sx={{ fontSize: 16 }} />
             </IconButton>

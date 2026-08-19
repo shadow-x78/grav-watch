@@ -16,9 +16,8 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
-import Switch from "@mui/material/Switch";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import EditIcon from "@mui/icons-material/Edit";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface EditAccountModalProps {
   account: GravAccount | null;
@@ -32,6 +31,7 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
   onClose,
 }) => {
   const { updateAccount } = useGravWatch();
+  const { t } = useLanguage();
 
   const [alias, setAlias] = useState("");
   const [email, setEmail] = useState("");
@@ -94,10 +94,10 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
             </Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#ffffff", fontSize: { xs: "0.92rem", sm: "1.05rem" }, lineHeight: 1.3 }}>
-                Edit Sandbox Account: {account.alias}
+                {t("accounts.editModal.title", { alias: account.alias })}
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary", fontSize: { xs: "0.7rem", sm: "0.75rem" }, display: "block" }}>
-                Modify plan tier, tags and container parameters
+                {t("accounts.editModal.subtitle")}
               </Typography>
             </Box>
           </Box>
@@ -109,7 +109,7 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
               required
               fullWidth
               size="small"
-              label="Account Alias"
+              label={t("accounts.editModal.aliasLabel")}
               value={alias}
               onChange={(e) => setAlias(e.target.value)}
             />
@@ -118,16 +118,16 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
               <TextField
                 fullWidth
                 size="small"
-                label="Email"
+                label={t("accounts.editModal.emailLabel")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
 
               <FormControl fullWidth size="small">
-                <InputLabel>Plan Tier</InputLabel>
+                <InputLabel>{t("accounts.editModal.planLabel")}</InputLabel>
                 <Select
                   value={plan}
-                  label="Plan Tier"
+                  label={t("accounts.editModal.planLabel")}
                   onChange={(e) => setPlan(e.target.value as AntigravityPlan)}
                 >
                   <MenuItem value="Google AI Pro">Google AI Pro</MenuItem>
@@ -140,16 +140,16 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FormControl fullWidth size="small">
-                <InputLabel>Node Status</InputLabel>
+                <InputLabel>{t("accounts.editModal.statusLabel")}</InputLabel>
                 <Select
                   value={status}
-                  label="Node Status"
+                  label={t("accounts.editModal.statusLabel")}
                   onChange={(e) => setStatus(e.target.value as any)}
                 >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="warning">Warning</MenuItem>
-                  <MenuItem value="depleted">Depleted (429)</MenuItem>
-                  <MenuItem value="paused">Paused</MenuItem>
+                  <MenuItem value="active">{t("common.active")}</MenuItem>
+                  <MenuItem value="warning">{t("common.warning")}</MenuItem>
+                  <MenuItem value="depleted">{t("common.depleted")}</MenuItem>
+                  <MenuItem value="paused">{t("common.paused")}</MenuItem>
                 </Select>
               </FormControl>
             </div>
@@ -157,7 +157,7 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
             <TextField
               fullWidth
               size="small"
-              label="Tags (comma separated)"
+              label={t("accounts.editModal.tagsLabel")}
               value={tags}
               onChange={(e) => setTags(e.target.value)}
             />
@@ -167,7 +167,7 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
               multiline
               rows={2}
               size="small"
-              label="Notes"
+              label={t("accounts.editModal.notesLabel")}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -176,7 +176,7 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
 
         <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 1.75 }, gap: 1.25, borderTop: "1px solid rgba(255, 255, 255, 0.08)", backgroundColor: "rgba(9, 13, 22, 0.95)" }}>
           <Button variant="outlined" size="small" onClick={onClose} sx={{ borderColor: "rgba(255, 255, 255, 0.15)", color: "#cbd5e1" }}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             type="submit"
@@ -184,7 +184,7 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
             size="small"
             sx={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "#ffffff", fontWeight: 700 }}
           >
-            Save Changes
+            {t("common.save")}
           </Button>
         </DialogActions>
       </form>

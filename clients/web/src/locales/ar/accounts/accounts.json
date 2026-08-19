@@ -1,0 +1,108 @@
+{
+  "page": {
+    "title": "حسابات Google وحاويات التشغيل",
+    "subtitle": "إدارة حاويات Docker المعزولة، جلسات OAuth، ومراقبة مستويات كوتا Antigravity الثنائية",
+    "addManualBtn": "إضافة عقدة يدوية",
+    "pairGoogleBtn": "ربط Google OAuth",
+    "totalAccountsChip": "إجمالي الحسابات: {count}",
+    "activeSandboxesChip": "الحاويات النشطة: {count}",
+    "warningsChip": "تحذيرات واستنفاد الكوتا: {count}",
+    "searchPlaceholder": "البحث بالاسم، البريد، الحاوية، الخطة...",
+    "filterStatus": {
+      "all": "جميع الحالات",
+      "active": "نشط (Active)",
+      "warning": "تحذير (Warning)",
+      "depleted": "مستنفد (Depleted)",
+      "paused": "متوقف (Paused)"
+    },
+    "viewMode": {
+      "cards": "بطاقات",
+      "compact": "مضغوط",
+      "cardsTooltip": "عرض البطاقات التفصيلية",
+      "compactTooltip": "عرض القائمة المختصرة"
+    },
+    "emptyState": {
+      "title": "لم يتم العثور على حسابات مطابقة",
+      "description": "جرّب تغيير عبارة البحث أو الفلتر، أو قم بربط حساب Google جديد"
+    }
+  },
+  "card": {
+    "geminiModels": "نماذج Gemini",
+    "claudeGptModels": "نماذج Claude و GPT",
+    "geminiTooltip": "نماذج Flash و Pro تتقاسم هذا الحوض",
+    "claudeTooltip": "نماذج Sonnet 4.6 و Opus 4.6 و GPT-OSS تتقاسم هذا الحوض",
+    "weeklyRemaining": "الحد الأسبوعي المتبقي",
+    "fiveHourRemaining": "حد الـ 5 ساعات المتبقي",
+    "refreshesIn": "يتجدد خلال {time}",
+    "fullCapacity": "السعة الكاملة متوفرة",
+    "label5h": "5 ساعات",
+    "labelWeekly": "أسبوعي",
+    "nodeId": "معرف العقدة: {id}",
+    "tooltips": {
+      "refresh": "مزامنة واسترجاع بيانات الكوتا",
+      "resume": "استئناف تشغيل الحاوية",
+      "pause": "إيقاف الحاوية مؤقتًا",
+      "edit": "تعديل إعدادات العقدة",
+      "delete": "حذف العقدة نهائيًا"
+    }
+  },
+  "googlePairingModal": {
+    "title": "ربط حساب Google Antigravity",
+    "subtitle": "إنشاء حاوية معزولة ديناميكية عند الطلب",
+    "successTitle": "تمت المصادقة بنجاح!",
+    "successMessage": "تم إنشاء وتجهيز الحاوية gravwatch-{id} للحساب {email}",
+    "successStreaming": "جاري بث بيانات الكوتا اللحظية...",
+    "targetIdLabel": "معرف الحاوية المستهدفة (عقد ديناميكية غير محدودة)",
+    "targetIdPlaceholder": "مثال: acc-2, acc-3, my-node",
+    "quickSuggestions": "اقتراحات سريعة:",
+    "reAuth": "إعادة مصادقة",
+    "newNode": "عقدة جديدة",
+    "step1Title": "الخطوة 1: فتح صفحة تسجيل الدخول لـ Google",
+    "step1Btn": "1. فتح تسجيل دخول Google لـ [{id}] ←",
+    "step1Loading": "جاري إنشاء رابط تسجيل الدخول...",
+    "step1PopupBlocked": "تم حظر النافذة المنبثقة؟ اضغط هنا لفتح الرابط مباشرة",
+    "step1Help": "يفتح نافذة المصادقة الرسمية لـ Google Antigravity OAuth.",
+    "step2Title": "الخطوة 2: لصق رمز التفويض (Authorization Code)",
+    "step2Placeholder": "4/0AeanS... أو ya29...",
+    "completeBtn": "إتمام الربط والتجهيز [{id}]",
+    "errors": {
+      "missingId": "يرجى تحديد معرف صالح للحساب المستهدف.",
+      "missingCode": "يرجى لصق رمز التفويض المستلم من Google.",
+      "failed": "فشلت عملية المصادقة. يرجى المحاولة مرة أخرى."
+    }
+  },
+  "manualModal": {
+    "title": "إضافة حساب يدوي / Session Token",
+    "subtitle": "تكوين حاوية مخصصة مع إدخال مفتاح الـ API أو الجلسة يدوياً",
+    "aliasLabel": "اسم العقدة (Alias)",
+    "aliasPlaceholder": "مثال: Europe Heavy Node 04",
+    "emailLabel": "البريد التعريفي",
+    "emailPlaceholder": "developer@corp.net",
+    "planLabel": "فئة الخطة",
+    "tokenLabel": "رمز الجلسة / Bearer Key (اختياري)",
+    "tagsLabel": "الوسوم (مفصولة بفواصل)",
+    "tagsPlaceholder": "Manual, Sandbox, Fast",
+    "notesLabel": "ملاحظات إضافية",
+    "notesPlaceholder": "تفاصيل حول هذه العقدة...",
+    "submitBtn": "إنشاء وتجهيز العقدة"
+  },
+  "editModal": {
+    "title": "تعديل حساب الحاوية: {alias}",
+    "subtitle": "تعديل فئة الخطة، الوسوم، وإعدادات الحاوية",
+    "aliasLabel": "اسم الحساب",
+    "emailLabel": "البريد الإلكتروني",
+    "planLabel": "فئة الخطة",
+    "statusLabel": "حالة العقدة",
+    "tagsLabel": "الوسوم (مفصولة بفواصل)",
+    "notesLabel": "الملاحظات"
+  },
+  "deleteModal": {
+    "title": "حذف حاوية الحساب",
+    "subtitle": "حذف نهائي للحاوية وبيانات الجلسة",
+    "confirmText": "هل أنت متأكد من رغبتك في إزالة الحساب {alias} ({email})؟",
+    "irreversibleWarning": "⚠️ إجراء غير قابل للتراجع:",
+    "warningContainer": "• سيتم إيقاف وحذف حاوية Docker {container}.",
+    "warningQuota": "• سيتم خصم سعة كوتا هذا الحساب من الـ Pool المجمع.",
+    "confirmBtn": "تأكيد الحذف النهائي"
+  }
+}

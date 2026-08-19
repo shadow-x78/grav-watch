@@ -1,0 +1,70 @@
+{
+  "metricCards": {
+    "pooledCapacity": {
+      "title": "إجمالي سعة الـ Pool",
+      "subValue": "السعة المتاحة لجميع الحسابات مجتمعة",
+      "badge": "سعة ممتازة"
+    },
+    "gemini5h": {
+      "title": "حد Gemini لخمس ساعات",
+      "subValue": "السعة المتبقية لدورة 5 ساعات لنماذج Gemini",
+      "badge": "تزامن عالي"
+    },
+    "claude5h": {
+      "title": "حد Claude و GPT لخمس ساعات",
+      "subValue": "السعة المتبقية لنماذج Claude و GPT",
+      "badge": "Sonnet & Opus 4.6"
+    },
+    "dockerSandboxes": {
+      "title": "حاويات Docker",
+      "subValue": "حاويات معزولة لتشغيل الـ CLI",
+      "badgeWarnings": "{count} تحذيرات",
+      "badgeAllRunning": "جميع العقد تعمل",
+      "liveHub": "المركز المباشر"
+    }
+  },
+  "matrix": {
+    "title": "النماذج والاستهلاك",
+    "refreshTooltip": "تحديث بيانات كوتا النماذج",
+    "subheaderManaging": "إدارة كوتا ورصيد الحساب {alias} ({email})",
+    "subheaderPooled": "إدارة الكوتا المجمعة لجميع النماذج عبر كافة حاويات Docker.",
+    "multiAccountPool": "مجمع الحسابات (Pool)",
+    "planSection": "الخطة",
+    "yourPlan": "خطتك الحالية: {plan}",
+    "geminiModels": "نماذج Gemini",
+    "geminiTooltip": "نماذج Flash و Pro تتقاسم هذا الحوض من الكوتا",
+    "claudeGptModels": "نماذج Claude و GPT",
+    "claudeTooltip": "نماذج Sonnet 4.6 و Opus 4.6 و GPT-OSS تتقاسم هذا الحوض",
+    "weeklyLimitRemaining": "الحد الأسبوعي المتبقي",
+    "fiveHourLimitRemaining": "حد الـ 5 ساعات المتبقي",
+    "weeklyPartialUsed": "تم استهلاك جزء من الحد الأسبوعي، سيتجدد بالكامل خلال {time}.",
+    "fiveHourPartialUsed": "تم استهلاك جزء من حد الـ 5 ساعات، سيتجدد بالكامل خلال {time}.",
+    "fullWeeklyCapacity": "السعة الأسبوعية متوفرة بالكامل دون أي استهلاك.",
+    "fullFiveHourCapacity": "سعة الـ 5 ساعات متوفرة بالكامل دون أي استهلاك."
+  },
+  "timeline": {
+    "title": "المخطط الزمني للاستهلاك المجمع",
+    "subheader": "تتبع استهلاك التوكنز وحجم الطلبات عبر فئات نماذج Antigravity",
+    "filterAll": "جميع النماذج",
+    "filterGemini": "نماذج Gemini",
+    "filterClaude": "Claude & GPT",
+    "tooltipTokens": "{tokens} توكن",
+    "seriesGemini": "نماذج Gemini (Flash/Pro)",
+    "seriesClaude": "نماذج Claude & GPT (Sonnet/Opus 4.6)"
+  },
+  "donut": {
+    "title": "توزيع حصة الكوتا في الـ Pool",
+    "subheader": "نسبة مساهمة وسعة كل حساب Google",
+    "poolCap": "سعة الـ Pool",
+    "tooltipPlan": "الخطة:",
+    "tooltipAvgRemaining": "متوسط المتبقي:",
+    "capSuffix": "{value}% سعة"
+  },
+  "activity": {
+    "title": "شريط البث اللحظي للعمليات",
+    "subheader": "تنفيذ أوامر agy CLI واستهلاك الكوتا عبر حاويات Docker في الوقت الفعلي",
+    "packetsChip": "{count} حزم بيانات",
+    "rateLimitError": "تجاوز الحد (429)",
+    "tokensDrained": "-{tokens} توكن"
+  }
+}

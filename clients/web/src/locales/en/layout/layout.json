@@ -1,0 +1,40 @@
+{
+  "header": {
+    "title": "GravWatch",
+    "allAccountsPooled": "All Accounts (Pooled Capacity)",
+    "allPooledShort": "All (Pooled)",
+    "liveStream": "Live Stream",
+    "liveRunningTooltip": "Live Telemetry Running",
+    "livePausedTooltip": "Live Stream Paused",
+    "switchLangTooltip": "التبديل إلى العربية",
+    "refreshTooltip": "Scrape & Sync Telemetry",
+    "pairGoogleBtn": "Pair Google Account",
+    "pairGoogleTooltip": "Pair Google Account",
+    "systemConfigTooltip": "System Configuration",
+    "mobileMenuAria": "Open navigation menu",
+    "timeRanges": {
+      "1h": "1h",
+      "24h": "24h",
+      "7d": "7d",
+      "30d": "30d"
+    }
+  },
+  "sidebar": {
+    "navTitle": "NAVIGATION",
+    "navOverview": "Overview & Pool",
+    "navAccounts": "Accounts &\nSandboxes",
+    "navSimulator": "Prompt Router",
+    "dockerCard": {
+      "title": "Docker Sandboxes",
+      "image": "Image:",
+      "memoryCap": "Memory Cap:",
+      "memoryValue": "256MB / Node",
+      "fastApiHub": "FastAPI Hub:",
+      "fastApiLive": "• :8000 (Live)"
+    },
+    "subtitle": "Multi-Account Google Antigravity Telemetry Hub",
+    "issuesTooltip": "Click to inspect detected cluster issues & rate limits",
+    "allHealthy": "All Nodes Healthy",
+    "issuesDetected": "{count} Issue Detected"
+  }
+}

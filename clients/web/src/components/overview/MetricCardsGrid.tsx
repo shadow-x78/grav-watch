@@ -14,9 +14,11 @@ import SparklesIcon from "@mui/icons-material/AutoAwesome";
 import BoltIcon from "@mui/icons-material/Bolt";
 import StorageIcon from "@mui/icons-material/Dns";
 import ArrowOutwardIcon from "@mui/icons-material/ArrowOutward";
+import { useLanguage } from "@/context/LanguageContext";
 
 export const MetricCardsGrid: React.FC = () => {
   const { pooledTelemetry, accounts } = useGravWatch();
+  const { t, direction } = useLanguage();
 
   const depletedCount = accounts.filter(
     (a) => a.status === "depleted" || a.status === "warning"
@@ -24,10 +26,10 @@ export const MetricCardsGrid: React.FC = () => {
 
   const cards = [
     {
-      title: "Pooled Capacity",
+      title: t("overview.metricCards.pooledCapacity.title"),
       value: `${pooledTelemetry.overallPooledCapacity}%`,
-      subValue: "Combined capacity across all accounts",
-      badge: "Healthy Pool",
+      subValue: t("overview.metricCards.pooledCapacity.subValue"),
+      badge: t("overview.metricCards.pooledCapacity.badge"),
       badgeColor: "success" as const,
       ringValue: pooledTelemetry.overallPooledCapacity,
       icon: LayersIcon,
@@ -35,10 +37,10 @@ export const MetricCardsGrid: React.FC = () => {
       gradient: "linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(13, 19, 34, 0.8) 100%)",
     },
     {
-      title: "Gemini 5-Hour Limit",
+      title: t("overview.metricCards.gemini5h.title"),
       value: `${pooledTelemetry.geminiFiveHourPooledPercent}%`,
-      subValue: "Pooled 5-hour rolling limit remaining",
-      badge: "High Concurrency",
+      subValue: t("overview.metricCards.gemini5h.subValue"),
+      badge: t("overview.metricCards.gemini5h.badge"),
       badgeColor: "secondary" as const,
       ringValue: pooledTelemetry.geminiFiveHourPooledPercent,
       icon: SparklesIcon,
@@ -46,10 +48,10 @@ export const MetricCardsGrid: React.FC = () => {
       gradient: "linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(13, 19, 34, 0.8) 100%)",
     },
     {
-      title: "Claude & GPT 5-Hour Limit",
+      title: t("overview.metricCards.claude5h.title"),
       value: `${pooledTelemetry.claudeGptFiveHourPooledPercent}%`,
-      subValue: "Pooled Claude & GPT quota capacity",
-      badge: "Sonnet & Opus 4.6",
+      subValue: t("overview.metricCards.claude5h.subValue"),
+      badge: t("overview.metricCards.claude5h.badge"),
       badgeColor: "warning" as const,
       ringValue: pooledTelemetry.claudeGptFiveHourPooledPercent,
       icon: BoltIcon,
@@ -57,10 +59,10 @@ export const MetricCardsGrid: React.FC = () => {
       gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(13, 19, 34, 0.8) 100%)",
     },
     {
-      title: "Docker Sandboxes",
+      title: t("overview.metricCards.dockerSandboxes.title"),
       value: `${pooledTelemetry.activeContainers} / ${pooledTelemetry.totalAccounts}`,
-      subValue: "Dynamic container sandboxes",
-      badge: depletedCount > 0 ? `${depletedCount} Warnings` : "All Nodes Running",
+      subValue: t("overview.metricCards.dockerSandboxes.subValue"),
+      badge: depletedCount > 0 ? t("overview.metricCards.dockerSandboxes.badgeWarnings", { count: depletedCount }) : t("overview.metricCards.dockerSandboxes.badgeAllRunning"),
       badgeColor: (depletedCount > 0 ? "warning" : "success") as "warning" | "success",
       ringValue: Math.round((pooledTelemetry.activeContainers / Math.max(1, pooledTelemetry.totalAccounts)) * 100),
       icon: StorageIcon,
@@ -122,7 +124,7 @@ export const MetricCardsGrid: React.FC = () => {
                     </Typography>
                   </Box>
 
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", ml: 1, flexShrink: 0 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", ml: direction === "rtl" ? 0 : 1, mr: direction === "rtl" ? 1 : 0, flexShrink: 0 }}>
                     <ProgressRing value={card.ringValue} size={42} thickness={4} />
                   </Box>
                 </Box>
@@ -160,8 +162,8 @@ export const MetricCardsGrid: React.FC = () => {
                     }}
                   />
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5, fontFamily: "monospace" }}>
-                    <ArrowOutwardIcon sx={{ fontSize: 13 }} />
-                    Live Hub
+                    <ArrowOutwardIcon sx={{ fontSize: 13, transform: direction === "rtl" ? "scaleX(-1)" : "none" }} />
+                    {t("overview.metricCards.dockerSandboxes.liveHub")}
                   </Typography>
                 </Box>
               </Box>
