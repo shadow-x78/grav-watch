@@ -22,7 +22,6 @@ except ImportError:
         TimeSeriesDataPoint, HistoryResponse
     )
 
-
 async def compute_latest_pool_summary(db: AsyncSession) -> LatestUsageResponse:
     accounts_stmt = select(Account).order_by(Account.id)
     acc_res = await db.execute(accounts_stmt)
@@ -31,10 +30,11 @@ async def compute_latest_pool_summary(db: AsyncSession) -> LatestUsageResponse:
     account_details = []
     category_pool_map = {}
     model_pool_map = {}
-    
+
     total_weekly_remaining = 0.0
     total_5h_remaining = 0.0
     count_active_cats = 0
+    any_real_quota = False
 
     for acc in accounts:
         snap_stmt = select(UsageSnapshot).where(
@@ -48,7 +48,6 @@ async def compute_latest_pool_summary(db: AsyncSession) -> LatestUsageResponse:
         models_list = []
 
         if latest_snap:
-            # Query categories
             c_stmt = select(CategorySnapshot).where(CategorySnapshot.snapshot_id == latest_snap.id)
             c_res = await db.execute(c_stmt)
             categories = c_res.scalars().all()
@@ -76,15 +75,15 @@ async def compute_latest_pool_summary(db: AsyncSession) -> LatestUsageResponse:
                         "five_hour_refresh": c.five_hour_refresh_human,
                         "count": 0
                     }
-                category_pool_map[c.category_id]["weekly_sum"] += c.weekly_remaining
-                category_pool_map[c.category_id]["five_hour_sum"] += c.five_hour_remaining
-                category_pool_map[c.category_id]["count"] += 1
+                if c.weekly_remaining is not None:
+                    category_pool_map[c.category_id]["weekly_sum"] += c.weekly_remaining
+                    category_pool_map[c.category_id]["count"] += 1
+                    total_weekly_remaining += c.weekly_remaining
+                    any_real_quota = True
+                if c.five_hour_remaining is not None:
+                    category_pool_map[c.category_id]["five_hour_sum"] += c.five_hour_remaining
+                    count_active_cats += 1
 
-                total_weekly_remaining += c.weekly_remaining
-                total_5h_remaining += c.five_hour_remaining
-                count_active_cats += 1
-
-            # Query individual models
             m_stmt = select(ModelQuota).where(ModelQuota.snapshot_id == latest_snap.id)
             m_res = await db.execute(m_stmt)
             quotas = m_res.scalars().all()
@@ -110,16 +109,22 @@ async def compute_latest_pool_summary(db: AsyncSession) -> LatestUsageResponse:
                         "category_id": q.category_id,
                         "weekly_sum": 0.0,
                         "five_hour_sum": 0.0,
-                        "accounts": set()
+                        "accounts": set(),
+                        "quota_count": 0
                     }
-                model_pool_map[q.model_id]["weekly_sum"] += q.weekly_remaining
-                model_pool_map[q.model_id]["five_hour_sum"] += q.five_hour_remaining
+                if q.weekly_remaining is not None:
+                    model_pool_map[q.model_id]["weekly_sum"] += q.weekly_remaining
+                    model_pool_map[q.model_id]["quota_count"] += 1
+                if q.five_hour_remaining is not None:
+                    model_pool_map[q.model_id]["five_hour_sum"] += q.five_hour_remaining
                 model_pool_map[q.model_id]["accounts"].add(acc.id)
 
         account_details.append(AccountDetailResponse(
             id=acc.id,
             label=acc.label,
             email=acc.email,
+            name=getattr(acc, "name", None),
+            picture=getattr(acc, "picture", None),
             tier=acc.tier,
             status=acc.status,
             last_seen_at=acc.last_seen_at,
@@ -127,40 +132,39 @@ async def compute_latest_pool_summary(db: AsyncSession) -> LatestUsageResponse:
             models=models_list
         ))
 
-    # Category summaries
     category_summaries = []
     for c_id, data in category_pool_map.items():
-        cnt = data["count"] if data["count"] > 0 else 1
+        cnt = data["count"]
         category_summaries.append(CategoryPoolSummary(
             category_id=c_id,
             category_name=data["name"],
-            weekly_limit_remaining=round(data["weekly_sum"] / cnt, 1),
-            five_hour_limit_remaining=round(data["five_hour_sum"] / cnt, 1),
+            weekly_limit_remaining=round(data["weekly_sum"] / cnt, 1) if cnt > 0 else None,
+            five_hour_limit_remaining=round(data["five_hour_sum"] / cnt, 1) if cnt > 0 else None,
             weekly_refresh_human=data["weekly_refresh"],
             five_hour_refresh_human=data["five_hour_refresh"]
         ))
 
-    # Model summaries
     model_summaries = []
     for m_id, data in model_pool_map.items():
-        acc_cnt = len(data["accounts"]) if len(data["accounts"]) > 0 else 1
+        q_cnt = data.get("quota_count", 0)
         model_summaries.append(ModelPoolSummary(
             model_id=m_id,
             model_name=data["name"],
             category_id=data["category_id"],
-            weekly_limit_remaining=round(data["weekly_sum"] / acc_cnt, 1),
-            five_hour_limit_remaining=round(data["five_hour_sum"] / acc_cnt, 1),
+            weekly_limit_remaining=round(data["weekly_sum"] / q_cnt, 1) if q_cnt > 0 else None,
+            five_hour_limit_remaining=round(data["five_hour_sum"] / q_cnt, 1) if q_cnt > 0 else None,
             active_accounts_count=len(data["accounts"])
         ))
 
-    overall_w_avg = round(total_weekly_remaining / count_active_cats, 1) if count_active_cats > 0 else 100.0
-    overall_5h_avg = round(total_5h_remaining / count_active_cats, 1) if count_active_cats > 0 else 100.0
+    overall_w_avg = round(total_weekly_remaining / count_active_cats, 1) if count_active_cats > 0 else None
+    overall_5h_avg = round(total_5h_remaining / count_active_cats, 1) if count_active_cats > 0 else None
 
     pool_summary = PoolSummary(
         total_accounts=len(accounts),
         online_accounts=len([a for a in accounts if a.status == "healthy"]),
-        overall_weekly_remaining=min(overall_w_avg, 100.0),
-        overall_five_hour_remaining=min(overall_5h_avg, 100.0),
+        overall_weekly_remaining=overall_w_avg,
+        overall_five_hour_remaining=overall_5h_avg,
+        quota_available=any_real_quota,
         category_summaries=category_summaries,
         model_summaries=model_summaries
     )
@@ -171,9 +175,20 @@ async def compute_latest_pool_summary(db: AsyncSession) -> LatestUsageResponse:
         accounts=account_details
     )
 
-
 async def query_usage_history(db: AsyncSession, account_id: str | None, range_str: str) -> HistoryResponse:
-    stmt = select(UsageSnapshot).order_by(UsageSnapshot.timestamp.desc()).limit(50)
+    from datetime import timedelta
+    now = datetime.now(timezone.utc)
+    range_deltas = {
+        "1h": timedelta(hours=1),
+        "24h": timedelta(hours=24),
+        "7d": timedelta(days=7),
+        "30d": timedelta(days=30),
+    }
+    cutoff = now - range_deltas.get(range_str, range_deltas["24h"])
+
+    stmt = select(UsageSnapshot).where(
+        UsageSnapshot.timestamp >= cutoff
+    ).order_by(UsageSnapshot.timestamp.asc())
     if account_id:
         stmt = stmt.where(UsageSnapshot.account_id == account_id)
 
@@ -196,5 +211,5 @@ async def query_usage_history(db: AsyncSession, account_id: str | None, range_st
 
     return HistoryResponse(
         range=range_str,
-        series=list(reversed(points))
+        series=points
     )

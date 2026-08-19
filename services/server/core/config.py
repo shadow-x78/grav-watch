@@ -1,23 +1,28 @@
-# GravWatch - Application Settings (GPL-3.0-or-later)
+# GravWatch - Core Application Configuration & Runtime Settings (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
 from pydantic_settings import BaseSettings
 
-
 class Settings(BaseSettings):
     PROJECT_NAME: str = "GravWatch"
-    VERSION: str = "2.3.0"
-    API_V1_STR: str = "/api/v1"
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./data/gravwatch.db")
-    AGENT_API_KEY: str = os.getenv("AGENT_API_KEY", "gravwatch-agent-secret-key")
-    MASTER_API_KEY: str = os.getenv("MASTER_API_KEY", "gravwatch-master-secret-key")
-    DATA_DIR: str = os.getenv("DATA_DIR", "./data")
+    VERSION: str = "2.4.0"
+    SERVER_PORT: int = 8000
+    DATABASE_URL: str = "sqlite+aiosqlite:///./data/gravwatch.db"
+    AGENT_API_KEY: str = ""
+    MASTER_API_KEY: str = ""
+    DATA_DIR: str = "./data"
+    PUBLIC_ORIGIN: str = "http://localhost:8000"
 
-    # Google OAuth 2.0 Web Flow
-    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "681781215162-ggk47ep7sugvefa0vfvef6eg8e8egpka.apps.googleusercontent.com")
-    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
-    GOOGLE_REDIRECT_URI: str = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/api/v1/auth/callback")
-
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()
+
+def resolve_runtime_secrets() -> None:
+    if not settings.AGENT_API_KEY:
+        settings.AGENT_API_KEY = os.environ.get("AGENT_API_KEY", "gravwatch-agent-secret-key")
+
+    if not settings.MASTER_API_KEY:
+        settings.MASTER_API_KEY = os.environ.get("MASTER_API_KEY", "gravwatch-master-secret-key")

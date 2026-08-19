@@ -15,42 +15,6 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import StorageIcon from "@mui/icons-material/Dns";
 import ArrowOutwardIcon from "@mui/icons-material/ArrowOutward";
 
-// ============================================================================
-// TODO: [BACKEND INTEGRATION] - Top KPI Cluster Metrics (FastAPI Aggregator)
-//
-// 1. Client-Side Aggregated Cards:
-//    - `Pooled Capacity`: Cluster-wide remaining quota percentage across all accounts (weighted average of all active tiers).
-//    - `Gemini 5-Hour Limit`: Aggregated 5-hour rolling limit for Gemini models (Flash 3.6 / Pro 3.1).
-//    - `Claude & GPT 5-Hour Limit`: Aggregated 5-hour rolling limit for Claude models (Sonnet 4.6 / Opus 4.6).
-//    - `Docker Sandboxes & AI Credits`: Active Docker nodes and aggregate balance pool in USD for fallback overages.
-//
-// 2. Required Backend Endpoint & Payload Contract:
-//    - `GET http://localhost:8000/api/v1/usage/latest`
-//    - Response Schema:
-//      {
-//        "pooled_capacity_percent": 74.2,
-//        "gemini_5h_percent": 88.5,
-//        "claude_gpt_5h_percent": 65.0,
-//        "active_containers": 5,
-//        "total_accounts": 5,
-//        "total_credits_usd": 190.0,
-//        "burn_rate_tokens_per_min": 17400,
-//        "total_requests_today": 8900,
-//        "success_rate_percent": 99.4,
-//        "health_status": "healthy" | "warning" | "critical"
-//      }
-//
-// 3. Purpose / Why Needed:
-//    - Provides instant visibility into cluster capacity before dispatching heavy subagent batches or IDE tasks.
-//
-// 4. Edge Cases & Missing Capabilities:
-//    - [ ] Zero Accounts State: When `total_accounts === 0`, display 0% capacity and a prompt to pair Google accounts.
-//    - [ ] All Accounts Depleted (429): If `pooled_capacity_percent === 0`, badge should switch to "Cluster Depleted"
-//          with an alert indicating the next reset time.
-//    - [ ] Currency Localization: Format `total_credits_usd` according to user's browser locale.
-//    - [ ] Live Delta Pulsing: Animate progress rings and KPI values when real-time WebSocket token deductions occur.
-// ============================================================================
-
 export const MetricCardsGrid: React.FC = () => {
   const { pooledTelemetry, accounts } = useGravWatch();
 
@@ -95,7 +59,7 @@ export const MetricCardsGrid: React.FC = () => {
     {
       title: "Docker Sandboxes",
       value: `${pooledTelemetry.activeContainers} / ${pooledTelemetry.totalAccounts}`,
-      subValue: `$${pooledTelemetry.totalCreditsPoolUsd.toFixed(2)} Total AI Credits Pool`,
+      subValue: "Dynamic container sandboxes",
       badge: depletedCount > 0 ? `${depletedCount} Warnings` : "All Nodes Running",
       badgeColor: (depletedCount > 0 ? "warning" : "success") as "warning" | "success",
       ringValue: Math.round((pooledTelemetry.activeContainers / Math.max(1, pooledTelemetry.totalAccounts)) * 100),
@@ -136,7 +100,6 @@ export const MetricCardsGrid: React.FC = () => {
                 height: "100%",
               }}
             >
-              {/* Top Section */}
               <Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -164,7 +127,6 @@ export const MetricCardsGrid: React.FC = () => {
                   </Box>
                 </Box>
 
-                {/* Subtitle with guaranteed identical height */}
                 <Typography
                   variant="caption"
                   sx={{
@@ -183,11 +145,9 @@ export const MetricCardsGrid: React.FC = () => {
                 </Typography>
               </Box>
 
-              {/* Exact Uniform Divider */}
               <Box>
                 <Divider sx={{ my: 1.5, borderColor: "rgba(255, 255, 255, 0.06)" }} />
 
-                {/* Bottom Section */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Chip
                     label={card.badge}

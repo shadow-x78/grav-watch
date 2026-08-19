@@ -1,6 +1,18 @@
-# GravWatch Core Package
-from .config import settings
-from .database import Base, engine, async_session, init_db, get_db
-from .security import get_current_agent
+# GravWatch - Core Package (GPL-3.0-or-later)
+# https://github.com/shadow-x78/grav-watch
 
-__all__ = ["settings", "Base", "engine", "async_session", "init_db", "get_db", "get_current_agent"]
+from .config import settings
+from .database import Base, engine, AsyncSessionLocal, init_db, get_db
+from .security import get_current_agent, validate_account_id, require_master_key
+
+__all__ = [
+    "settings",
+    "Base",
+    "engine",
+    "AsyncSessionLocal",
+    "init_db",
+    "get_db",
+    "get_current_agent",
+    "validate_account_id",
+    "require_master_key",
+]

@@ -16,7 +16,6 @@ except ImportError:
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
-
 @router.get("", response_model=list[AccountDetailResponse])
 async def list_accounts(db: AsyncSession = Depends(get_db)):
     stmt = select(Account).order_by(Account.id)

@@ -1,135 +1,60 @@
-# GravWatch - Telemetry Output & CLI Parser (GPL-3.0-or-later)
+# GravWatch - Antigravity Telemetry Payload Parser (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import re
-import logging
-from datetime import datetime, timezone
+from typing import Dict, Any, List, Optional
 
-logger = logging.getLogger("gravwatch.agent.parser")
+def parse_quota_percentage(raw_val: Any) -> Optional[float]:
+    if raw_val is None:
+        return None
+    if isinstance(raw_val, (int, float)):
+        return float(raw_val)
+    if isinstance(raw_val, str):
+        cleaned = raw_val.replace("%", "").strip()
+        try:
+            return float(cleaned)
+        except ValueError:
+            pass
+    return None
 
-ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+def parse_time_to_reset(raw_val: Any) -> Optional[str]:
+    if not raw_val:
+        return None
+    val_str = str(raw_val).strip()
+    match = re.search(r'(\d+\s*(?:d|days?|h|hours?|m|mins?|minutes?|s|secs?|seconds?))', val_str, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return val_str
 
+def normalize_category_name(raw_name: str) -> str:
+    cleaned = raw_name.lower().strip()
+    if "gemini" in cleaned:
+        return "gemini-models"
+    if "claude" in cleaned or "gpt" in cleaned:
+        return "claude-and-gpt-models"
+    return re.sub(r'[^a-z0-9_-]', '-', cleaned)
 
-def clean_ansi(text: str) -> str:
-    if not text:
-        return ""
-    return ANSI_ESCAPE.sub('', text)
+def parse_telemetry_blob(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    categories: List[Dict[str, Any]] = []
 
+    if "categories" in data and isinstance(data["categories"], list):
+        for item in data["categories"]:
+            cat_id = normalize_category_name(item.get("name") or item.get("category_id") or "unknown")
+            w_raw = item.get("weekly_limit") or item.get("weekly") or {}
+            f_raw = item.get("five_hour_limit") or item.get("five_hour") or {}
 
-def parse_agy_output(raw_output: str, account_id: str, account_label: str) -> dict:
-    cleaned = clean_ansi(raw_output)
-
-    email = None
-    tier = "Antigravity Starter"
-
-    # Extract account email dynamically from CLI output
-    email_match = re.search(r"Account:\s*([^\s│]+)", cleaned)
-    if email_match:
-        email = email_match.group(1).strip()
-
-    # Extract tier dynamically from CLI output
-    tier_match = re.search(r"Tier:\s*([^\s│]+(?:\s+[^\s│]+)*)", cleaned)
-    if tier_match:
-        tier = tier_match.group(1).strip()
-
-    # Extract Gemini weekly & 5h limits
-    gemini_weekly = 100.0
-    gemini_weekly_txt = "refreshes weekly"
-    gw_match = re.search(r"Gemini Models:.*?Weekly Limit Remaining:\s*([0-9.]+)%\s*\(([^)]+)\)", cleaned, re.DOTALL)
-    if gw_match:
-        gemini_weekly = float(gw_match.group(1))
-        gemini_weekly_txt = gw_match.group(2).strip()
-
-    gemini_5h = 100.0
-    gemini_5h_txt = "refreshes every 5 hours"
-    g5_match = re.search(r"Gemini Models:.*?Five Hour Limit Remaining:\s*([0-9.]+)%\s*\(([^)]+)\)", cleaned, re.DOTALL)
-    if g5_match:
-        gemini_5h = float(g5_match.group(1))
-        gemini_5h_txt = g5_match.group(2).strip()
-
-    # Extract Claude & GPT limits
-    claude_weekly = 100.0
-    cw_match = re.search(r"Claude and GPT models:.*?Weekly Limit Remaining:\s*([0-9.]+)%", cleaned, re.DOTALL)
-    if cw_match:
-        claude_weekly = float(cw_match.group(1))
-
-    claude_5h = 100.0
-    c5_match = re.search(r"Claude and GPT models:.*?Five Hour Limit Remaining:\s*([0-9.]+)%", cleaned, re.DOTALL)
-    if c5_match:
-        claude_5h = float(c5_match.group(1))
-
-    categories = [
-        {
-            "category_id": "gemini-models",
-            "category_name": "Gemini Models",
-            "weekly_limit": {
-                "percentage_remaining": gemini_weekly,
-                "refresh_in_human": gemini_weekly_txt
-            },
-            "five_hour_limit": {
-                "percentage_remaining": gemini_5h,
-                "refresh_in_human": gemini_5h_txt
-            }
-        },
-        {
-            "category_id": "claude-gpt-models",
-            "category_name": "Claude and GPT models",
-            "weekly_limit": {
-                "percentage_remaining": claude_weekly,
-                "refresh_in_human": "refreshes weekly"
-            },
-            "five_hour_limit": {
-                "percentage_remaining": claude_5h,
-                "refresh_in_human": "refreshes every 5 hours"
-            }
-        }
-    ]
-
-    models = [
-        {
-            "model_id": "gemini-flash",
-            "model_name": "Gemini Flash",
-            "category_id": "gemini-models",
-            "weekly_limit": {"percentage_remaining": gemini_weekly, "refresh_in_human": gemini_weekly_txt},
-            "five_hour_limit": {"percentage_remaining": gemini_5h, "refresh_in_human": gemini_5h_txt}
-        },
-        {
-            "model_id": "gemini-pro",
-            "model_name": "Gemini Pro",
-            "category_id": "gemini-models",
-            "weekly_limit": {"percentage_remaining": gemini_weekly, "refresh_in_human": gemini_weekly_txt},
-            "five_hour_limit": {"percentage_remaining": gemini_5h, "refresh_in_human": gemini_5h_txt}
-        },
-        {
-            "model_id": "claude-sonnet",
-            "model_name": "Claude Sonnet",
-            "category_id": "claude-gpt-models",
-            "weekly_limit": {"percentage_remaining": claude_weekly, "refresh_in_human": "refreshes weekly"},
-            "five_hour_limit": {"percentage_remaining": claude_5h, "refresh_in_human": "refreshes every 5 hours"}
-        },
-        {
-            "model_id": "claude-opus",
-            "model_name": "Claude Opus",
-            "category_id": "claude-gpt-models",
-            "weekly_limit": {"percentage_remaining": claude_weekly, "refresh_in_human": "refreshes weekly"},
-            "five_hour_limit": {"percentage_remaining": claude_5h, "refresh_in_human": "refreshes every 5 hours"}
-        },
-        {
-            "model_id": "gpt-oss",
-            "model_name": "GPT OSS",
-            "category_id": "claude-gpt-models",
-            "weekly_limit": {"percentage_remaining": claude_weekly, "refresh_in_human": "refreshes weekly"},
-            "five_hour_limit": {"percentage_remaining": claude_5h, "refresh_in_human": "refreshes every 5 hours"}
-        }
-    ]
-
-    return {
-        "account_id": account_id,
-        "account_label": account_label,
-        "email": email or f"{account_id}@google.com",
-        "tier": tier,
-        "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "categories": categories,
-        "models": models
-    }
+            categories.append({
+                "category_id": cat_id,
+                "category_name": item.get("name") or item.get("category_name") or cat_id,
+                "weekly_limit": {
+                    "percentage_remaining": parse_quota_percentage(w_raw.get("percentage_remaining") or w_raw.get("remaining")),
+                    "refresh_in_human": parse_time_to_reset(w_raw.get("refresh_in_human") or w_raw.get("reset_time")),
+                    "is_exhausted": bool(w_raw.get("is_exhausted", False))
+                },
+                "five_hour_limit": {
+                    "percentage_remaining": parse_quota_percentage(f_raw.get("percentage_remaining") or f_raw.get("remaining")),
+                    "refresh_in_human": parse_time_to_reset(f_raw.get("refresh_in_human") or f_raw.get("reset_time")),
+                    "is_exhausted": bool(f_raw.get("is_exhausted", False))
+                }
+            })
+    return categories

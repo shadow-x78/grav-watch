@@ -6,7 +6,7 @@
 
 ---
 
-> يسري هذا التوثيق على الإصدار **v2.3.0** فما فوق. المسار الأساسي: `/api/v1`
+> يسري هذا التوثيق على الإصدار **v2.4.0** فما فوق. المسار الأساسي: `/api/v1`
 
 ---
 
@@ -156,7 +156,7 @@ X-Agent-Key: gravwatch-agent-secret-key
 {
   "status": "healthy",
   "service": "gravwatch-server",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "timestamp": "2026-08-16T19:50:00Z"
 }
 ```

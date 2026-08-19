@@ -60,11 +60,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: "Prompt Router",
       icon: PlayCircleOutlineIcon,
     },
-    {
-      id: "integration" as const,
-      label: "agy CLI & Docker",
-      icon: TerminalIcon,
-    },
   ];
 
   const activeSandboxesCount = accounts.filter((a) => a.status !== "paused").length;
@@ -74,7 +69,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     (a) => a.status === "depleted" || a.status === "warning"
   ).length;
 
-  // ─── Shared sidebar inner content ───────────────────────────────────────────
   const sidebarContent = (
     <Box
       sx={{
@@ -89,13 +83,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
         borderRight: "1px solid rgba(255, 255, 255, 0.08)",
         flexShrink: 0,
         overflowY: "auto",
-        scrollbarWidth: "none",        // Firefox
-        "&::-webkit-scrollbar": { display: "none" }, // Chrome / Safari
+        scrollbarWidth: "none",
+        "&::-webkit-scrollbar": { display: "none" },
       }}
     >
-      {/* Top Section: Navigation + Docker Card */}
       <Box>
-        {/* NAVIGATION Section Header */}
         <Typography
           variant="caption"
           sx={{
@@ -112,7 +104,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           NAVIGATION
         </Typography>
 
-        {/* Navigation List */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -180,38 +171,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </Box>
 
-        {/* ========================================================================
-            TODO: [BACKEND INTEGRATION] - Docker Host & Daemon Status Widget
-
-            1. Static Display Fields:
-               - `Image: debian:bookworm` (Hardcoded string).
-               - `Memory Cap: 256MB / Node` (Hardcoded string).
-               - `FastAPI Hub: :8000 (Live)` (Hardcoded connection status).
-
-            2. Required Backend Endpoint:
-               - `GET http://localhost:8000/api/v1/system/docker-status`
-               - Expected Response:
-                 {
-                   "docker_version": "26.1.3",
-                   "base_image": "debian:bookworm-slim",
-                   "memory_limit_mb": 256,
-                   "cpu_quota_cores": 0.25,
-                   "hub_port": 8000,
-                   "is_online": true,
-                   "active_containers": 5,
-                   "total_ram_used_mb": 684,
-                   "docker_daemon_socket": "/var/run/docker.sock"
-                 }
-
-            3. Purpose / Why Needed:
-               - Displays real Docker daemon telemetry, true host memory footprint, and actual FastAPI server liveness.
-
-            4. Edge Cases & Error States:
-               - [ ] Docker Socket Permission Denied: Backend returns 503 if user lacks access to `/var/run/docker.sock`.
-               - [ ] Container OOM Kill: Highlight node in red if any container is killed due to exceeding 256MB memory cap.
-               - [ ] Dynamic Reconfiguration: Allow changing memory caps on the fly using `POST /api/v1/system/config`.
-           ======================================================================== */}
-        {/* Docker Sandboxes Widget Card */}
         <Box
           sx={{
             mt: 3,
@@ -221,7 +180,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             border: "1px solid rgba(255, 255, 255, 0.08)",
           }}
         >
-          {/* Card Header */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <DnsIcon sx={{ fontSize: 16, color: "#10b981" }} />
@@ -246,7 +204,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             />
           </Box>
 
-          {/* Card Details Table */}
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8, fontSize: "0.7rem", fontFamily: "monospace" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ color: "#64748b" }}>Image:</span>
@@ -264,11 +221,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </Box>
       </Box>
 
-      {/* Bottom Section: Telemetry Hub Text & Clickable Issues Button */}
       <Box sx={{ pt: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
         <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.08)", mx: -2.5, mb: 0.5 }} />
 
-        {/* Subtitle at the bottom */}
         <Typography
           variant="caption"
           sx={{
@@ -282,20 +237,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
           Multi-Account Google Antigravity Telemetry Hub
         </Typography>
 
-        {/* ========================================================================
-            TODO: [BACKEND INTEGRATION] - Cluster Health & Rate Limit Diagnostics
-
-            1. Current Client-Side Calculation:
-               - Counts warning/depleted accounts locally via JavaScript array filtering.
-
-            2. Required Backend Endpoint:
-               - `GET http://localhost:8000/api/v1/diagnostics/issues`
-               - Expected Response: `{ total_issues, warnings, critical, depleted_nodes: [...] }`
-
-            3. Purpose / Why Needed:
-               - Alerts developers in real-time when any sandbox encounters HTTP 429 quota exhaustion or container failure.
-           ======================================================================== */}
-        {/* Clickable Issue Pill with Screen & Emerging Arrow Button */}
         <Tooltip title="Click to inspect detected cluster issues & rate limits" arrow>
           <Box
             id="sidebar-issues-button"
@@ -342,7 +283,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span>{warningCount > 0 ? `${warningCount} Issue Detected` : "All Nodes Healthy"}</span>
             </Box>
 
-            {/* Emerging Arrow Icon Button */}
             <Box
               sx={{
                 display: "flex",
@@ -364,7 +304,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* ── Desktop Sidebar: always visible on lg+ ── */}
       <Box
         sx={{
           display: { xs: "none", lg: "flex" },
@@ -379,7 +318,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {sidebarContent}
       </Box>
 
-      {/* ── Mobile Drawer: slides in from left on xs / sm / md ── */}
       <Drawer
         anchor="left"
         open={isMobileOpen}
@@ -399,13 +337,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           },
         }}
       >
-        {/* Top padding so content doesn't hide behind sticky Header */}
         <Box sx={{ pt: { xs: "60px", sm: "68px" }, height: "100%" }}>
           {sidebarContent}
         </Box>
       </Drawer>
 
-      {/* Issues Diagnostic Modal */}
       <SystemIssuesModal
         isOpen={isIssuesModalOpen}
         onClose={() => setIsIssuesModalOpen(false)}

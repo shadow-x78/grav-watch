@@ -29,25 +29,6 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
 
   if (!account) return null;
 
-  // ==========================================================================
-  // TODO: [BACKEND INTEGRATION] - Container Teardown & Permanent Deletion API
-  //
-  // 1. Current Client-Side Behavior:
-  //    - Removes account from local state array.
-  //
-  // 2. Required Backend Endpoint & Query Params:
-  //    - `DELETE http://localhost:8000/api/v1/accounts/{account.id}?purge_volume=true&graceful_timeout=15`
-  //
-  // 3. Backend Execution Pipeline:
-  //    - 1. Graceful Drain: Stops routing new prompts to this account; awaits completion of in-flight executions.
-  //    - 2. Container Teardown: Executes `docker stop {container} && docker rm -v {container}`.
-  //    - 3. Volume Purge: Deletes isolated OAuth session directory `./data/acc-XX/`.
-  //    - 4. Database Cleanup: Deletes or archives account record, updates cluster capacity pool, and emits WebSocket event.
-  //
-  // 4. Edge Cases:
-  //    - [ ] Active In-Flight Executions: If an `agy` task is actively generating code, return 409 Conflict unless `force=true` is passed.
-  //    - [ ] Locked Volume Directory: Handle file lock errors on Windows/Linux host mounts gracefully with retry logic.
-  // ==========================================================================
   const handleDelete = () => {
     deleteAccount(account.id);
     onClose();

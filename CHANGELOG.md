@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.0] - 2026-08-19
+
+### Added
+- **Official Antigravity CLI 1.1.15 Model Catalog:** Standardized active model matrix across the dashboard and API with official identifiers (`gemini-3.7-flash-high`, `gemini-3.7-flash-medium`, `gemini-3.1-pro-high`, `gemini-3.5-flash-high`, `claude-sonnet-4-6`, `claude-opus-4-6-thinking`, `gpt-oss-120b-medium`).
+- **Live Headless PTY `/usage` Quota Scraper:** Built a headless terminal automation engine using Python `pty` and termios to execute `/usage` commands directly in the `agy` CLI container, extracting live quota percentages and countdowns with decimal accuracy.
+- **Direct Prompt Execution API:** Added `/api/v1/prompt/execute` endpoint allowing users to test live prompts across accounts and models with real token calculation and latency monitoring.
+- **Interactive OAuth Web Pairing Flow:** Implemented complete 1-click Google OAuth pairing modal with sub-200ms PKCE code exchange and instant container provisioning.
+
+### Changed
+- **Eliminated Fake Fallbacks:** Removed all hardcoded 100% quota assumptions and synthetic numbers from both agent scrapers and dashboard telemetry streams.
+- **Fast Telemetry Polling (20s):** Updated default polling interval from 300s to 20s for continuous, real-time dashboard quota updates.
+- **Docker DNS & Network Resilience:** Configured Google DNS (`8.8.8.8`, `8.8.4.4`) across container services to eliminate IPv6 connection resets on Google CloudCode endpoints.
+- **Atomic State Storage:** Implemented atomic file writers (`.tmp` + `os.replace`) for `settings.json` and `onboarding.json` to prevent file corruption.
+- **Test Database Isolation:** Isolated unit test suites to in-memory SQLite (`sqlite+aiosqlite:///:memory:`), safeguarding production database files.
+
+---
+
 ## [2.3.0] - 2026-08-19
 
 ### Added

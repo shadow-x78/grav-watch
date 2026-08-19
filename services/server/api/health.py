@@ -1,22 +1,20 @@
-# GravWatch - Health API (GPL-3.0-or-later)
+# GravWatch - Health Check API (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
-from datetime import datetime, timezone
 from fastapi import APIRouter
+from datetime import datetime, timezone
 
 try:
-    from services.server.core.config import settings
+    from services.server.models.schemas import HealthResponse
 except ImportError:
-    from ..core.config import settings
+    from ..models.schemas import HealthResponse
 
-router = APIRouter(tags=["System"])
+router = APIRouter(tags=["Health"])
 
-
-@router.get("/health")
+@router.get("/health", response_model=HealthResponse)
 async def health_check():
-    return {
-        "status": "healthy",
-        "service": "gravwatch-server",
-        "version": settings.VERSION,
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
+    return HealthResponse(
+        status="healthy",
+        service="gravwatch-server",
+        timestamp=datetime.now(timezone.utc),
+    )

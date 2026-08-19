@@ -30,21 +30,6 @@ import GridViewIcon from "@mui/icons-material/GridView";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import KeyIcon from "@mui/icons-material/VpnKey";
 
-// ============================================================================
-// TODO: [BACKEND INTEGRATION] - Accounts & Sandbox Nodes Management Tab
-//
-// 1. Client-Side State & Filtering:
-//    - Performs local array search, status filtering, and view mode toggling in React state.
-//
-// 2. Required Backend Endpoints & Query Params:
-//    - `GET  /api/v1/accounts?search={query}&status={status}&plan={plan}&page={page}&limit={limit}`: Server-side account search, filtering, and pagination.
-//    - `POST /api/v1/accounts/sync-all`: Concurrently re-scrapes quotas across all containers.
-//    - `POST /api/v1/accounts/bulk-action`: Bulk operations (`{ action: "pause" | "resume" | "sync", account_ids: string[] }`).
-//
-// 3. Purpose / Why Needed:
-//    - Full CRUD management of container sandboxes, credential mounts, and node lifecycle.
-// ============================================================================
-
 export const AccountsTab: React.FC = () => {
   const { accounts, pooledTelemetry } = useGravWatch();
 
@@ -52,13 +37,11 @@ export const AccountsTab: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  // Modals state
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<GravAccount | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<GravAccount | null>(null);
 
-  // Filter accounts
   const filteredAccounts = accounts.filter((acc) => {
     const matchesSearch =
       acc.alias.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -78,7 +61,6 @@ export const AccountsTab: React.FC = () => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      {/* Top Header & Action Buttons */}
       <Box
         sx={{
           display: "flex",
@@ -131,7 +113,6 @@ export const AccountsTab: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Summary Stats Chips Card */}
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
         <Chip
           label={`Total Accounts: ${accounts.length}`}
@@ -160,20 +141,8 @@ export const AccountsTab: React.FC = () => {
             sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}
           />
         )}
-        <Chip
-          label={`Total Credits Pool: $${pooledTelemetry.totalCreditsPoolUsd.toFixed(2)}`}
-          size="small"
-          sx={{
-            backgroundColor: "rgba(139, 92, 246, 0.12)",
-            border: "1px solid rgba(139, 92, 246, 0.3)",
-            color: "#c4b5fd",
-            fontFamily: "monospace",
-            fontSize: "0.75rem",
-          }}
-        />
       </Box>
 
-      {/* Filter and Search Bar Card */}
       <Card sx={{ border: "1px solid rgba(255, 255, 255, 0.08)", background: "rgba(13, 19, 34, 0.75)", borderRadius: 3 }}>
         <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
           <Box
@@ -185,7 +154,6 @@ export const AccountsTab: React.FC = () => {
               gap: 2,
             }}
           >
-            {/* Search Box */}
             <TextField
               size="small"
               placeholder="Search alias, email, container, plan..."
@@ -210,7 +178,6 @@ export const AccountsTab: React.FC = () => {
               }}
             />
 
-            {/* Filter Status & View Mode */}
             <Box
               sx={{
                 display: "flex",
@@ -243,7 +210,6 @@ export const AccountsTab: React.FC = () => {
                 </Select>
               </FormControl>
 
-              {/* View Mode Toggle: Grid Cards vs Compact Cards */}
               <ToggleButtonGroup
                 size="small"
                 value={viewMode}
@@ -280,7 +246,6 @@ export const AccountsTab: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Cards Display Section (100% Card-Based) */}
       {filteredAccounts.length === 0 ? (
         <Card sx={{ p: 6, textAlign: "center", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 3.5 }}>
           <PeopleIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.5 }} />
@@ -292,7 +257,7 @@ export const AccountsTab: React.FC = () => {
           </Typography>
         </Card>
       ) : viewMode === "grid" ? (
-        /* Rich Grid Cards View */
+        
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
           {filteredAccounts.map((account) => (
             <AccountCard
@@ -304,7 +269,7 @@ export const AccountsTab: React.FC = () => {
           ))}
         </div>
       ) : (
-        /* Compact Card List View */
+        
         <div className="flex flex-col gap-3">
           {filteredAccounts.map((account) => (
             <AccountListItemCard
@@ -317,7 +282,6 @@ export const AccountsTab: React.FC = () => {
         </div>
       )}
 
-      {/* Modals */}
       <GooglePairingModal
         isOpen={isGoogleModalOpen}
         onClose={() => setIsGoogleModalOpen(false)}
@@ -342,4 +306,3 @@ export const AccountsTab: React.FC = () => {
     </Box>
   );
 };
-

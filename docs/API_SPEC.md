@@ -6,7 +6,7 @@
 
 ---
 
-> Applies to **v2.3.0** and later. Base path: `/api/v1`
+> Applies to **v2.4.0** and later. Base path: `/api/v1`
 
 ---
 
@@ -169,7 +169,7 @@ Returns consolidated pool capacity, category averages, and individual account me
 {
   "status": "healthy",
   "service": "gravwatch-server",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "timestamp": "2026-08-16T19:50:00Z"
 }
 ```

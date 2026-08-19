@@ -33,46 +33,9 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
   const [email, setEmail] = useState("");
   const [plan, setPlan] = useState<AntigravityPlan>("Google AI Pro");
   const [sessionToken, setSessionToken] = useState("");
-  const [enableAiCredits, setEnableAiCredits] = useState(false);
   const [tags, setTags] = useState("Custom Node, Antigravity CLI");
   const [notes, setNotes] = useState("");
 
-  // ==========================================================================
-  // TODO: [BACKEND INTEGRATION] - Manual Sandbox Container Provisioning API
-  //
-  // 1. Form Inputs & State:
-  //    - `alias`: Account label identifier.
-  //    - `email`: Associated Google identifier email.
-  //    - `plan`: Subscription tier (Google AI Pro / Ultra / Free / Enterprise).
-  //    - `session_token`: Antigravity session bearer key (`ya29.a0AfH...`).
-  //    - `enable_ai_credits`: Enable usage beyond default quotas with AI credits.
-  //    - `tags`, `notes`: Organization metadata.
-  //
-  // 2. Required Backend Endpoint & Payload:
-  //    - `POST http://localhost:8000/api/v1/accounts/manual`
-  //    - Request Body:
-  //      {
-  //        "alias": "Europe Heavy Node 04",
-  //        "email": "developer@corp.net",
-  //        "plan": "Google AI Pro",
-  //        "session_token": "ya29.a0AfH6SM...",
-  //        "enable_ai_credits": false,
-  //        "tags": ["Custom Node", "Antigravity CLI"],
-  //        "notes": "Main worker node"
-  //      }
-  //
-  // 3. Backend Execution Pipeline:
-  //    - 1. Token Validation: Validates the bearer key against Google Antigravity servers before provisioning.
-  //    - 2. Token Encryption: Encrypts session token at rest using AES-256-GCM before writing to database.
-  //    - 3. Container Sandbox Creation:
-  //         `docker run -d --name gravwatch-acc-XX --memory=256m --cpus=0.25 -v ./data/acc-XX:/root/.gemini debian:bookworm-slim`
-  //    - 4. Background Sync: Triggers initial quota scrape and broadcasts account added event over WebSocket.
-  //
-  // 4. Edge Cases & Validation:
-  //    - [ ] Invalid / Malformed Bearer Key: Return HTTP 400 with message "Invalid Antigravity bearer key".
-  //    - [ ] Duplicate Email Collision: Prevent registering duplicate Google accounts under different aliases.
-  //    - [ ] Container Name Conflict: If `gravwatch-acc-XX` already exists in Docker, auto-increment container suffix.
-  // ==========================================================================
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!alias) return;
@@ -81,8 +44,7 @@ export const AddManualAccountModal: React.FC<AddManualAccountModalProps> = ({
       alias,
       email: email || `${alias.toLowerCase().replace(/\s+/g, ".")}@antigravity.org`,
       plan,
-      enableAiCredits,
-      authType: "manual_session",
+      authType: "manual_token",
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       notes,
     });

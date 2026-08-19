@@ -21,33 +21,6 @@ import {
 } from "recharts";
 import { formatTokens } from "@/lib/utils";
 
-// ============================================================================
-// TODO: [BACKEND INTEGRATION] - Time-Series Token Metrics Query (Prometheus / TimescaleDB)
-//
-// 1. In-Memory Time-Series State:
-//    - Real-time updates accumulate in local state `timelineData`.
-//
-// 2. Required Backend Endpoint & Query Contract:
-//    - `GET http://localhost:8000/api/v1/metrics/timeline?range={timeRange}&account_id={selectedAccountId}&resolution={auto}`
-//    - Expected Response: `TimeSeriesDataPoint[]`
-//      [
-//        { "time": "14:00", "totalTokens": 2890000, "geminiTokens": 1840000, "claudeGptTokens": 1050000, "requests": 1120 }
-//      ]
-//
-// 3. Purpose / Why Needed:
-//    - Visualizes historical token consumption trends comparing Gemini vs Claude model families over time.
-//
-// 4. Edge Cases & Chart Optimization:
-//    - [ ] Dynamic Downsampling:
-//          * 1h Range  -> 1-minute bucket resolution (60 points).
-//          * 24h Range -> 15-minute bucket resolution (96 points).
-//          * 7d Range  -> 1-hour bucket resolution (168 points).
-//          * 30d Range -> 6-hour bucket resolution (120 points).
-//    - [ ] Zero-Filling Inactive Periods: If a sandbox was turned off, backend must return 0 tokens rather than null gaps.
-//    - [ ] Live Point Appending: When WebSocket emits an execution event, dynamically increment the most recent time bucket
-//          to render real-time upward slopes smoothly without chart flickering.
-// ============================================================================
-
 export const UsageTimelineChart: React.FC = () => {
   const { timelineData } = useGravWatch();
   const [activeFilter, setActiveFilter] = useState<"all" | "gemini" | "claude">("all");

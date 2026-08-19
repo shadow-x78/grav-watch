@@ -28,38 +28,6 @@ interface SystemIssuesModalProps {
   onClose: () => void;
 }
 
-// ============================================================================
-// TODO: [BACKEND INTEGRATION] - Cluster Diagnostics & Issues Inspector Modal
-//
-// 1. Client-Side Issues State:
-//    - `issueAccounts`: Local filtering of accounts flagged with `warning` or `depleted`.
-//
-// 2. Required Backend Endpoints & Diagnostic Schemas:
-//    - `GET  /api/v1/diagnostics/issues`: Fetches active container failures, OOM events, and 429 Rate Limit error logs.
-//    - `POST /api/v1/diagnostics/remediate`: Triggers automated container recovery (e.g. restart container, clear corrupted SQLite cache, rotate session).
-//    - Diagnostic Packet Schema:
-//      {
-//        "total_issues": 1,
-//        "issues": [
-//          {
-//            "account_id": "acc-05",
-//            "severity": "critical" | "warning",
-//            "code": "HTTP_429_QUOTA_EXHAUSTED" | "CONTAINER_OOM" | "OAUTH_TOKEN_EXPIRED",
-//            "message": "5-hour rolling limit reached 0% on Claude models",
-//            "recommended_action": "route_traffic_to_standby",
-//            "reset_countdown": "0 hours, 28 minutes"
-//          }
-//        ]
-//      }
-//
-// 3. Purpose / Why Needed:
-//    - Real-time diagnostic inspector to troubleshoot and remedy bottlenecks across all active subagents and nodes.
-//
-// 4. Edge Cases:
-//    - [ ] Auto-Remediation Workflow: Allow one-click automated restart/session rotation for failing containers.
-//    - [ ] Alert Webhook Dispatch: Forward critical 429 cluster depletion warnings to Discord / Slack webhooks.
-// ============================================================================
-
 export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
   isOpen,
   onClose,
@@ -97,7 +65,6 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
         },
       }}
     >
-      {/* Header */}
       <DialogTitle sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.75, sm: 2 }, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
           <Avatar
@@ -212,7 +179,6 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
                     />
                   </Box>
 
-                  {/* Issue Explanation */}
                   <Box sx={{ pl: { xs: 0, sm: 5.5 } }}>
                     <Typography variant="body2" sx={{ color: "#e2e8f0", fontSize: { xs: "0.75rem", sm: "0.82rem" }, lineHeight: 1.4, mb: 1 }}>
                       {isDepleted
@@ -220,7 +186,6 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
                         : `Gemini and Claude 5-hour limits on this node are below 35% remaining. High token volume detected (${account.totalRequestsToday} requests today).`}
                     </Typography>
 
-                    {/* Diagnostic Specs */}
                     <Box
                       sx={{
                         p: 1.25,
@@ -248,12 +213,6 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
                         <span style={{ color: "#94a3b8" }}>RAM: </span>
                         <span style={{ color: "#cbd5e1" }}>{account.ramUsageMb}MB / 256MB</span>
                       </div>
-                      <div>
-                        <span style={{ color: "#94a3b8" }}>AI Overages: </span>
-                        <span style={{ color: account.enableAiCredits ? "#10b981" : "#94a3b8" }}>
-                          {account.enableAiCredits ? "ENABLED" : "DISABLED"}
-                        </span>
-                      </div>
                     </Box>
                   </Box>
                 </Paper>
@@ -262,7 +221,6 @@ export const SystemIssuesModal: React.FC<SystemIssuesModalProps> = ({
           </Box>
         )}
 
-        {/* System Summary Bar */}
         <Box
           sx={{
             mt: 2,

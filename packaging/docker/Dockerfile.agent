@@ -4,7 +4,8 @@ LABEL maintainer="shadow-x78 <https://github.com/shadow-x78/grav-watch>"
 LABEL description="GravWatch isolated minimal container agent for Google Antigravity CLI"
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PATH="/usr/local/bin:/root/.local/bin:$PATH"
 
 WORKDIR /app
 
@@ -12,15 +13,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
     procps \
-    nodejs \
-    npm \
+    tar \
+    gzip \
     && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir /usr/local/bin || true
 
 COPY services/agent/requirements.txt /app/services/agent/
 RUN pip install --no-cache-dir -r /app/services/agent/requirements.txt
-
-COPY packaging/cli/agy /usr/local/bin/agy
-RUN chmod +x /usr/local/bin/agy
 
 COPY services/ /app/services/
 COPY packaging/docker/entrypoint.sh /entrypoint.sh

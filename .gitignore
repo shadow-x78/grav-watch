@@ -61,7 +61,9 @@ htmlcov/
 *.sqlite3
 data/acc-*/
 data/acc-*-agent/
+data/acc-test*/
 data/server/
+data/*.db
 gravwatch.db
 
 # Environment & Secret Files

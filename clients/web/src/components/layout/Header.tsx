@@ -51,34 +51,6 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [isSpinning, setIsSpinning] = useState(false);
 
-  // ==========================================================================
-  // TODO: [BACKEND INTEGRATION] - Global Scope & Scrape Telemetry Controls
-  //
-  // 1. Account Scope Selection (`selectedAccountId`):
-  //    - Frontend State: Filters cluster metrics to a single Docker sandbox or aggregated pool ("all").
-  //    - Required Backend Endpoint: `GET /api/v1/accounts/{id}/telemetry?range={timeRange}`
-  //    - Edge Cases: Handle deleted or paused accounts gracefully if selected; auto-fallback to "all".
-  //
-  // 2. Manual Cluster Quota Re-Scrape (`handleManualRefresh`):
-  //    - Frontend Action: Triggers spinning animation and calls `refreshAllAccounts()`.
-  //    - Required Backend Endpoint: `POST http://localhost:8000/api/v1/accounts/sync-all`
-  //    - Execution Details: Concurrently inspects session SQLite caches across all active container volumes.
-  //    - Edge Cases: Debounce requests (max 1 refresh per 5 seconds) to prevent Docker socket overload.
-  //
-  // 3. Time-Range Filtering (`timeRanges`):
-  //    - Frontend Values: "1h" | "24h" | "7d" | "30d"
-  //    - Required Backend Endpoint: `GET http://localhost:8000/api/v1/metrics/timeline?range=${range}&account_id=${selectedAccountId}`
-  //    - Edge Cases: Handle zero-token historical gaps during host sleep / downtime with zero-fill.
-  //
-  // 4. Live Telemetry Stream Toggle (`isLiveStreaming`):
-  //    - Frontend State: Controls active subscription to WebSocket stream.
-  //    - Required Backend Action: Sends `{ "action": "pause" | "resume" }` packet to `ws://localhost:8000/api/v1/telemetry/stream`
-  //      to conserve client CPU and network bandwidth when user pauses live feed.
-  //
-  // 5. System Configuration Action:
-  //    - Required Backend Endpoint: `GET http://localhost:8000/api/v1/system/config`
-  //    - Purpose: Open system settings dialog for modifying reverse proxy ports, scraping intervals, and volume paths.
-  // ==========================================================================
   const handleManualRefresh = () => {
     setIsSpinning(true);
     refreshAllAccounts();
@@ -119,7 +91,6 @@ export const Header: React.FC<HeaderProps> = ({
           justifyContent: "space-between",
         }}
       >
-        {/* Left Section: Brand Logo Box (250px on desktop with divider line) */}
         <Box
           sx={{
             width: { xs: "auto", lg: 250 },
@@ -133,7 +104,6 @@ export const Header: React.FC<HeaderProps> = ({
             gap: { xs: 0.75, sm: 1.25 },
           }}
         >
-          {/* Hamburger: always show on < lg */}
           <IconButton
             id="mobile-menu-toggle"
             onClick={onToggleMobileSidebar}
@@ -149,7 +119,6 @@ export const Header: React.FC<HeaderProps> = ({
             <MenuIcon sx={{ fontSize: { xs: 22, sm: 24 } }} />
           </IconButton>
 
-          {/* GravWatch Brand Icon */}
           <Box
             sx={{
               width: { xs: 28, sm: 32 },
@@ -179,7 +148,7 @@ export const Header: React.FC<HeaderProps> = ({
           </Typography>
 
           <Chip
-            label="v2.3.0"
+            label="v2.4.0"
             size="small"
             sx={{
               height: 20,
@@ -194,7 +163,6 @@ export const Header: React.FC<HeaderProps> = ({
           />
         </Box>
 
-        {/* Right Section: Scope Selector & Action Controls */}
         <Box
           sx={{
             flex: 1,
@@ -207,7 +175,6 @@ export const Header: React.FC<HeaderProps> = ({
             gap: { xs: 0.75, sm: 1.5 },
           }}
         >
-          {/* Account Filter Scope Dropdown */}
           <Box sx={{ display: "flex", alignItems: "center", minWidth: 0, flex: { xs: 1, sm: "initial" } }}>
             <FormControl
               size="small"
@@ -344,17 +311,7 @@ export const Header: React.FC<HeaderProps> = ({
             </FormControl>
           </Box>
 
-          {/* Right Side: Time Ranges, Live Stream, Refresh, Pair Button */}
-          {/* TODO: [MISSING WIRING] - Time-range buttons (1H/24H/7D/30D) currently only update local
-               `timeRange` state — they do NOT re-fetch historical chart data from the backend.
-               Wire each button to: GET /api/v1/metrics/timeline?range=${range}&account_id=${selectedAccountId}
-               and push the response into `setTimelineData()` in GravWatchContext. */}
-          {/* TODO: [MISSING WIRING] - Account scope selector (`selectedAccountId`) updates state
-               but does NOT filter the Overview charts, quota rings, or timeline.
-               Wire it to: GET /api/v1/accounts/{id}/telemetry?range=${timeRange}
-               and re-aggregate pooledTelemetry based on the selected account only. */}
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.35, sm: 0.75, lg: 1.5 }, flexShrink: 0 }}>
-            {/* Time Filters: 1H | 24H | 7D | 30D — hidden on xs */}
             <ButtonGroup
               size="small"
               sx={{
@@ -395,9 +352,7 @@ export const Header: React.FC<HeaderProps> = ({
               })}
             </ButtonGroup>
 
-            {/* Live Telemetry Stream Toggle */}
             <Tooltip title={isLiveStreaming ? "Live Telemetry Running" : "Live Stream Paused"}>
-              {/* Icon-only on < lg */}
               <Box sx={{ display: { xs: "flex", lg: "none" } }}>
                 <IconButton
                   size="small"
@@ -418,7 +373,6 @@ export const Header: React.FC<HeaderProps> = ({
               </Box>
             </Tooltip>
             <Tooltip title={isLiveStreaming ? "Live Telemetry Running" : "Live Stream Paused"}>
-              {/* Full button with text on lg+ */}
               <Button
                 variant="outlined"
                 size="small"
@@ -447,7 +401,6 @@ export const Header: React.FC<HeaderProps> = ({
               </Button>
             </Tooltip>
 
-            {/* Language Switcher (AR / EN) */}
             <Tooltip title={language === "ar" ? "Switch to English" : "التبديل إلى العربية"}>
               <Button
                 size="small"
@@ -475,7 +428,6 @@ export const Header: React.FC<HeaderProps> = ({
               </Button>
             </Tooltip>
 
-            {/* Manual Scrape Quota Refresh */}
             <Tooltip title="Scrape & Sync Telemetry">
               <IconButton
                 size="small"
@@ -500,8 +452,6 @@ export const Header: React.FC<HeaderProps> = ({
               </IconButton>
             </Tooltip>
 
-            {/* Pair Google Account CTA */}
-            {/* Icon-only on < lg */}
             <Tooltip title="Pair Google Account">
               <Box sx={{ display: { xs: "flex", lg: "none" } }}>
                 <IconButton
@@ -524,7 +474,6 @@ export const Header: React.FC<HeaderProps> = ({
                 </IconButton>
               </Box>
             </Tooltip>
-            {/* Full button with text on lg+ */}
             <Button
               variant="contained"
               size="small"
@@ -550,15 +499,6 @@ export const Header: React.FC<HeaderProps> = ({
               Pair Google Account
             </Button>
 
-            {/* Settings / Config Icon */}
-            {/* TODO: [DEAD BUTTON] - This icon has NO onClick handler — clicking it does nothing.
-                 Steps to fix:
-                 1. Create `SettingsDrawer.tsx` or `SettingsModal.tsx` component.
-                 2. Add `const [isSettingsOpen, setIsSettingsOpen] = useState(false)` here.
-                 3. Add `onClick={() => setIsSettingsOpen(true)}` to the IconButton below.
-                 4. Inside the modal, expose controls for: scrape interval, memory limit per
-                    container (MB), FastAPI port, base volume path (`./data/`).
-                 5. On save, call: POST /api/v1/system/config with the updated values. */}
             <Tooltip title="System Configuration">
               <IconButton
                 size="small"

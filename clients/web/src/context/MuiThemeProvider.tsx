@@ -16,13 +16,13 @@ export const MuiAppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ c
         palette: {
           mode: isDark ? "dark" : "light",
           primary: {
-            main: "#10b981", // Emerald 500
+            main: "#10b981",
             light: "#34d399",
             dark: "#059669",
             contrastText: "#ffffff",
           },
           secondary: {
-            main: "#06b6d4", // Cyan 500
+            main: "#06b6d4",
             light: "#22d3ee",
             dark: "#0891b2",
             contrastText: "#ffffff",

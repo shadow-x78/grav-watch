@@ -1,94 +1,96 @@
-# GravWatch - Autonomous Quota Agent Daemon (GPL-3.0-or-later)
+# GravWatch - Antigravity Agent Daemon (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
 import os
-import json
 import time
+import signal
 import logging
-import requests
+import json
+import urllib.request
+import urllib.error
 from datetime import datetime, timezone
 
 try:
-    from services.agent.core.config import config
-    from services.agent.collector.scraper import load_credentials, run_agy_usage_command
-    from services.agent.collector.parser import parse_agy_output
+    from services.agent.core.config import settings
+    from services.agent.collector.scraper import QuotaScraper
 except ImportError:
-    from .core.config import config
-    from .collector.scraper import load_credentials, run_agy_usage_command
-    from .collector.parser import parse_agy_output
+    from .core.config import settings
+    from .collector.scraper import QuotaScraper
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
-logger = logging.getLogger("gravwatch.agent")
+logger = logging.getLogger(f"gravwatch.agent.{settings.ACCOUNT_ID}")
 
 
-def collect_telemetry() -> dict:
-    creds = load_credentials(config.account_id)
+class GravWatchAgent:
+    def __init__(self):
+        self.scraper = QuotaScraper()
+        self.running = False
 
-    if not creds or creds.get("status") not in ("authenticated", "healthy"):
-        logger.info(f"[{config.account_id}] Node is not authenticated. Awaiting 'agy auth login'.")
-        return {
-            "account_id": config.account_id,
-            "account_label": config.account_label,
-            "email": None,
-            "tier": "Unauthenticated",
-            "status": "unauthenticated",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "categories": [],
-            "models": []
+    def ingest_payload(self, payload: dict) -> bool:
+        url = f"{settings.SERVER_URL.rstrip('/')}/api/v1/usage"
+        headers = {
+            "Content-Type": "application/json",
+            "X-Agent-Key": settings.AGENT_API_KEY
+        }
+        data_bytes = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(url, data=data_bytes, headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                if resp.status in [200, 201]:
+                    logger.info("Successfully ingested usage snapshot to server (HTTP %d)", resp.status)
+                    return True
+                logger.error("Failed to ingest usage: HTTP %d", resp.status)
+                return False
+        except urllib.error.HTTPError as e:
+            logger.error("HTTP error connecting to server: %s", e)
+            return False
+        except Exception as e:
+            logger.error("Error connecting to server at %s: %s", url, e)
+            return False
+
+    def run_once(self):
+        logger.info("Collecting Antigravity quota snapshot...")
+        categories = self.scraper.scrape()
+
+        payload = {
+            "account_id": settings.ACCOUNT_ID,
+            "account_label": settings.ACCOUNT_LABEL,
+            "tier": settings.ACCOUNT_TIER,
+            "categories": categories,
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
 
-    # Execute 'agy usage' using the real system binary
-    raw_output = run_agy_usage_command(config.account_id)
-    if raw_output:
-        logger.info(f"[{config.account_id}] Scraped real 'agy usage' output.")
-        parsed = parse_agy_output(raw_output, config.account_id, config.account_label)
-        if parsed.get("categories"):
-            return parsed
+        self.ingest_payload(payload)
 
-    # If CLI execution had no categories, do not fake them
-    return {
-        "account_id": config.account_id,
-        "account_label": config.account_label,
-        "email": creds.get("email"),
-        "tier": creds.get("tier", "Antigravity Starter"),
-        "status": "healthy",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "categories": [],
-        "models": []
-    }
+    def start(self):
+        self.running = True
+        logger.info("Starting GravWatch Agent for [%s] (Polling every %ds)", settings.ACCOUNT_ID, settings.POLL_INTERVAL_SECONDS)
+        while self.running:
+            try:
+                self.run_once()
+            except Exception as e:
+                logger.error("Unexpected error in agent loop: %s", e)
 
+            for _ in range(settings.POLL_INTERVAL_SECONDS):
+                if not self.running:
+                    break
+                time.sleep(1)
 
-def send_telemetry(payload: dict):
-    target_url = f"{config.server_url.rstrip('/')}/api/v1/usage"
-    headers = {
-        "Content-Type": "application/json",
-        "X-Agent-Key": config.agent_api_key
-    }
-
-    try:
-        resp = requests.post(target_url, json=payload, headers=headers, timeout=10)
-        if resp.status_code == 201:
-            cats_count = len(payload.get("categories", []))
-            models_count = len(payload.get("models", []))
-            status_str = payload.get("status")
-            logger.info(f"[{config.account_id}] Telemetry dispatched (status={status_str}, {cats_count} categories, {models_count} models).")
-        else:
-            logger.error(f"[{config.account_id}] Server rejected telemetry (HTTP {resp.status_code}): {resp.text}")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"[{config.account_id}] Network error sending telemetry to {target_url}: {e}")
+    def stop(self):
+        logger.info("Stopping GravWatch Agent for [%s]...", settings.ACCOUNT_ID)
+        self.running = False
 
 
 def main():
-    logger.info(f"Starting GravWatch Agent for [{config.account_id}] (Poll interval: {config.poll_interval}s)...")
+    agent = GravWatchAgent()
 
-    while True:
-        try:
-            telemetry = collect_telemetry()
-            send_telemetry(telemetry)
-        except Exception as e:
-            logger.error(f"[{config.account_id}] Unhandled loop error: {e}", exc_info=True)
+    def handle_signal(sig, frame):
+        agent.stop()
 
-        time.sleep(config.poll_interval)
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+
+    agent.start()
 
 
 if __name__ == "__main__":

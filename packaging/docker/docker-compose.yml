@@ -61,12 +61,15 @@ services:
       - ACCOUNT_LABEL=Account 1
       - SERVER_URL=http://server:8000
       - AGENT_API_KEY=${AGENT_API_KEY}
-      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
+      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-20}
       - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - ../../data/acc-1:/root/.gemini
       - ../../data/acc-1-agent:/root/.antigravity-agent
-      - /home/shadow-x7/.config/Antigravity IDE/User/globalStorage/state.vscdb:/root/.config/antigravity/state.vscdb:ro
+      - /home/shadow-x7/.config/Antigravity IDE/User/globalStorage/state.vscdb:/root/.config/antigravity_seed/state.vscdb:ro
     deploy:
       resources:
         limits:
@@ -91,8 +94,11 @@ services:
       - ACCOUNT_LABEL=Account 2
       - SERVER_URL=http://server:8000
       - AGENT_API_KEY=${AGENT_API_KEY}
-      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
+      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-20}
       - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - ../../data/acc-2:/root/.gemini
       - ../../data/acc-2-agent:/root/.antigravity-agent
@@ -120,8 +126,11 @@ services:
       - ACCOUNT_LABEL=Account 3
       - SERVER_URL=http://server:8000
       - AGENT_API_KEY=${AGENT_API_KEY}
-      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
+      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-20}
       - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - ../../data/acc-3:/root/.gemini
       - ../../data/acc-3-agent:/root/.antigravity-agent
@@ -149,8 +158,11 @@ services:
       - ACCOUNT_LABEL=Account 4
       - SERVER_URL=http://server:8000
       - AGENT_API_KEY=${AGENT_API_KEY}
-      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-300}
+      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-20}
       - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - ../../data/acc-4:/root/.gemini
       - ../../data/acc-4-agent:/root/.antigravity-agent

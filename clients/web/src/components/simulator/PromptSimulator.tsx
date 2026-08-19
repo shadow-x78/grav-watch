@@ -27,88 +27,61 @@ export const PromptSimulator: React.FC = () => {
   const { executePromptSimulation, pooledTelemetry } = useGravWatch();
 
   const [modelGroup, setModelGroup] = useState<"Gemini Models" | "Claude & GPT Models">("Gemini Models");
-  const [specificModel, setSpecificModel] = useState("Gemini 3.6 Flash (High)");
+  const [specificModel, setSpecificModel] = useState("gemini-3.7-flash-high");
   const [strategy, setStrategy] = useState<"least" | "round">("least");
-  const [prompt, setPrompt] = useState(
-    "Antigravity CLI workspace analysis with multi-account quota balancing..."
-  );
+  const [prompt, setPrompt] = useState("Explain how GravWatch load balances Google Antigravity quotas in 2 sentences.");
   const [isExecuting, setIsExecuting] = useState(false);
   const [lastResult, setLastResult] = useState<{
     success: boolean;
     accountAlias: string;
     tokensUsed: number;
+    response?: string;
     timestamp: string;
   } | null>(null);
 
   const presets = [
     {
-      title: "Workspace Indexing",
+      title: "Model Identification",
       group: "Gemini Models" as const,
-      model: "Gemini 3.6 Flash (High)",
-      prompt: "Recursive file analysis and codebase symbol table extraction...",
+      model: "gemini-3.7-flash-high",
+      prompt: "What model are you and who built you?",
     },
     {
-      title: "Reasoning Architecture",
-      group: "Claude & GPT Models" as const,
-      model: "Claude Sonnet 4.6 (Thinking)",
-      prompt: "Deep architectural refactoring of isolated Docker container telemetry pipes...",
-    },
-    {
-      title: "Formal Verification",
+      title: "Architecture Analysis",
       group: "Gemini Models" as const,
-      model: "Gemini 3.1 Pro (High)",
-      prompt: "Formal mathematical verification of Antigravity pooled quota distribution...",
+      model: "gemini-3.1-pro-high",
+      prompt: "Explain how multi-account quota monitoring works in 2 sentences.",
     },
     {
-      title: "Heavy Benchmark Suite",
+      title: "Claude Reasoning",
       group: "Claude & GPT Models" as const,
-      model: "Claude Opus 4.6 (Thinking)",
-      prompt: "Execute end-to-end evaluation suite across all subagents in parallel...",
+      model: "claude-sonnet-4-6",
+      prompt: "Write 1 line of poetry about the night sky.",
     },
   ];
 
-  // ==========================================================================
-  // TODO: [BACKEND INTEGRATION] - agy CLI Subprocess Execution & Live Quota Balancing
-  //
-  // 1. Simulator Presets & Logic:
-  //    - `presets`: Preset prompt templates for testing load balancing across Gemini and Claude tiers.
-  //    - `executePromptSimulation`: In-memory sandbox selection and random token deduction.
-  //
-  // 2. Required Backend Endpoint & Payload:
-  //    - `POST http://localhost:8000/api/v1/router/execute`
-  //    - Request Payload:
-  //      {
-  //        "model_group": "Gemini Models" | "Claude & GPT Models",
-  //        "specific_model": "Gemini 3.6 Flash (High)" | "Claude Sonnet 4.6 (Thinking)",
-  //        "prompt": "Recursive file analysis and codebase symbol table extraction...",
-  //        "strategy": "least" | "round", // "least" (Lowest 5-hour quota drain) | "round" (Round-robin)
-  //        "stream": true
-  //      }
-  //
-  // 3. Backend Execution Pipeline:
-  //    - 1. Selection: Evaluates live quotas and picks the optimal container to avoid 429 quota exhaustion.
-  //    - 2. Invocation: Runs `docker exec {container} agy -p "{prompt}" --model "{specificModel}"`.
-  //    - 3. Streaming: Streams stdout/stderr chunks back to UI via SSE or WebSocket.
-  //    - 4. Persistence: Parses consumed input/output tokens and commits usage event to database and Prometheus.
-  //
-  // 4. Edge Cases & Resilience Strategies:
-  //    - [ ] Mid-Stream 429 Failover: If a node exhausts its rate limit mid-prompt, abort and auto-retry on fallback node.
-  //    - [ ] Command Timeout: Enforce 120-second timeout on CLI executions to prevent dangling zombie processes.
-  //    - [ ] All Nodes Depleted: Return HTTP 429 with payload detailing countdown until earliest 5-hour quota reset.
-  // ==========================================================================
-  const handleExecute = () => {
-    if (!prompt) return;
+  const handleExecute = async () => {
+    if (!prompt.trim()) return;
     setIsExecuting(true);
     setLastResult(null);
 
-    setTimeout(() => {
-      const result = executePromptSimulation(modelGroup, specificModel, prompt, strategy);
+    try {
+      const result = await executePromptSimulation(modelGroup, specificModel, prompt.trim(), strategy);
       setLastResult({
         ...result,
         timestamp: new Date().toLocaleTimeString(),
       });
+    } catch (err: any) {
+      setLastResult({
+        success: false,
+        accountAlias: "acc-1",
+        tokensUsed: 0,
+        response: `Error: ${err.message || err}`,
+        timestamp: new Date().toLocaleTimeString(),
+      });
+    } finally {
       setIsExecuting(false);
-    }, 700);
+    }
   };
 
   return (
@@ -117,26 +90,24 @@ export const PromptSimulator: React.FC = () => {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <PlayArrowIcon sx={{ fontSize: 28, color: "primary.main" }} />
           <Typography variant="h6" sx={{ fontWeight: 800, color: "#ffffff" }}>
-            Antigravity CLI Prompt Router Simulator
+            Antigravity CLI Live Prompt Execution
           </Typography>
         </Box>
         <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
-          Send mock prompts to test how GravWatch automatically routes requests to the optimal Google account sandbox and drains quota in real time
+          Execute real prompts against Google Gemini via the official Antigravity CLI container and observe live token drain.
         </Typography>
       </Box>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Prompt Editor & Config */}
         <div className="lg:col-span-2 space-y-4">
           <Card sx={{ border: "1px solid rgba(255, 255, 255, 0.08)", background: "rgba(13, 19, 34, 0.75)" }}>
             <CardHeader
-              title={<Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#ffffff" }}>Configure Mock Request</Typography>}
-              subheader={<Typography variant="caption" sx={{ color: "text.secondary" }}>Select target Antigravity model group and load balancing algorithm</Typography>}
+              title={<Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#ffffff" }}>Configure Live Request</Typography>}
+              subheader={<Typography variant="caption" sx={{ color: "text.secondary" }}>Target official agy CLI binary with live Google Gemini session</Typography>}
               sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)", pb: 1.5 }}
             />
 
             <CardContent sx={{ p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 2.5 }}>
-              {/* Presets */}
               <Box>
                 <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 1, display: "block" }}>
                   Quick Presets:
@@ -163,7 +134,6 @@ export const PromptSimulator: React.FC = () => {
                 </Box>
               </Box>
 
-              {/* Model Category & Specific Model */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormControl fullWidth size="small">
                   <InputLabel sx={{ fontSize: "0.85rem" }}>Antigravity Model Category</InputLabel>
@@ -173,16 +143,12 @@ export const PromptSimulator: React.FC = () => {
                     onChange={(e) => {
                       const grp = e.target.value as "Gemini Models" | "Claude & GPT Models";
                       setModelGroup(grp);
-                      setSpecificModel(
-                        grp === "Gemini Models"
-                          ? "Gemini 3.6 Flash (High)"
-                          : "Claude Sonnet 4.6 (Thinking)"
-                      );
+                      setSpecificModel(grp === "Gemini Models" ? "gemini-3.7-flash-high" : "claude-sonnet-4-6");
                     }}
                     sx={{ backgroundColor: "rgba(9, 13, 22, 0.7)", borderRadius: 2, fontSize: "0.8rem" }}
                   >
                     <MenuItem value="Gemini Models">Gemini Models (Flash / Pro)</MenuItem>
-                    <MenuItem value="Claude & GPT Models">Claude & GPT models (Sonnet / Opus / OSS)</MenuItem>
+                    <MenuItem value="Claude & GPT Models">Claude & GPT Models</MenuItem>
                   </Select>
                 </FormControl>
 
@@ -194,44 +160,25 @@ export const PromptSimulator: React.FC = () => {
                     onChange={(e) => setSpecificModel(e.target.value)}
                     sx={{ backgroundColor: "rgba(9, 13, 22, 0.7)", borderRadius: 2, fontSize: "0.8rem", fontFamily: "monospace" }}
                   >
-                    {modelGroup === "Gemini Models" ? (
-                      [
-                        <MenuItem key="1" value="Gemini 3.6 Flash (High)">Gemini 3.6 Flash (High)</MenuItem>,
-                        <MenuItem key="2" value="Gemini 3.6 Flash (Medium)">Gemini 3.6 Flash (Medium)</MenuItem>,
-                        <MenuItem key="3" value="Gemini 3.5 Flash (High)">Gemini 3.5 Flash (High)</MenuItem>,
-                        <MenuItem key="4" value="Gemini 3.1 Pro (High)">Gemini 3.1 Pro (High)</MenuItem>,
-                      ]
-                    ) : (
-                      [
-                        <MenuItem key="5" value="Claude Sonnet 4.6 (Thinking)">Claude Sonnet 4.6 (Thinking)</MenuItem>,
-                        <MenuItem key="6" value="Claude Opus 4.6 (Thinking)">Claude Opus 4.6 (Thinking)</MenuItem>,
-                        <MenuItem key="7" value="GPT-OSS 120B (Medium)">GPT-OSS 120B (Medium)</MenuItem>,
-                      ]
-                    )}
+                    {modelGroup === "Gemini Models" ? [
+                      <MenuItem key="gemini-3.7-flash-high" value="gemini-3.7-flash-high">gemini-3.7-flash-high (Gemini 3.7 Flash)</MenuItem>,
+                      <MenuItem key="gemini-3.7-flash-medium" value="gemini-3.7-flash-medium">gemini-3.7-flash-medium</MenuItem>,
+                      <MenuItem key="gemini-3.1-pro-high" value="gemini-3.1-pro-high">gemini-3.1-pro-high (Gemini 3.1 Pro)</MenuItem>,
+                      <MenuItem key="gemini-3.5-flash-high" value="gemini-3.5-flash-high">gemini-3.5-flash-high</MenuItem>,
+                    ] : [
+                      <MenuItem key="claude-sonnet-4-6" value="claude-sonnet-4-6">claude-sonnet-4-6 (Claude Sonnet 4.6)</MenuItem>,
+                      <MenuItem key="claude-opus-4-6-thinking" value="claude-opus-4-6-thinking">claude-opus-4-6-thinking (Claude Opus 4.6)</MenuItem>,
+                      <MenuItem key="gpt-oss-120b-medium" value="gpt-oss-120b-medium">gpt-oss-120b-medium (GPT-OSS 120B)</MenuItem>,
+                    ]}
                   </Select>
                 </FormControl>
               </div>
 
-              {/* Strategy */}
-              <FormControl fullWidth size="small">
-                <InputLabel sx={{ fontSize: "0.85rem" }}>Routing Strategy (Load Balancer)</InputLabel>
-                <Select
-                  value={strategy}
-                  label="Routing Strategy (Load Balancer)"
-                  onChange={(e) => setStrategy(e.target.value as "least" | "round")}
-                  sx={{ backgroundColor: "rgba(9, 13, 22, 0.7)", borderRadius: 2, fontSize: "0.8rem" }}
-                >
-                  <MenuItem value="least">Least Used 5-Hour Quota (Recommended)</MenuItem>
-                  <MenuItem value="round">Round Robin (Even Distribution)</MenuItem>
-                </Select>
-              </FormControl>
-
-              {/* Prompt Textarea */}
               <TextField
                 fullWidth
                 multiline
                 rows={3.5}
-                label="Command or Prompt"
+                label="Live Command or Prompt"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 sx={{
@@ -244,7 +191,6 @@ export const PromptSimulator: React.FC = () => {
                 }}
               />
 
-              {/* Execute Button */}
               <Button
                 variant="contained"
                 size="large"
@@ -259,20 +205,19 @@ export const PromptSimulator: React.FC = () => {
                   fontSize: { xs: "0.82rem", sm: "0.9rem" },
                 }}
               >
-                {isExecuting ? "Routing & Executing..." : "Execute & Drain Quota"}
+                {isExecuting ? "Executing live in Google Antigravity..." : "Execute Live via agy CLI"}
               </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Col: Routing Output */}
         <div className="space-y-4">
           <Card sx={{ border: "1px solid rgba(255, 255, 255, 0.08)", background: "rgba(13, 19, 34, 0.75)" }}>
             <CardHeader
               title={
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <TerminalIcon sx={{ fontSize: 18, color: "primary.main" }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#ffffff" }}>Live Routing Output</Typography>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#ffffff" }}>Live CLI Response</Typography>
                 </Box>
               }
               sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)", pb: 1.5 }}
@@ -293,7 +238,7 @@ export const PromptSimulator: React.FC = () => {
                   >
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, flexWrap: "wrap", gap: 0.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 800, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
-                        {lastResult.success ? "Routed & Executed" : "Routing Failed (Quota Depleted)"}
+                        {lastResult.success ? "Executed Successfully" : "Execution Failed"}
                       </Typography>
                       <Typography variant="caption" sx={{ fontFamily: "monospace", opacity: 0.8, fontSize: "0.68rem" }}>
                         {lastResult.timestamp}
@@ -302,36 +247,47 @@ export const PromptSimulator: React.FC = () => {
 
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, fontFamily: "monospace", fontSize: { xs: "0.7rem", sm: "0.75rem" } }}>
                       <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
-                        <span style={{ opacity: 0.7 }}>Selected Node:</span>
+                        <span style={{ opacity: 0.7 }}>Executed On:</span>
                         <strong style={{ color: "#10b981" }}>{lastResult.accountAlias}</strong>
                       </Box>
                       <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
-                        <span style={{ opacity: 0.7 }}>Model:</span>
-                        <strong style={{ color: "#06b6d4" }}>{specificModel}</strong>
-                      </Box>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1 }}>
-                        <span style={{ opacity: 0.7 }}>Tokens Drained:</span>
-                        <strong style={{ color: "#f59e0b" }}>-{formatTokens(lastResult.tokensUsed)}</strong>
+                        <span style={{ opacity: 0.7 }}>Tokens:</span>
+                        <strong style={{ color: "#f59e0b" }}>~{formatTokens(lastResult.tokensUsed)}</strong>
                       </Box>
                     </Box>
-                  </Alert>
 
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    💡 Tokens were drained from the target container node's 5-hour quota and reflected live in all progress rings and charts.
-                  </Typography>
+                    {lastResult.response && (
+                      <Box
+                        sx={{
+                          mt: 1.5,
+                          p: 1.5,
+                          bgcolor: "#0b0e14",
+                          borderRadius: 1.5,
+                          border: "1px solid #21262d",
+                          fontFamily: "monospace",
+                          fontSize: "12.5px",
+                          color: "#e4e6eb",
+                          whiteSpace: "pre-wrap",
+                          maxHeight: 250,
+                          overflowY: "auto",
+                        }}
+                      >
+                        {lastResult.response}
+                      </Box>
+                    )}
+                  </Alert>
                 </Box>
               ) : (
                 <Box sx={{ py: 6, textAlign: "center", color: "text.secondary" }}>
                   <DnsIcon sx={{ fontSize: 36, opacity: 0.4, mb: 1 }} />
                   <Typography variant="caption" sx={{ display: "block", fontFamily: "monospace" }}>
-                    Click Execute to test load routing across accounts
+                    Click Execute to run a real query on Google Antigravity
                   </Typography>
                 </Box>
               )}
             </CardContent>
           </Card>
 
-          {/* Quick Pool Status Mini Card */}
           <Paper
             elevation={0}
             sx={{
@@ -347,19 +303,15 @@ export const PromptSimulator: React.FC = () => {
             }}
           >
             <Typography variant="caption" sx={{ fontWeight: 800, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.05em" }}>
-              Antigravity Pool Status
+              Antigravity Node Pool
             </Typography>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "var(--muted-foreground)" }}>Gemini 5-Hour Cap:</span>
-              <strong style={{ color: "#06b6d4" }}>{pooledTelemetry.geminiFiveHourPooledPercent}%</strong>
-            </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "var(--muted-foreground)" }}>Claude/GPT 5-Hour Cap:</span>
-              <strong style={{ color: "#8b5cf6" }}>{pooledTelemetry.claudeGptFiveHourPooledPercent}%</strong>
-            </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "var(--muted-foreground)" }}>Active Docker Nodes:</span>
+              <span style={{ color: "var(--muted-foreground)" }}>Active Nodes:</span>
               <strong style={{ color: "#10b981" }}>{pooledTelemetry.activeContainers} / {pooledTelemetry.totalAccounts}</strong>
+            </Box>
+            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "var(--muted-foreground)" }}>Pool Status:</span>
+              <strong style={{ color: "#06b6d4" }}>{pooledTelemetry.activeContainers > 0 ? "Online" : "No Active Nodes"}</strong>
             </Box>
           </Paper>
         </div>

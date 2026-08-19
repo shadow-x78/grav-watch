@@ -6,7 +6,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 
 interface ProgressRingProps {
-  value: number; // 0 to 100
+  value: number;
   size?: number;
   thickness?: number;
   showValue?: boolean;
@@ -25,16 +25,12 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   const safeValue = Math.min(100, Math.max(0, Math.round(value)));
 
   const getColor = () => {
-    if (colorVariant === "emerald") return "#22c55e"; // Antigravity Green
+    if (colorVariant === "emerald") return "#22c55e";
     if (colorVariant === "amber") return "#f59e0b";
     if (colorVariant === "rose") return "#ef4444";
     if (colorVariant === "cyan") return "#06b6d4";
     if (colorVariant === "purple") return "#8b5cf6";
 
-    // Auto variant based on remaining quota % matching Antigravity:
-    // High capacity: green (#22c55e / #10b981)
-    // Moderate capacity: amber (#f59e0b)
-    // Low / Critical capacity: red (#ef4444)
     if (safeValue >= 40) return "#22c55e";
     if (safeValue >= 15) return "#f59e0b";
     return "#ef4444";
@@ -53,7 +49,6 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
       }}
       className={className}
     >
-      {/* Background Track Circle */}
       <CircularProgress
         variant="determinate"
         sx={{
@@ -63,7 +58,6 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
         thickness={thickness}
         value={100}
       />
-      {/* Foreground Active Progress */}
       <CircularProgress
         variant="determinate"
         disableShrink
@@ -106,4 +100,3 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
     </Box>
   );
 };
-

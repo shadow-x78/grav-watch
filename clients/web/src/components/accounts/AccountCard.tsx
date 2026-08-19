@@ -28,20 +28,6 @@ interface AccountCardProps {
   onDelete: (account: GravAccount) => void;
 }
 
-// ============================================================================
-// TODO: [BACKEND INTEGRATION] - Account Card Grid View & Container Node Telemetry
-//
-// 1. Card Metrics Display:
-//    - `Twin Quotas`: 5-hour and weekly quota meters for Gemini (Flash/Pro) and Claude (Sonnet/Opus 4.6).
-//    - `Sandbox Parameters`: Docker container ID, running status, RAM memory usage, and AI Credits overages toggle.
-//
-// 2. Action Endpoints & Contracts:
-//    - `POST   /api/v1/accounts/{id}/sync`          -> Instantly re-scrapes quotas from internal SQLite cache.
-//    - `POST   /api/v1/accounts/{id}/toggle-status` -> Executes `docker pause` or `docker unpause` on container.
-//    - `PATCH  /api/v1/accounts/{id}`               -> Modifies account alias, plan tier, or tags.
-//    - `DELETE /api/v1/accounts/{id}`               -> Stops container, purges volume, and removes record from DB.
-// ============================================================================
-
 export const AccountCard: React.FC<AccountCardProps> = ({
   account,
   onEdit,
@@ -96,7 +82,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
       }}
     >
       <CardContent sx={{ p: { xs: 2, sm: 2.5 }, pb: 1 }}>
-        {/* Top Account Header (Image 2 style) */}
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, gap: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
             <Avatar
@@ -163,7 +148,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           />
         </Box>
 
-        {/* Tags if any */}
         {account.tags.length > 0 && (
           <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", mb: 2 }}>
             {account.tags.map((tag, idx) => (
@@ -183,7 +167,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           </Box>
         )}
 
-        {/* Gemini Models Section (Antigravity Exact Card Style) */}
         <Box sx={{ mb: 1.75 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
             <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem" }}>
@@ -203,7 +186,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
               overflow: "hidden",
             }}
           >
-            {/* Gemini Weekly */}
             <Box
               sx={{
                 p: 1.5,
@@ -234,7 +216,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
 
             <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.06)" }} />
 
-            {/* Gemini 5-Hour */}
             <Box
               sx={{
                 p: 1.5,
@@ -265,7 +246,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           </Paper>
         </Box>
 
-        {/* Claude & GPT Models Section (Antigravity Exact Card Style) */}
         <Box sx={{ mb: 1.75 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
             <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem" }}>
@@ -285,7 +265,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
               overflow: "hidden",
             }}
           >
-            {/* Claude Weekly */}
             <Box
               sx={{
                 p: 1.5,
@@ -316,7 +295,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
 
             <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.06)" }} />
 
-            {/* Claude 5-Hour */}
             <Box
               sx={{
                 p: 1.5,
@@ -347,7 +325,6 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           </Paper>
         </Box>
 
-        {/* Docker sandbox & Credits info */}
         <Paper
           elevation={0}
           sx={{
@@ -368,18 +345,13 @@ export const AccountCard: React.FC<AccountCardProps> = ({
               {account.containerName} ({account.ramUsageMb}MB)
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary", fontSize: "0.72rem" }}>
-              ${account.aiCreditsBalanceUsd.toFixed(2)} Credits
-            </Typography>
-            <Chip
-              label={account.enableAiCredits ? "Overages ON" : "Overages OFF"}
-              size="small"
-              color={account.enableAiCredits ? "success" : "default"}
-              variant="outlined"
-              sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700 }}
-            />
-          </Box>
+          <Chip
+            label={account.containerStatus === "running" ? "ONLINE" : "OFFLINE"}
+            size="small"
+            color={account.containerStatus === "running" ? "success" : "default"}
+            variant="outlined"
+            sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700 }}
+          />
         </Paper>
       </CardContent>
 
@@ -426,4 +398,3 @@ export const AccountCard: React.FC<AccountCardProps> = ({
     </Card>
   );
 };
-

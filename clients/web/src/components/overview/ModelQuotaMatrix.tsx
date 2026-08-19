@@ -6,9 +6,7 @@ import Card from "@mui/material/Card";
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
-import Switch from "@mui/material/Switch";
 import Chip from "@mui/material/Chip";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
@@ -18,30 +16,9 @@ import { ProgressRing } from "@/components/ui/progress-ring";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
-// ============================================================================
-// TODO: [BACKEND INTEGRATION] - Models & Quota Matrix (Twin-Tier Telemetry)
-//
-// 1. Client-Side State & Fallback Values:
-//    - `displayPlan`: Current account plan (Google AI Pro / Ultra / Enterprise) or "Pooled Cluster".
-//    - `displayOverages`: Boolean toggle state for "Use AI Credits after limit reached".
-//    - `geminiWeeklyPct` / `gemini5hPct`: Twin-tier quota levels for Gemini models (Flash 3.6 / Pro 3.1).
-//    - `claudeWeeklyPct` / `claude5hPct`: Twin-tier quota levels for Claude & GPT models (Sonnet 4.6 / Opus 4.6).
-//    - `refreshCountdown`: Formatted countdown strings for 5-hour rolling window and weekly resets.
-//
-// 2. Required Backend Endpoints & Mutations:
-//    - `GET   /api/v1/accounts/{id}/quota`             -> Fetches precise rolling quota limits from container SQLite cache.
-//    - `PATCH /api/v1/accounts/{id}/credits-overage`   -> Toggles AI credit fallback on 429 exhaustion (`{ enable: boolean }`).
-//    - `POST  /api/v1/billing/checkout-session`        -> Creates Stripe / Google Cloud billing checkout session for plan upgrade.
-//    - `WS    /api/v1/accounts/{id}/quota-stream`      -> Subscribes to live quota deductions and push reset events.
-//
-// 3. Purpose / Why Needed:
-//    - Accurately mirrors Antigravity IDE native quota behavior and provides reset countdowns to prevent agent starvation.
-// ============================================================================
-
 export const ModelQuotaMatrix: React.FC = () => {
   const { accounts, selectedAccountId, refreshAllAccounts, pooledTelemetry } = useGravWatch();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [overagesEnabled, setOveragesEnabled] = useState(false);
 
   const selectedAccount =
     selectedAccountId === "all"
@@ -49,7 +26,6 @@ export const ModelQuotaMatrix: React.FC = () => {
       : accounts.find((a) => a.id === selectedAccountId);
 
   const displayPlan = selectedAccount ? selectedAccount.plan : "Google AI Pro (Pooled Cluster)";
-  const displayOverages = selectedAccount ? selectedAccount.enableAiCredits : overagesEnabled;
 
   const geminiWeeklyPct = selectedAccount
     ? selectedAccount.geminiQuota.weekly.percentRemaining
@@ -57,7 +33,7 @@ export const ModelQuotaMatrix: React.FC = () => {
 
   const geminiWeeklyCountdown = selectedAccount
     ? selectedAccount.geminiQuota.weekly.refreshCountdown
-    : "3 days, 20 hours";
+    : accounts[0]?.geminiQuota.weekly.refreshCountdown || "Active";
 
   const gemini5hPct = selectedAccount
     ? selectedAccount.geminiQuota.fiveHour.percentRemaining
@@ -65,7 +41,7 @@ export const ModelQuotaMatrix: React.FC = () => {
 
   const gemini5hCountdown = selectedAccount
     ? selectedAccount.geminiQuota.fiveHour.refreshCountdown
-    : "3 hours, 57 minutes";
+    : accounts[0]?.geminiQuota.fiveHour.refreshCountdown || "Active";
 
   const claudeWeeklyPct = selectedAccount
     ? selectedAccount.claudeGptQuota.weekly.percentRemaining
@@ -73,7 +49,7 @@ export const ModelQuotaMatrix: React.FC = () => {
 
   const claudeWeeklyCountdown = selectedAccount
     ? selectedAccount.claudeGptQuota.weekly.refreshCountdown
-    : "6 days, 21 hours";
+    : accounts[0]?.claudeGptQuota.weekly.refreshCountdown || "Active";
 
   const claude5hPct = selectedAccount
     ? selectedAccount.claudeGptQuota.fiveHour.percentRemaining
@@ -81,7 +57,7 @@ export const ModelQuotaMatrix: React.FC = () => {
 
   const claude5hCountdown = selectedAccount
     ? selectedAccount.claudeGptQuota.fiveHour.refreshCountdown
-    : "2 hours, 14 minutes";
+    : accounts[0]?.claudeGptQuota.fiveHour.refreshCountdown || "Active";
 
   const handleManualRefresh = () => {
     setIsRefreshing(true);
@@ -98,7 +74,6 @@ export const ModelQuotaMatrix: React.FC = () => {
         borderRadius: 3.5,
       }}
     >
-      {/* Header matching Antigravity IDE Settings */}
       <CardHeader
         title={
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -141,7 +116,6 @@ export const ModelQuotaMatrix: React.FC = () => {
       />
 
       <CardContent sx={{ p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 3 }}>
-        {/* Plan Section */}
         <Box>
           <Typography
             variant="caption"
@@ -164,111 +138,28 @@ export const ModelQuotaMatrix: React.FC = () => {
               backgroundColor: "rgba(9, 13, 22, 0.6)",
               borderRadius: 2.5,
               display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "flex-start", sm: "center" },
+              alignItems: "center",
               justifyContent: "space-between",
               gap: 2,
             }}
           >
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 700, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.95rem" } }}
-                >
-                  Your Plan: {displayPlan}
-                </Typography>
-                <Chip
-                  label="ACTIVE"
-                  size="small"
-                  color="success"
-                  sx={{ height: 20, fontSize: "0.65rem", fontWeight: 800 }}
-                />
-              </Box>
-              <Typography
-                variant="caption"
-                sx={{ color: "text.secondary", mt: 0.5, display: "block", fontSize: { xs: "0.72rem", sm: "0.78rem" } }}
-              >
-                You can upgrade to a Google AI Ultra plan to receive higher rate limits.
-              </Typography>
-            </Box>
-
-            <Button
-              variant="contained"
-              size="small"
-              sx={{
-                background: "#2563eb",
-                "&:hover": { background: "#1d4ed8" },
-                px: 2.5,
-                py: 0.8,
-                fontSize: "0.8rem",
-                alignSelf: { xs: "stretch", sm: "auto" },
-              }}
-            >
-              Upgrade
-            </Button>
-          </Paper>
-        </Box>
-
-        {/* Model Credits Section */}
-        <Box>
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 700,
-              textTransform: "uppercase",
-              color: "text.secondary",
-              letterSpacing: "0.05em",
-              mb: 1,
-              display: "block",
-            }}
-          >
-            Model Credits
-          </Typography>
-          <Paper
-            elevation={0}
-            sx={{
-              p: { xs: 1.75, sm: 2.5 },
-              border: "1px solid rgba(255, 255, 255, 0.06)",
-              backgroundColor: "rgba(9, 13, 22, 0.6)",
-              borderRadius: 2.5,
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "flex-start", sm: "flex-start" },
-              justifyContent: "space-between",
-              gap: 2,
-            }}
-          >
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
               <Typography
                 variant="subtitle2"
                 sx={{ fontWeight: 700, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.95rem" } }}
               >
-                Enable AI Credit Overages
+                Your Plan: {displayPlan}
               </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "text.secondary",
-                  mt: 0.5,
-                  display: "block",
-                  lineHeight: 1.5,
-                  fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                }}
-              >
-                When toggled on, Antigravity IDE will use your AI credits to fulfill model requests once you're out of model quota. Antigravity IDE will always use your model quota first before using AI credits.
-              </Typography>
+              <Chip
+                label="ACTIVE"
+                size="small"
+                color="success"
+                sx={{ height: 20, fontSize: "0.65rem", fontWeight: 800 }}
+              />
             </Box>
-
-            <Switch
-              checked={displayOverages}
-              onChange={(e) => setOveragesEnabled(e.target.checked)}
-              color="primary"
-            />
           </Paper>
         </Box>
 
-        {/* Gemini Models Section (Antigravity Exact Card Style) */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.85rem" }}>
@@ -288,7 +179,6 @@ export const ModelQuotaMatrix: React.FC = () => {
               overflow: "hidden",
             }}
           >
-            {/* Gemini Weekly Row */}
             <Box
               sx={{
                 p: { xs: 2, sm: 2.25 },
@@ -338,7 +228,6 @@ export const ModelQuotaMatrix: React.FC = () => {
 
             <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.06)" }} />
 
-            {/* Gemini 5-Hour Row */}
             <Box
               sx={{
                 p: { xs: 2, sm: 2.25 },
@@ -388,7 +277,6 @@ export const ModelQuotaMatrix: React.FC = () => {
           </Paper>
         </Box>
 
-        {/* Claude and GPT Models Section (Antigravity Exact Card Style) */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.85rem" }}>
@@ -408,7 +296,6 @@ export const ModelQuotaMatrix: React.FC = () => {
               overflow: "hidden",
             }}
           >
-            {/* Claude Weekly Row */}
             <Box
               sx={{
                 p: { xs: 2, sm: 2.25 },
@@ -458,7 +345,6 @@ export const ModelQuotaMatrix: React.FC = () => {
 
             <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.06)" }} />
 
-            {/* Claude 5-Hour Row */}
             <Box
               sx={{
                 p: { xs: 2, sm: 2.25 },
@@ -511,4 +397,3 @@ export const ModelQuotaMatrix: React.FC = () => {
     </Card>
   );
 };
-

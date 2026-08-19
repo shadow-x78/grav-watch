@@ -13,35 +13,6 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const COLORS = ["#10b981", "#06b6d4", "#f59e0b", "#8b5cf6", "#f43f5e", "#3b82f6"];
 
-// ============================================================================
-// TODO: [BACKEND INTEGRATION] - Quota Pool Distribution Donut (FastAPI)
-//
-// 1. Current Client-Side Calculation:
-//    - Calculates average remaining quota per account locally from React context.
-//
-// 2. Required Backend Endpoint & Contract:
-//    - `GET http://localhost:8000/api/v1/telemetry/pool-distribution`
-//    - Expected Response:
-//      [
-//        {
-//          "account_id": "acc-01",
-//          "alias": "Mohamed Hegazy (Core Dev)",
-//          "plan": "Google AI Pro",
-//          "headroom_percent": 88.5,
-//          "assigned_routing_weight": 0.35,
-//          "is_eligible_for_routing": true
-//        }
-//      ]
-//
-// 3. Purpose / Why Needed:
-//    - Identifies which accounts provide the largest remaining headroom for smart load balancing.
-//
-// 4. Edge Cases & Missing Logic:
-//    - [ ] Paused Node Exclusion: Paused/Stopped containers should either be hidden or rendered with 0% weight.
-//    - [ ] Depleted Nodes Highlight: Accounts at 0% quota should render with a subtle warning hash pattern or error stroke.
-//    - [ ] Empty State: When no accounts exist, show an empty state graphic rather than an unrendered SVG pie.
-// ============================================================================
-
 export const PoolDonutChart: React.FC = () => {
   const { accounts, pooledTelemetry } = useGravWatch();
 
@@ -131,7 +102,6 @@ export const PoolDonutChart: React.FC = () => {
             </PieChart>
           </ResponsiveContainer>
 
-          {/* Center text inside Donut */}
           <Box
             sx={{
               position: "absolute",
@@ -152,7 +122,6 @@ export const PoolDonutChart: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Legend list */}
         <Divider sx={{ my: 1.5, borderColor: "rgba(255, 255, 255, 0.06)" }} />
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>

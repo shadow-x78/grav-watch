@@ -1,20 +1,26 @@
-# GravWatch Models Package
-from .db import Account, UsageSnapshot, CategorySnapshot, ModelQuota
+# GravWatch - Database & Schema Models Package (GPL-3.0-or-later)
+# https://github.com/shadow-x78/grav-watch
+
+from .db import Account, UsageSnapshot, Base
 from .schemas import (
-    LimitWindow, CategoryQuota, ModelQuotaItem,
-    UsageIngestRequest, IngestResponse,
-    CategoryPoolSummary, ModelPoolSummary, PoolSummary,
-    AccountDetailResponse, LatestUsageResponse,
-    TimeSeriesDataPoint, HistoryResponse,
-    AuthTokenPayload, AuthStatusResponse
+    UsageIngestPayload,
+    UsageLatestResponse,
+    UsageHistoryResponse,
+    AuthStatusResponse,
+    AuthTokenPayload,
+    AccountDetailResponse,
+    HealthResponse,
 )
 
 __all__ = [
-    "Account", "UsageSnapshot", "CategorySnapshot", "ModelQuota",
-    "LimitWindow", "CategoryQuota", "ModelQuotaItem",
-    "UsageIngestRequest", "IngestResponse",
-    "CategoryPoolSummary", "ModelPoolSummary", "PoolSummary",
-    "AccountDetailResponse", "LatestUsageResponse",
-    "TimeSeriesDataPoint", "HistoryResponse",
-    "AuthTokenPayload", "AuthStatusResponse"
+    "Account",
+    "UsageSnapshot",
+    "Base",
+    "UsageIngestPayload",
+    "UsageLatestResponse",
+    "UsageHistoryResponse",
+    "AuthStatusResponse",
+    "AuthTokenPayload",
+    "AccountDetailResponse",
+    "HealthResponse",
 ]

@@ -36,7 +36,6 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
   const [alias, setAlias] = useState("");
   const [email, setEmail] = useState("");
   const [plan, setPlan] = useState<AntigravityPlan>("Google AI Pro");
-  const [enableAiCredits, setEnableAiCredits] = useState(false);
   const [status, setStatus] = useState<"active" | "warning" | "depleted" | "paused">("active");
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
@@ -46,7 +45,6 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
       setAlias(account.alias);
       setEmail(account.email);
       setPlan(account.plan);
-      setEnableAiCredits(account.enableAiCredits);
       setStatus(account.status);
       setTags(account.tags.join(", "));
       setNotes(account.notes || "");
@@ -55,46 +53,12 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
 
   if (!account) return null;
 
-  // ==========================================================================
-  // TODO: [BACKEND INTEGRATION] - Update Account Metadata & Plan API
-  //
-  // 1. Updated Fields:
-  //    - `alias`: Human-readable identifier.
-  //    - `email`: Account email address.
-  //    - `plan`: Plan tier (Google AI Pro / Ultra / Enterprise).
-  //    - `enable_ai_credits`: Toggles fallback billing using AI credits.
-  //    - `status`: Node health status (active, warning, depleted, paused).
-  //    - `tags`, `notes`: Metadata tags and notes.
-  //
-  // 2. Required Backend Endpoint & Payload:
-  //    - `PATCH http://localhost:8000/api/v1/accounts/{account.id}`
-  //    - Request Body:
-  //      {
-  //        "alias": "Core Dev Node 01",
-  //        "email": "dev.primary@gmail.com",
-  //        "plan": "Google AI Ultra",
-  //        "enable_ai_credits": true,
-  //        "status": "active",
-  //        "tags": ["Primary", "Ultra", "Fast"],
-  //        "notes": "Upgraded tier"
-  //      }
-  //
-  // 3. Backend Execution Pipeline:
-  //    - 1. Updates database entity in SQLite / PostgreSQL.
-  //    - 2. Informs load balancer of new rate limits and overages eligibility.
-  //    - 3. If plan changed, recalculates total cluster headroom and broadcasts update event.
-  //
-  // 4. Edge Cases:
-  //    - [ ] Concurrent Edit Collision: Use `etag` or `updated_at` check to prevent overwriting updates from other sessions.
-  //    - [ ] Changing Status to 'paused': Triggers `docker pause {container}` in the background.
-  // ==========================================================================
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateAccount(account.id, {
       alias,
       email,
       plan,
-      enableAiCredits,
       status,
       tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
       notes,
@@ -133,7 +97,7 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
                 Edit Sandbox Account: {account.alias}
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary", fontSize: { xs: "0.7rem", sm: "0.75rem" }, display: "block" }}>
-                Modify plan tier, overages status, tags and container parameters
+                Modify plan tier, tags and container parameters
               </Typography>
             </Box>
           </Box>
@@ -188,22 +152,6 @@ export const EditAccountModal: React.FC<EditAccountModalProps> = ({
                   <MenuItem value="paused">Paused</MenuItem>
                 </Select>
               </FormControl>
-
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={enableAiCredits}
-                    onChange={(e) => setEnableAiCredits(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>Enable AI Credits</Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>Overages on quota exhaustion</Typography>
-                  </Box>
-                }
-              />
             </div>
 
             <TextField

@@ -1,117 +1,103 @@
-# GravWatch - Data Schemas (GPL-3.0-or-later)
+# GravWatch - Pydantic Request & Response Schemas (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
-from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
+from datetime import datetime
 from pydantic import BaseModel, Field
+from typing import List, Optional
 
+class HealthResponse(BaseModel):
+    status: str
+    service: str
+    timestamp: datetime
 
-class LimitWindow(BaseModel):
-    percentage_remaining: float = Field(..., ge=0.0, le=100.0)
-    refresh_in_human: str = ""
-    refreshes_at: Optional[datetime] = None
+class QuotaTierPayload(BaseModel):
+    percentage_remaining: Optional[float] = None
+    refresh_in_human: Optional[str] = None
+    reset_time: Optional[str] = None
+    is_exhausted: bool = False
 
-
-class CategoryQuota(BaseModel):
+class CategoryQuotaPayload(BaseModel):
     category_id: str
     category_name: str
-    weekly_limit: LimitWindow
-    five_hour_limit: LimitWindow
+    weekly_limit: QuotaTierPayload
+    five_hour_limit: QuotaTierPayload
 
-
-class ModelQuotaItem(BaseModel):
-    model_id: str
-    model_name: str
-    category_id: str = "gemini-models"
-    weekly_limit: LimitWindow
-    five_hour_limit: LimitWindow
-
-
-class UsageIngestRequest(BaseModel):
+class UsageIngestPayload(BaseModel):
     account_id: str
-    account_label: str = "Account 1"
-    email: str = "unknown"
-    tier: str = "Standard"
-    status: str = "healthy"
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    categories: List[CategoryQuota] = []
-    models: List[ModelQuotaItem] = []
+    account_label: Optional[str] = None
+    tier: Optional[str] = None
+    categories: List[CategoryQuotaPayload] = Field(default_factory=list)
+    timestamp: datetime
 
+class QuotaTierSummary(BaseModel):
+    percentage_remaining: Optional[float] = None
+    refresh_in_human: Optional[str] = None
+    is_exhausted: bool = False
 
-class IngestResponse(BaseModel):
-    success: bool
-    message: str
-
-
-class CategoryPoolSummary(BaseModel):
+class CategoryQuotaSummary(BaseModel):
     category_id: str
     category_name: str
-    weekly_limit_remaining: float
-    five_hour_limit_remaining: float
-    weekly_refresh_human: str
-    five_hour_refresh_human: str
+    weekly_limit: QuotaTierSummary
+    five_hour_limit: QuotaTierSummary
 
-
-class ModelPoolSummary(BaseModel):
-    model_id: str
-    model_name: str
-    category_id: str
-    weekly_limit_remaining: float
-    five_hour_limit_remaining: float
-    active_accounts_count: int
-
-
-class PoolSummary(BaseModel):
-    total_accounts: int
-    online_accounts: int
-    overall_weekly_remaining: float
-    overall_five_hour_remaining: float
-    category_summaries: List[CategoryPoolSummary] = []
-    model_summaries: List[ModelPoolSummary] = []
-
-
-class AccountDetailResponse(BaseModel):
-    id: str
+class AccountQuotaSummary(BaseModel):
+    account_id: str
     label: str
-    email: str
+    email: Optional[str] = None
     tier: str
     status: str
     last_seen_at: datetime
-    categories: List[CategoryQuota] = []
-    models: List[ModelQuotaItem] = []
+    categories: List[CategoryQuotaSummary] = Field(default_factory=list)
 
-
-class LatestUsageResponse(BaseModel):
+class UsageLatestResponse(BaseModel):
     timestamp: datetime
-    pool_summary: PoolSummary
-    accounts: List[AccountDetailResponse] = []
+    total_accounts: int
+    active_accounts: int
+    gemini_pool_percent: Optional[float] = None
+    claude_pool_percent: Optional[float] = None
+    accounts: List[AccountQuotaSummary] = Field(default_factory=list)
 
-
-class TimeSeriesDataPoint(BaseModel):
+class HistoryPoint(BaseModel):
     timestamp: datetime
-    account_id: Optional[str] = None
-    category_id: Optional[str] = None
-    model_id: Optional[str] = None
-    percentage_remaining: float
+    time_label: str
+    gemini_tokens: int
+    claude_tokens: int
+    active_nodes: int
 
-
-class HistoryResponse(BaseModel):
+class UsageHistoryResponse(BaseModel):
     range: str
-    series: List[TimeSeriesDataPoint] = []
-
-
-class AuthTokenPayload(BaseModel):
-    account_id: str = "acc-1"
-    account_label: Optional[str] = "Account 1"
-    email: Optional[str] = None
-    access_token: Optional[str] = None
-    refresh_token: Optional[str] = None
-    oauth_credentials_json: Optional[Dict[str, Any]] = None
-
+    start_time: datetime
+    end_time: datetime
+    series: List[HistoryPoint] = Field(default_factory=list)
 
 class AuthStatusResponse(BaseModel):
     account_id: str
     authenticated: bool
     email: Optional[str] = None
+    name: Optional[str] = None
+    picture: Optional[str] = None
     last_token_update: Optional[datetime] = None
     message: str
+
+class AuthTokenPayload(BaseModel):
+    account_id: Optional[str] = "acc-1"
+    account_label: Optional[str] = None
+    email: str
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+    tier: Optional[str] = "Antigravity Starter"
+
+class AccountModelInfo(BaseModel):
+    model_id: str
+    percentage_remaining: Optional[float] = None
+    five_hour_remaining: Optional[float] = None
+    is_exhausted: bool = False
+
+class AccountDetailResponse(BaseModel):
+    id: str
+    label: str
+    email: Optional[str] = None
+    tier: str
+    status: str
+    last_seen_at: datetime
+    models: List[AccountModelInfo] = Field(default_factory=list)

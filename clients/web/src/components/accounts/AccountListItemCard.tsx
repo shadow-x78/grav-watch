@@ -27,21 +27,6 @@ interface AccountListItemCardProps {
   onDelete: (account: GravAccount) => void;
 }
 
-// ============================================================================
-// TODO: [BACKEND INTEGRATION] - Account List Card View (Compact Cards Alternative)
-//
-// 1. Account Metrics Display:
-//    - Real Docker container memory & CPU percentage streamed from Docker daemon socket.
-//    - Twin Quotas: 5-hour rolling limit and weekly quota percentages for Gemini & Claude tiers.
-//    - AI Credits Balance: Available financial credit balance in USD for model overages.
-//
-// 2. Action Endpoints:
-//    - `POST   /api/v1/accounts/{id}/sync`          -> Instantly re-scrapes quotas for this account node.
-//    - `POST   /api/v1/accounts/{id}/toggle-status` -> Pauses / unpauses container (`docker pause / unpause`).
-//    - `PATCH  /api/v1/accounts/{id}`               -> Opens edit dialog and persists modifications to DB.
-//    - `DELETE /api/v1/accounts/{id}`               -> Destroys sandbox container and removes account.
-// ============================================================================
-
 export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
   account,
   onEdit,
@@ -101,7 +86,6 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
             gap: 2.5,
           }}
         >
-          {/* Account Identity & Plan (Image 2 style) */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.75, minWidth: { lg: 280 }, flex: { lg: "0 0 280px" } }}>
             <Avatar
               src={account.avatarUrl}
@@ -155,7 +139,6 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
             </Box>
           </Box>
 
-          {/* Antigravity Quotas Section (Gemini & Claude/GPT Compact Cards) */}
           <Box
             sx={{
               display: "flex",
@@ -164,7 +147,6 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
               flex: 1,
             }}
           >
-            {/* Gemini Models Antigravity Compact Box */}
             <Paper
               elevation={0}
               sx={{
@@ -218,7 +200,6 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
               </Box>
             </Paper>
 
-            {/* Claude and GPT Models Antigravity Compact Box */}
             <Paper
               elevation={0}
               sx={{
@@ -273,7 +254,6 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
             </Paper>
           </Box>
 
-          {/* Status & Actions Section */}
           <Box
             sx={{
               display: "flex",

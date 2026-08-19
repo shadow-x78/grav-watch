@@ -14,7 +14,6 @@ interface LanguageContextType {
 
 const translations: Record<Language, Record<string, string>> = {
   ar: {
-    // App & Header
     "app.title": "GravWatch",
     "app.subtitle": "لوحة مراقبة كوتا وحصص حسابات Google Antigravity المجمعة",
     "nav.overview": "نظرة عامة والكوتا المجمعة",
@@ -29,14 +28,12 @@ const translations: Record<Language, Record<string, string>> = {
     "btn.refresh_all": "تحديث الكوتا الآن",
     "btn.reset_sample": "استعادة البيانات التجريبية",
 
-    // Time ranges
     "time.1h": "آخر ساعة",
     "time.24h": "آخر 24 ساعة",
     "time.7d": "آخر 7 أيام",
     "time.30d": "آخر 30 يوم",
     "time.all": "كل الأوقات",
 
-    // Overview KPIs
     "kpi.pooled_quota": "إجمالي الكوتا المتبقية في الـ Pool",
     "kpi.pooled_desc": "السعة المتاحة لجميع الحسابات مجتمعة",
     "kpi.burn_rate": "معدل الحرق اللحظي",
@@ -46,7 +43,6 @@ const translations: Record<Language, Record<string, string>> = {
     "kpi.requests_today": "إجمالي الطلبات اليوم",
     "kpi.requests_desc": "معدل النجاح 98.4%",
 
-    // Model Matrix
     "models.matrix_title": "مصفوفة استهلاك كوتا النماذج (Antigravity 5-Model Engine)",
     "models.matrix_subtitle": "تتبع مجمع لحظي لحدود الـ RPM والـ TPM لكل نموذج",
     "models.gemini_flash": "Gemini 2.0 Flash",
@@ -59,7 +55,6 @@ const translations: Record<Language, Record<string, string>> = {
     "models.limit": "الحد الأقصى",
     "models.reset_in": "إعادة التعيين خلال",
 
-    // Charts
     "chart.timeline_title": "مخطط الاستهلاك الزمني المجمع",
     "chart.timeline_desc": "تتبع استهلاك التوكنز والطلبات عبر الحسابات والنماذج",
     "chart.donut_title": "توزيع حصة الكوتا في الـ Pool",
@@ -67,7 +62,6 @@ const translations: Record<Language, Record<string, string>> = {
     "chart.activity_title": "سجل الأحداث والطلبات اللحظية (Live Telemetry Ticker)",
     "chart.activity_desc": "عمليات تنفيذ أوامر agy عبر الحاويات في الوقت الفعلي",
 
-    // Accounts Management
     "accounts.title": "الحسابات وحاويات Docker المعزولة",
     "accounts.subtitle": "إدارة وتتبع جلسات Google OAuth المستقلة ومراقبة استهلاك كل حساب",
     "accounts.search_placeholder": "البحث بالاسم، البريد، الحاوية، أو الوسم...",
@@ -84,7 +78,6 @@ const translations: Record<Language, Record<string, string>> = {
     "accounts.col_reset": "دورة التجديد",
     "accounts.col_actions": "الإجراءات",
 
-    // Modals
     "modal.google_title": "ربط حساب Google OAuth جديد (محاكاة setup-auth.sh)",
     "modal.google_desc": "سيتم إنشاء حاوية Docker معزولة (debian-slim) وتخزين الـ Token بشكل مستقل",
     "modal.manual_title": "إضافة حساب يدوي / Session Token",
@@ -93,7 +86,6 @@ const translations: Record<Language, Record<string, string>> = {
     "modal.delete_title": "تأكيد إزالة الحساب",
     "modal.delete_desc": "هل أنت متأكد من رغبتك في حذف الحساب وإيقاف حاوية Docker المخصصة له؟",
 
-    // Simulator
     "sim.title": "محاكي توجيه طلبات Antigravity CLI",
     "sim.desc": "اختبر إرسال طلب وهمي وشاهد كيف يوجهه GravWatch للحاوية الأنسب مع تحديث الكوتا اللحظي",
     "sim.prompt_label": "الأمر التجريبي أو البرومبت",
@@ -104,7 +96,6 @@ const translations: Record<Language, Record<string, string>> = {
     "sim.send_btn": "تنفيذ الطلب واستهلاك الكوتا",
     "sim.executing": "جاري التوجيه والتنفيذ...",
 
-    // General
     "common.active": "نشط",
     "common.warning": "تحذير",
     "common.depleted": "مستنفد",
@@ -117,7 +108,6 @@ const translations: Record<Language, Record<string, string>> = {
     "common.requests": "طلبات",
   },
   en: {
-    // App & Header
     "app.title": "GravWatch",
     "app.subtitle": "Multi-Account Google Antigravity Telemetry & Quota Aggregation Hub",
     "nav.overview": "Overview & Quota Pool",
@@ -132,14 +122,12 @@ const translations: Record<Language, Record<string, string>> = {
     "btn.refresh_all": "Scrape & Refresh Now",
     "btn.reset_sample": "Reset Sample Data",
 
-    // Time ranges
     "time.1h": "Last 1h",
     "time.24h": "Last 24h",
     "time.7d": "Last 7d",
     "time.30d": "Last 30d",
     "time.all": "All Time",
 
-    // Overview KPIs
     "kpi.pooled_quota": "Pooled Quota Remaining",
     "kpi.pooled_desc": "Combined capacity across all accounts",
     "kpi.burn_rate": "Current Burn Rate",
@@ -149,7 +137,6 @@ const translations: Record<Language, Record<string, string>> = {
     "kpi.requests_today": "Total Requests Today",
     "kpi.requests_desc": "98.4% success rate",
 
-    // Model Matrix
     "models.matrix_title": "Antigravity 5-Model Quota Matrix",
     "models.matrix_subtitle": "Real-time aggregated RPM & TPM limits across models",
     "models.gemini_flash": "Gemini 2.0 Flash",
@@ -162,7 +149,6 @@ const translations: Record<Language, Record<string, string>> = {
     "models.limit": "Limit",
     "models.reset_in": "Resets in",
 
-    // Charts
     "chart.timeline_title": "Pooled Usage Timeline",
     "chart.timeline_desc": "Token consumption and request volume over time",
     "chart.donut_title": "Quota Pool Distribution",
@@ -170,7 +156,6 @@ const translations: Record<Language, Record<string, string>> = {
     "chart.activity_title": "Live Telemetry Ticker",
     "chart.activity_desc": "Real-time agy command executions across containers",
 
-    // Accounts Management
     "accounts.title": "Accounts & Isolated Containers",
     "accounts.subtitle": "Manage isolated Docker sessions and monitor per-account quota health",
     "accounts.search_placeholder": "Search by alias, email, container, tag...",
@@ -187,7 +172,6 @@ const translations: Record<Language, Record<string, string>> = {
     "accounts.col_reset": "Reset Cycle",
     "accounts.col_actions": "Actions",
 
-    // Modals
     "modal.google_title": "Pair New Google OAuth Account (setup-auth.sh)",
     "modal.google_desc": "Creates an isolated Docker container node and secures token storage",
     "modal.manual_title": "Add Manual Account / Session Key",
@@ -196,7 +180,6 @@ const translations: Record<Language, Record<string, string>> = {
     "modal.delete_title": "Confirm Account Removal",
     "modal.delete_desc": "Are you sure you want to remove this account and tear down its Docker container?",
 
-    // Simulator
     "sim.title": "Antigravity CLI Prompt Router Simulator",
     "sim.desc": "Send a mock command to see how GravWatch balances the load and drains quota in real time",
     "sim.prompt_label": "Mock Command or Prompt",
@@ -207,7 +190,6 @@ const translations: Record<Language, Record<string, string>> = {
     "sim.send_btn": "Execute & Drain Quota",
     "sim.executing": "Routing & Executing...",
 
-    // General
     "common.active": "Active",
     "common.warning": "Warning",
     "common.depleted": "Depleted",
