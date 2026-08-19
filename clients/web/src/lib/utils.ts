@@ -44,3 +44,27 @@ export function formatRelativeTime(date: Date | string, lang: "ar" | "en" = "ar"
   const diffDay = Math.floor(diffHour / 24);
   return lang === "ar" ? `منذ ${diffDay} يوم` : `${diffDay}d ago`;
 }
+
+export function formatCountdownWithDays(raw: string | undefined | null): string {
+  if (!raw) return "Active";
+  const str = raw.trim();
+  const match = str.match(/^(\d+)\s*h(?:\s*(\d+)\s*m)?/i);
+  if (match) {
+    const totalHours = parseInt(match[1], 10);
+    const minutes = match[2];
+    if (totalHours >= 24) {
+      const days = Math.floor(totalHours / 24);
+      const remHours = totalHours % 24;
+      if (remHours > 0 && minutes) {
+        return `${days}d ${remHours}h ${minutes}m`;
+      } else if (remHours > 0) {
+        return `${days}d ${remHours}h`;
+      } else if (minutes) {
+        return `${days}d ${minutes}m`;
+      } else {
+        return `${days}d`;
+      }
+    }
+  }
+  return str;
+}

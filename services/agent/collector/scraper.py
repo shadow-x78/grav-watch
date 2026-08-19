@@ -179,6 +179,27 @@ class QuotaScraper:
 
         return []
 
+    def _format_human_countdown(self, val: str) -> str:
+        if not val:
+            return "Active"
+        cleaned = val.strip()
+        m = re.match(r"^(\d+)\s*h(?:\s*(\d+)\s*m)?", cleaned)
+        if m:
+            total_hours = int(m.group(1))
+            minutes = m.group(2)
+            if total_hours >= 24:
+                days = total_hours // 24
+                rem_hours = total_hours % 24
+                if rem_hours > 0 and minutes:
+                    return f"{days}d {rem_hours}h {minutes}m"
+                elif rem_hours > 0:
+                    return f"{days}d {rem_hours}h"
+                elif minutes:
+                    return f"{days}d {minutes}m"
+                else:
+                    return f"{days}d"
+        return cleaned
+
     def _parse_tui_usage(self, text: str) -> List[Dict[str, Any]]:
         categories = []
         g_match = re.search(r"GEMINI MODELS.*?(?=CLAUDE|$)", text, re.DOTALL | re.IGNORECASE)
@@ -190,9 +211,9 @@ class QuotaScraper:
             g5_ref_match = re.search(r"Five Hour Limit Remaining.*?(?:Refreshes in|Resets in)\s+([^\n\r\|]+)", g_text, re.DOTALL | re.IGNORECASE)
 
             gw_pct = float(gw_pct_match.group(1)) if gw_pct_match else 100.0
-            gw_ref = gw_ref_match.group(1).strip() if gw_ref_match else "Active"
+            gw_ref = self._format_human_countdown(gw_ref_match.group(1)) if gw_ref_match else "Active"
             g5_pct = float(g5_pct_match.group(1)) if g5_pct_match else 100.0
-            g5_ref = g5_ref_match.group(1).strip() if g5_ref_match else ("Quota available" if g5_pct >= 99.9 else "Active")
+            g5_ref = self._format_human_countdown(g5_ref_match.group(1)) if g5_ref_match else ("Quota available" if g5_pct >= 99.9 else "Active")
 
             categories.append({
                 "category_id": "gemini-models",
@@ -218,9 +239,9 @@ class QuotaScraper:
             c5_ref_match = re.search(r"Five Hour Limit Remaining.*?(?:Refreshes in|Resets in)\s+([^\n\r\|]+)", c_text, re.DOTALL | re.IGNORECASE)
 
             cw_pct = float(cw_pct_match.group(1)) if cw_pct_match else 100.0
-            cw_ref = cw_ref_match.group(1).strip() if cw_ref_match else "Active"
+            cw_ref = self._format_human_countdown(cw_ref_match.group(1)) if cw_ref_match else "Active"
             c5_pct = float(c5_pct_match.group(1)) if c5_pct_match else 100.0
-            c5_ref = c5_ref_match.group(1).strip() if c5_ref_match else ("Quota available" if c5_pct >= 99.9 else "Active")
+            c5_ref = self._format_human_countdown(c5_ref_match.group(1)) if c5_ref_match else ("Quota available" if c5_pct >= 99.9 else "Active")
 
             categories.append({
                 "category_id": "claude-and-gpt-models",

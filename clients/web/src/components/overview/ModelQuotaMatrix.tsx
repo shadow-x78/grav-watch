@@ -15,6 +15,7 @@ import Paper from "@mui/material/Paper";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { formatCountdownWithDays } from "@/lib/utils";
 
 export const ModelQuotaMatrix: React.FC = () => {
   const { accounts, selectedAccountId, refreshAllAccounts, pooledTelemetry } = useGravWatch();
@@ -31,33 +32,41 @@ export const ModelQuotaMatrix: React.FC = () => {
     ? selectedAccount.geminiQuota.weekly.percentRemaining
     : pooledTelemetry.geminiWeeklyPooledPercent;
 
-  const geminiWeeklyCountdown = selectedAccount
-    ? selectedAccount.geminiQuota.weekly.refreshCountdown
-    : accounts[0]?.geminiQuota.weekly.refreshCountdown || "Active";
+  const geminiWeeklyCountdown = formatCountdownWithDays(
+    selectedAccount
+      ? selectedAccount.geminiQuota.weekly.refreshCountdown
+      : accounts[0]?.geminiQuota.weekly.refreshCountdown || "Active"
+  );
 
   const gemini5hPct = selectedAccount
     ? selectedAccount.geminiQuota.fiveHour.percentRemaining
     : pooledTelemetry.geminiFiveHourPooledPercent;
 
-  const gemini5hCountdown = selectedAccount
-    ? selectedAccount.geminiQuota.fiveHour.refreshCountdown
-    : accounts[0]?.geminiQuota.fiveHour.refreshCountdown || "Active";
+  const gemini5hCountdown = formatCountdownWithDays(
+    selectedAccount
+      ? selectedAccount.geminiQuota.fiveHour.refreshCountdown
+      : accounts[0]?.geminiQuota.fiveHour.refreshCountdown || "Active"
+  );
 
   const claudeWeeklyPct = selectedAccount
     ? selectedAccount.claudeGptQuota.weekly.percentRemaining
     : pooledTelemetry.claudeGptWeeklyPooledPercent;
 
-  const claudeWeeklyCountdown = selectedAccount
-    ? selectedAccount.claudeGptQuota.weekly.refreshCountdown
-    : accounts[0]?.claudeGptQuota.weekly.refreshCountdown || "Active";
+  const claudeWeeklyCountdown = formatCountdownWithDays(
+    selectedAccount
+      ? selectedAccount.claudeGptQuota.weekly.refreshCountdown
+      : accounts[0]?.claudeGptQuota.weekly.refreshCountdown || "Active"
+  );
 
   const claude5hPct = selectedAccount
     ? selectedAccount.claudeGptQuota.fiveHour.percentRemaining
     : pooledTelemetry.claudeGptFiveHourPooledPercent;
 
-  const claude5hCountdown = selectedAccount
-    ? selectedAccount.claudeGptQuota.fiveHour.refreshCountdown
-    : accounts[0]?.claudeGptQuota.fiveHour.refreshCountdown || "Active";
+  const claude5hCountdown = formatCountdownWithDays(
+    selectedAccount
+      ? selectedAccount.claudeGptQuota.fiveHour.refreshCountdown
+      : accounts[0]?.claudeGptQuota.fiveHour.refreshCountdown || "Active"
+  );
 
   const handleManualRefresh = () => {
     setIsRefreshing(true);

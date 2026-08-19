@@ -20,6 +20,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DnsIcon from "@mui/icons-material/Dns";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { formatCountdownWithDays } from "@/lib/utils";
 
 interface AccountListItemCardProps {
   account: GravAccount;
@@ -88,15 +89,21 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.75, minWidth: { lg: 280 }, flex: { lg: "0 0 280px" } }}>
             <Avatar
-              src={account.avatarUrl}
+              src={account.avatarUrl || undefined}
               alt={account.alias}
               sx={{
                 width: 44,
                 height: 44,
                 border: "1.5px solid rgba(255, 255, 255, 0.15)",
                 flexShrink: 0,
+                background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+                color: "#ffffff",
+                fontWeight: 700,
+                fontSize: "1.15rem",
               }}
-            />
+            >
+              {account.alias ? account.alias.charAt(0).toUpperCase() : "S"}
+            </Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#ffffff", fontSize: "0.92rem" }} noWrap>
@@ -111,7 +118,6 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
                     fontWeight: 700,
                     background: planStyle.bg,
                     color: planStyle.color,
-                    border: "none",
                   }}
                 />
               </Box>
@@ -121,22 +127,53 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
                   color: "text.secondary",
                   fontFamily: "monospace",
                   display: "block",
-                  fontSize: "0.75rem",
-                  mt: 0.2,
+                  fontSize: "0.72rem",
+                  mt: 0.25,
                 }}
                 noWrap
               >
                 {account.email}
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-                <Typography variant="caption" sx={{ fontFamily: "monospace", color: "primary.main", fontSize: "0.68rem" }}>
-                  {account.containerName}
-                </Typography>
-                <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary", fontSize: "0.68rem" }}>
-                  • {account.ramUsageMb}MB RAM
-                </Typography>
-              </Box>
             </Box>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1.5,
+              flexWrap: "wrap",
+              minWidth: { md: 200 },
+            }}
+          >
+            <Chip
+              label={account.status}
+              size="small"
+              color={
+                account.status === "active"
+                  ? "success"
+                  : account.status === "warning"
+                  ? "warning"
+                  : account.status === "depleted"
+                  ? "error"
+                  : "default"
+              }
+              sx={{ height: 22, fontSize: "0.68rem", fontWeight: 800, textTransform: "capitalize" }}
+            />
+            {account.tags.slice(0, 2).map((tag, idx) => (
+              <Chip
+                key={idx}
+                label={tag}
+                size="small"
+                variant="outlined"
+                sx={{
+                  height: 18,
+                  fontSize: "0.62rem",
+                  borderColor: "rgba(255, 255, 255, 0.1)",
+                  color: "text.secondary",
+                }}
+              />
+            ))}
           </Box>
 
           <Box
@@ -167,7 +204,7 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
                   </Tooltip>
                 </Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", fontFamily: "monospace" }}>
-                  Refreshes {account.geminiQuota.fiveHour.refreshCountdown}
+                  Refreshes {formatCountdownWithDays(account.geminiQuota.fiveHour.refreshCountdown)}
                 </Typography>
               </Box>
 
@@ -220,7 +257,7 @@ export const AccountListItemCard: React.FC<AccountListItemCardProps> = ({
                   </Tooltip>
                 </Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", fontFamily: "monospace" }}>
-                  Refreshes {account.claudeGptQuota.fiveHour.refreshCountdown}
+                  Refreshes {formatCountdownWithDays(account.claudeGptQuota.fiveHour.refreshCountdown)}
                 </Typography>
               </Box>
 

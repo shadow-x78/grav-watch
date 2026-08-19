@@ -21,6 +21,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import DnsIcon from "@mui/icons-material/Dns";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { formatCountdownWithDays } from "@/lib/utils";
 
 interface AccountCardProps {
   account: GravAccount;
@@ -85,15 +86,21 @@ export const AccountCard: React.FC<AccountCardProps> = ({
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, gap: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
             <Avatar
-              src={account.avatarUrl}
+              src={account.avatarUrl || undefined}
               alt={account.alias}
               sx={{
                 width: 42,
                 height: 42,
                 border: "1.5px solid rgba(255, 255, 255, 0.15)",
                 flexShrink: 0,
+                background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
+                color: "#ffffff",
+                fontWeight: 700,
+                fontSize: "1.1rem",
               }}
-            />
+            >
+              {account.alias ? account.alias.charAt(0).toUpperCase() : "S"}
+            </Avatar>
             <Box sx={{ minWidth: 0, flex: 1 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                 <Typography
@@ -201,7 +208,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
                   {account.geminiQuota.weekly.percentRemaining < 100
-                    ? `Refreshes in ${account.geminiQuota.weekly.refreshCountdown}`
+                    ? `Refreshes in ${formatCountdownWithDays(account.geminiQuota.weekly.refreshCountdown)}`
                     : "Full capacity available"}
                 </Typography>
               </Box>
@@ -231,7 +238,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
                   {account.geminiQuota.fiveHour.percentRemaining < 100
-                    ? `Refreshes in ${account.geminiQuota.fiveHour.refreshCountdown}`
+                    ? `Refreshes in ${formatCountdownWithDays(account.geminiQuota.fiveHour.refreshCountdown)}`
                     : "Full capacity available"}
                 </Typography>
               </Box>
@@ -280,7 +287,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
                   {account.claudeGptQuota.weekly.percentRemaining < 100
-                    ? `Refreshes in ${account.claudeGptQuota.weekly.refreshCountdown}`
+                    ? `Refreshes in ${formatCountdownWithDays(account.claudeGptQuota.weekly.refreshCountdown)}`
                     : "Full capacity available"}
                 </Typography>
               </Box>
@@ -310,7 +317,7 @@ export const AccountCard: React.FC<AccountCardProps> = ({
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
                   {account.claudeGptQuota.fiveHour.percentRemaining < 100
-                    ? `Refreshes in ${account.claudeGptQuota.fiveHour.refreshCountdown}`
+                    ? `Refreshes in ${formatCountdownWithDays(account.claudeGptQuota.fiveHour.refreshCountdown)}`
                     : "Full capacity available"}
                 </Typography>
               </Box>
