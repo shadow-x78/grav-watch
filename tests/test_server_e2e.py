@@ -27,8 +27,12 @@ async def override_get_db():
 
 app.dependency_overrides[get_db] = override_get_db
 
+import tempfile
+
 class TestServerE2E(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        self.test_dir = tempfile.TemporaryDirectory()
+        settings.DATA_DIR = self.test_dir.name
         settings.AGENT_API_KEY = TEST_AGENT_KEY
         settings.MASTER_API_KEY = TEST_MASTER_KEY
         settings.PUBLIC_ORIGIN = "http://localhost:8000"
@@ -40,6 +44,7 @@ class TestServerE2E(unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self):
         await self.client.aclose()
+        self.test_dir.cleanup()
 
     async def test_health_endpoint(self):
         resp = await self.client.get("/api/v1/health")

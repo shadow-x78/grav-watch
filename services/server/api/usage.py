@@ -50,9 +50,21 @@ async def ingest_usage(
     now_utc = datetime.now(timezone.utc)
 
     if not account:
+        email_val = None
+        label_val = payload.account_label or f"Account {account_id}"
+        creds_path = os.path.join(settings.DATA_DIR, account_id, "credentials.json")
+        if os.path.exists(creds_path):
+            try:
+                with open(creds_path, "r", encoding="utf-8") as f:
+                    cdata = json.load(f)
+                    email_val = cdata.get("email")
+                    label_val = cdata.get("name") or cdata.get("account_label") or label_val
+            except Exception:
+                pass
         account = Account(
             id=account_id,
-            label=payload.account_label or f"Account {account_id}",
+            label=label_val,
+            email=email_val,
             tier=payload.tier or "Google AI Pro",
             status="healthy",
             last_seen_at=now_utc,
@@ -61,7 +73,19 @@ async def ingest_usage(
     else:
         account.last_seen_at = now_utc
         account.status = "healthy"
-        if payload.account_label:
+        if not account.email:
+            creds_path = os.path.join(settings.DATA_DIR, account_id, "credentials.json")
+            if os.path.exists(creds_path):
+                try:
+                    with open(creds_path, "r", encoding="utf-8") as f:
+                        cdata = json.load(f)
+                        if cdata.get("email"):
+                            account.email = cdata.get("email")
+                        if cdata.get("name"):
+                            account.label = cdata.get("name")
+                except Exception:
+                    pass
+        if payload.account_label and payload.account_label != f"Account {account_id}":
             account.label = payload.account_label
         if payload.tier:
             account.tier = payload.tier
