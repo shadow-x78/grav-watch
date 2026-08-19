@@ -4,8 +4,8 @@
 
 set -euo pipefail
 
-mkdir -p /root/.gemini /root/.antigravity-agent /root/.config/antigravity /root/.config/Code/User/globalStorage /root/.config/"Antigravity IDE"/User/globalStorage
-chmod 700 /root/.gemini /root/.antigravity-agent /root/.config 2>/dev/null || true
+mkdir -p /root/.gemini /root/.config/antigravity /root/.config/Code/User/globalStorage /root/.config/"Antigravity IDE"/User/globalStorage
+chmod 700 /root/.gemini /root/.config 2>/dev/null || true
 
 python3 -c '
 import sqlite3, json, os, shutil

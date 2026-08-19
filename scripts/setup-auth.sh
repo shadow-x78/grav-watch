@@ -22,10 +22,9 @@ read -r -p "Enter selection [1-4 / c / q]: " choice
 authenticate_account() {
     local acc_id=$1
     local data_dir="$ROOT_DIR/data/$acc_id"
-    local agent_dir="$ROOT_DIR/data/$acc_id-agent"
 
-    mkdir -p "$data_dir" "$agent_dir" 2>/dev/null || true
-    chmod 700 "$data_dir" "$agent_dir" 2>/dev/null || true
+    mkdir -p "$data_dir" 2>/dev/null || true
+    chmod 700 "$data_dir" 2>/dev/null || true
 
     echo ""
     echo "[GravWatch] Pairing session for [$acc_id]..."
@@ -36,7 +35,6 @@ authenticate_account() {
     if command -v docker >/dev/null 2>&1; then
         docker compose --env-file "$ROOT_DIR/.env" -f "$ROOT_DIR/packaging/docker/docker-compose.yml" run --rm -it \
             -v "$data_dir:/root/.gemini" \
-            -v "$agent_dir:/root/.antigravity-agent" \
             acc-1 bash -c "if command -v agy >/dev/null 2>&1; then agy auth login; else echo '[GravWatch] agy binary not found in container. You can place tokens in $data_dir or start a shell:'; bash; fi" || true
         
         echo "[GravWatch] Completed pairing session for [$acc_id]."
