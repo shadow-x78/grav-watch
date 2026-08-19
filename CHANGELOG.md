@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Upgraded LanguageContext:** Modernized state management for language switching with local storage persistence (`gravwatch_lang`) and zero-flicker rehydration.
 - **MUI Theme Multi-Language Support:** Configured Material-UI theme provider to dynamically switch font families and direction based on active locale.
+- **Documentation & Spec Synchronization:** Synchronized API specifications, sample JSON payloads, configuration constants, and documentation badges with release `v2.4.1`.
 
 ---
 

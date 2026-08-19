@@ -156,8 +156,8 @@ X-Agent-Key: gravwatch-agent-secret-key
 {
   "status": "healthy",
   "service": "gravwatch-server",
-  "version": "2.4.0",
-  "timestamp": "2026-08-16T19:50:00Z"
+  "version": "2.4.1",
+  "timestamp": "2026-08-19T18:10:00Z"
 }
 ```
 
