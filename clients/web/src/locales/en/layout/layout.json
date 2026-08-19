@@ -3,21 +3,12 @@
     "title": "GravWatch",
     "allAccountsPooled": "All Accounts (Pooled Capacity)",
     "allPooledShort": "All (Pooled)",
-    "liveStream": "Live Stream",
-    "liveRunningTooltip": "Live Telemetry Running",
-    "livePausedTooltip": "Live Stream Paused",
     "switchLangTooltip": "التبديل إلى العربية",
     "refreshTooltip": "Scrape & Sync Telemetry",
     "pairGoogleBtn": "Pair Google Account",
     "pairGoogleTooltip": "Pair Google Account",
     "systemConfigTooltip": "System Configuration",
-    "mobileMenuAria": "Open navigation menu",
-    "timeRanges": {
-      "1h": "1h",
-      "24h": "24h",
-      "7d": "7d",
-      "30d": "30d"
-    }
+    "mobileMenuAria": "Open navigation menu"
   },
   "sidebar": {
     "navTitle": "NAVIGATION",

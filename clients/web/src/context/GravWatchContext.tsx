@@ -1,10 +1,10 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
 import {
   GravAccount,
   PooledTelemetry,
-  TimeRangeFilter,
   TabView,
   AntigravityPlan,
 } from "@/types/gravwatch";
@@ -12,15 +12,10 @@ import {
 interface GravWatchContextType {
   accounts: GravAccount[];
   selectedAccountId: string;
-  timeRange: TimeRangeFilter;
   activeTab: TabView;
-  isLiveStreaming: boolean;
   pooledTelemetry: PooledTelemetry;
   setSelectedAccountId: (id: string) => void;
-  setTimeRange: (range: TimeRangeFilter) => void;
   setActiveTab: (tab: TabView) => void;
-  setIsLiveStreaming: (live: boolean) => void;
-  toggleLiveStreaming: () => void;
   addAccount: (account: Partial<GravAccount>) => void;
   pairGoogleAccount: (profile: { name: string; email: string; avatarUrl?: string; plan?: GravAccount["plan"] }) => void;
   updateAccount: (id: string, updates: Partial<GravAccount>) => void;
@@ -47,9 +42,7 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return [];
   });
   const [selectedAccountId, setSelectedAccountId] = useState<string>("all");
-  const [timeRange, setTimeRange] = useState<TimeRangeFilter>("24h");
   const [activeTab, setActiveTab] = useState<TabView>("overview");
-  const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
 
   const fetchLiveAccounts = useCallback(async () => {
     try {
@@ -173,13 +166,11 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     fetchLiveAccounts();
 
     const interval = setInterval(() => {
-      if (isLiveStreaming) {
-        fetchLiveAccounts();
-      }
+      fetchLiveAccounts();
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [fetchLiveAccounts, isLiveStreaming]);
+  }, [fetchLiveAccounts]);
 
   const pooledTelemetry = useMemo<PooledTelemetry>(() => {
     const totalAccounts = accounts.length;
@@ -221,10 +212,6 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       averageLatencyMs: 820,
     };
   }, [accounts]);
-
-  const toggleLiveStreaming = () => {
-    setIsLiveStreaming((prev) => !prev);
-  };
 
   const addAccount = (account: Partial<GravAccount>) => {
     const newId = `acc-${accounts.length + 1}`;
@@ -313,15 +300,10 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       value={{
         accounts,
         selectedAccountId,
-        timeRange,
         activeTab,
-        isLiveStreaming,
         pooledTelemetry,
         setSelectedAccountId,
-        setTimeRange,
         setActiveTab,
-        setIsLiveStreaming,
-        toggleLiveStreaming,
         addAccount,
         pairGoogleAccount,
         updateAccount,

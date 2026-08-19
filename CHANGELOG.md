@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.4] - 2026-08-19
+
+### Removed & Refactored
+- **Header UI & State Simplification:** Removed legacy time-range filter button group (`1H | 24H | 7D | 30D`) and live stream toggle button from the header UI to provide a cleaner, focused monitoring experience.
+- **Root-Level Cleanup of Obsolete Types & Context:** Eliminated `TimeRangeFilter` type definition, `timeRange` / `setTimeRange`, and `isLiveStreaming` / `toggleLiveStreaming` state from `GravWatchContext`, `types/gravwatch.ts`, and localization catalogs (`en/layout.json` and `ar/layout.json`).
+- **Continuous Background Auto-Sync:** Direct, non-blocking telemetry auto-polling every 3 seconds without unnecessary UI toggle dependencies.
+- **Project-Wide Version Synchronization:** Bumped application version to `v2.4.4` across web client, server core, API specifications, and documentation badges.
+
 ---
 
 ## [2.4.3] - 2026-08-19

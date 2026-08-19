@@ -56,5 +56,4 @@ export interface PooledTelemetry {
   averageLatencyMs: number;
 }
 
-export type TimeRangeFilter = "1h" | "24h" | "7d" | "30d" | "all";
 export type TabView = "overview" | "accounts";

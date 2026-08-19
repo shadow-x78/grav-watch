@@ -12,18 +12,14 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Tooltip from "@mui/material/Tooltip";
-import ButtonGroup from "@mui/material/ButtonGroup";
 import Chip from "@mui/material/Chip";
 import LayersIcon from "@mui/icons-material/Layers";
 import PublicIcon from "@mui/icons-material/Public";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
-import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import MenuIcon from "@mui/icons-material/Menu";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import TranslateIcon from "@mui/icons-material/Translate";
-import { TimeRangeFilter } from "@/types/gravwatch";
 import { useLanguage } from "@/context/LanguageContext";
 
 interface HeaderProps {
@@ -42,10 +38,6 @@ export const Header: React.FC<HeaderProps> = ({
     selectedAccountId,
     setSelectedAccountId,
     refreshAllAccounts,
-    isLiveStreaming,
-    setIsLiveStreaming,
-    timeRange,
-    setTimeRange,
   } = useGravWatch();
   const { language, toggleLanguage, direction, t } = useLanguage();
 
@@ -56,8 +48,6 @@ export const Header: React.FC<HeaderProps> = ({
     refreshAllAccounts();
     setTimeout(() => setIsSpinning(false), 700);
   };
-
-  const timeRanges: TimeRangeFilter[] = ["1h", "24h", "7d", "30d"];
 
   return (
     <AppBar
@@ -149,7 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
           </Typography>
 
           <Chip
-            label="v2.4.1"
+            label="v2.4.4"
             size="small"
             sx={{
               height: 20,
@@ -315,96 +305,6 @@ export const Header: React.FC<HeaderProps> = ({
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.35, sm: 0.75, lg: 1.5 }, flexShrink: 0 }}>
-            <ButtonGroup
-              size="small"
-              sx={{
-                backgroundColor: "#0b1220",
-                border: "1px solid rgba(255, 255, 255, 0.1)",
-                borderRadius: "9999px",
-                p: "3px",
-                display: { xs: "none", sm: "inline-flex" },
-                alignItems: "center",
-              }}
-            >
-              {timeRanges.map((range) => {
-                const isActive = timeRange === range;
-                const label = t(`layout.header.timeRanges.${range}`);
-                return (
-                  <Button
-                    key={range}
-                    onClick={() => setTimeRange(range)}
-                    sx={{
-                      textTransform: "uppercase",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      py: 0.35,
-                      px: 1.3,
-                      border: "none !important",
-                      borderRadius: "9999px !important",
-                      backgroundColor: isActive ? "#10b981" : "transparent",
-                      color: isActive ? "#ffffff" : "#94a3b8",
-                      transition: "all 0.2s ease",
-                      "&:hover": {
-                        backgroundColor: isActive ? "#059669" : "rgba(255, 255, 255, 0.05)",
-                        color: isActive ? "#ffffff" : "#f8fafc",
-                      },
-                    }}
-                  >
-                    {label}
-                  </Button>
-                );
-              })}
-            </ButtonGroup>
-
-            <Tooltip title={isLiveStreaming ? t("layout.header.liveRunningTooltip") : t("layout.header.livePausedTooltip")}>
-              <Box sx={{ display: { xs: "flex", lg: "none" } }}>
-                <IconButton
-                  size="small"
-                  onClick={() => setIsLiveStreaming(!isLiveStreaming)}
-                  aria-label="Toggle live telemetry streaming"
-                  sx={{
-                    color: isLiveStreaming ? "#10b981" : "#64748b",
-                    p: { xs: 0.5, sm: 0.8 },
-                    width: { xs: 30, sm: 34 },
-                    height: { xs: 30, sm: 34 },
-                    "&:hover": { color: "#10b981" },
-                  }}
-                >
-                  {isLiveStreaming
-                    ? <RadioButtonCheckedIcon sx={{ fontSize: { xs: 17, sm: 20 }, animation: "pulse 1.5s infinite" }} />
-                    : <RadioButtonUncheckedIcon sx={{ fontSize: { xs: 17, sm: 20 } }} />}
-                </IconButton>
-              </Box>
-            </Tooltip>
-            <Tooltip title={isLiveStreaming ? t("layout.header.liveRunningTooltip") : t("layout.header.livePausedTooltip")}>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setIsLiveStreaming(!isLiveStreaming)}
-                startIcon={
-                  isLiveStreaming
-                    ? <RadioButtonCheckedIcon sx={{ fontSize: 13, color: "#10b981", animation: "pulse 1.5s infinite" }} />
-                    : <RadioButtonUncheckedIcon sx={{ fontSize: 13, color: "#64748b" }} />
-                }
-                sx={{
-                  display: { xs: "none", lg: "inline-flex" },
-                  borderColor: isLiveStreaming ? "rgba(16, 185, 129, 0.4)" : "rgba(255, 255, 255, 0.1)",
-                  backgroundColor: isLiveStreaming ? "rgba(16, 185, 129, 0.08)" : "transparent",
-                  color: isLiveStreaming ? "#10b981" : "#94a3b8",
-                  fontSize: "0.75rem",
-                  fontWeight: 700,
-                  borderRadius: 2,
-                  px: 1.5,
-                  "&:hover": {
-                    borderColor: "#10b981",
-                    backgroundColor: "rgba(16, 185, 129, 0.15)",
-                  },
-                }}
-              >
-                {t("layout.header.liveStream")}
-              </Button>
-            </Tooltip>
-
             <Tooltip title={t("layout.header.switchLangTooltip")}>
               <Button
                 size="small"
