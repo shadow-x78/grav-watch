@@ -52,6 +52,11 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
         minWidth: size,
         minHeight: size,
         flexShrink: 0,
+        backgroundColor: "transparent",
+        background: "transparent",
+        boxShadow: "none",
+        border: "none",
+        outline: "none",
       }}
       className={className}
     >
@@ -59,18 +64,24 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        style={{ transform: "rotate(-90deg)", display: "block" }}
+        style={{
+          transform: "rotate(-90deg)",
+          display: "block",
+          background: "transparent",
+          backgroundColor: "transparent",
+          overflow: "visible",
+        }}
       >
-        {/* Background Track */}
+        {/* Clean Background Track */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           stroke="rgba(255, 255, 255, 0.12)"
           strokeWidth={thickness}
-          fill="transparent"
+          fill="none"
         />
-        {/* Indicator */}
+        {/* Dynamic Progress Indicator */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -80,10 +91,9 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          fill="transparent"
+          fill="none"
           style={{
             transition: "stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease",
-            filter: safeValue > 0 ? `drop-shadow(0 0 3px ${ringColor}88)` : "none",
           }}
         />
       </svg>
@@ -95,6 +105,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            backgroundColor: "transparent",
           }}
         >
           <Typography
