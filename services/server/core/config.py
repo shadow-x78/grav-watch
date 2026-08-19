@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     AGENT_API_KEY: str = ""
     MASTER_API_KEY: str = ""
     DATA_DIR: str = "./data"
+    HOST_DATA_DIR: str = "/home/shadow-x7/Projects/Tools/Python/GravWatch/data"
     PUBLIC_ORIGIN: str = "http://localhost:8000"
 
     class Config:

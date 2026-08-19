@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Humanized Multi-Unit Countdown Formatter:** Intelligent countdown parser (`_format_human_countdown` & `formatCountdownWithDays`) converting extended hour strings (e.g. `118h 1m`) into readable days, hours, and minutes (`4d 21h 57m`).
 - **Vibrant Gradient Letter Avatars:** Added glowing purple gradient initial avatars (`#a855f7` to `#7c3aed`) for accounts without cloud avatars.
 - **Pure SVG Progress Rings:** Replaced MUI dynamic circular bars with high-performance native SVG vectors that render instantaneously with zero layout collapse or flicker.
+- **Unlimited Dynamic Container Lifecycle Management:** Removed hardcoded 4-container profile restrictions in Docker Compose. Newly paired accounts (`acc-1`, `acc-2`, `acc-3`, `acc-N`) automatically provision and spin up dedicated isolated `gravwatch-agent` Docker containers on the fly via Docker socket integration, with automatic container deprovisioning upon account removal.
 
 ### Changed
 - **Persistent Account Identity:** Auto-restores account name and email directly from persistent storage (`credentials.json`) upon server restarts and telemetry ingestion.

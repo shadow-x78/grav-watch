@@ -295,8 +295,13 @@ async def revoke_auth_token(
     res = await db.execute(stmt)
     account = res.scalar_one_or_none()
     if account:
-        account.status = "unauthenticated"
-        account.email = None
+        if account_id == "acc-1":
+            account.status = "unauthenticated"
+            account.email = None
+            account.name = None
+            account.picture = None
+        else:
+            await db.delete(account)
         await db.execute(delete(UsageSnapshot).where(UsageSnapshot.account_id == account_id))
         await db.commit()
     return {
@@ -311,12 +316,20 @@ async def get_auth_status(db: AsyncSession = Depends(get_db)):
     res = await db.execute(stmt)
     accounts = {a.id: a for a in res.scalars().all()}
 
-    known_ids = set(accounts.keys())
+    known_ids = set()
+    for acc_id, a in accounts.items():
+        if a.email or a.status == "healthy":
+            known_ids.add(acc_id)
+
     if os.path.exists(settings.DATA_DIR):
         for entry in os.listdir(settings.DATA_DIR):
             if entry.startswith("acc-") and os.path.isdir(os.path.join(settings.DATA_DIR, entry)):
                 if not entry.endswith("-agent"):
-                    known_ids.add(entry)
+                    creds = load_account_credentials(entry)
+                    if creds and creds.get("status") == "authenticated":
+                        known_ids.add(entry)
+                    elif entry == "acc-1":
+                        known_ids.add("acc-1")
 
     if not known_ids:
         known_ids.add("acc-1")

@@ -11,16 +11,14 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import SecurityIcon from "@mui/icons-material/Security";
+import AddIcon from "@mui/icons-material/Add";
 
 interface GooglePairingModalProps {
   isOpen: boolean;
@@ -38,16 +36,15 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
 
+  // Auto-calculate next available account node ID
   useEffect(() => {
     if (isOpen) {
-      // Find first unauthenticated account or pick next available
-      const unauth = accounts.find((a) => a.status !== "active" || a.email.includes("Unauthenticated") || a.email.includes("pending"));
-      if (unauth) {
-        setTargetAccountId(unauth.id);
-      } else {
-        const nextId = `acc-${Math.max(1, accounts.length + 1)}`;
-        setTargetAccountId(nextId);
+      const existingIds = new Set(accounts.map((a) => a.id));
+      let nextNum = 1;
+      while (existingIds.has(`acc-${nextNum}`)) {
+        nextNum++;
       }
+      setTargetAccountId(`acc-${nextNum}`);
       setAuthCode("");
       setErrorMsg(null);
       setSuccessEmail(null);
@@ -56,19 +53,24 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
   }, [isOpen, accounts]);
 
   const handleOpenGoogle = async () => {
+    if (!targetAccountId.trim()) {
+      setErrorMsg("Please provide a valid Target Account ID.");
+      return;
+    }
+
     setLoadingUrl(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`/api/v1/auth/url?account_id=${encodeURIComponent(targetAccountId)}`);
+      const res = await fetch(`/api/v1/auth/url?account_id=${encodeURIComponent(targetAccountId.trim())}`);
       const data = await res.json();
       if (data.auth_url) {
         setAuthUrl(data.auth_url);
         window.open(data.auth_url, "_blank", "noopener,noreferrer");
       } else {
-        window.open(`/api/v1/auth/start?account_id=${encodeURIComponent(targetAccountId)}`, "_blank");
+        window.open(`/api/v1/auth/start?account_id=${encodeURIComponent(targetAccountId.trim())}`, "_blank");
       }
     } catch (e: any) {
-      window.open(`/api/v1/auth/start?account_id=${encodeURIComponent(targetAccountId)}`, "_blank");
+      window.open(`/api/v1/auth/start?account_id=${encodeURIComponent(targetAccountId.trim())}`, "_blank");
     } finally {
       setLoadingUrl(false);
     }
@@ -78,6 +80,10 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
     e.preventDefault();
     if (!authCode.trim()) {
       setErrorMsg("Please paste the authorization code from Google.");
+      return;
+    }
+    if (!targetAccountId.trim()) {
+      setErrorMsg("Please provide a valid Target Account ID.");
       return;
     }
 
@@ -92,7 +98,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
           Accept: "application/json",
         },
         body: JSON.stringify({
-          account_id: targetAccountId,
+          account_id: targetAccountId.trim(),
           code: authCode.trim(),
         }),
       });
@@ -164,7 +170,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
               Pair Google Antigravity Account
             </Typography>
             <Typography variant="caption" sx={{ color: "#9ca3af" }}>
-              Official Zero-Config Google Identity & Native CLI Authentication
+              Dynamic On-Demand Isolated Container Provisioning
             </Typography>
           </Box>
         </Box>
@@ -184,38 +190,69 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
               Successfully Authenticated!
             </Typography>
             <Typography variant="body2" sx={{ color: "#86efac" }}>
-              Node <strong>{targetAccountId}</strong> paired with <strong>{successEmail}</strong>
+              Container <strong>gravwatch-{targetAccountId}</strong> provisioned for <strong>{successEmail}</strong>
             </Typography>
             <Typography variant="caption" sx={{ color: "#9ca3af", display: "block", mt: 2 }}>
-              Provisioning container and updating telemetry...
+              Streaming live quota telemetry...
             </Typography>
           </Box>
         ) : (
           <Box component="form" onSubmit={handleExchangeCode}>
-            {/* Target Account Node Selection */}
+            {/* Target Account ID Input with Quick Select */}
             <Box sx={{ mb: 2.5 }}>
               <Typography variant="subtitle2" sx={{ color: "#e4e6eb", fontWeight: 600, mb: 0.8 }}>
-                Target Container Node
+                Target Container ID (Unlimited Dynamic Nodes)
               </Typography>
-              <FormControl fullWidth size="small">
-                <Select
-                  value={targetAccountId}
-                  onChange={(e) => setTargetAccountId(e.target.value)}
-                  disabled={loading}
-                  sx={{
+              <TextField
+                fullWidth
+                size="small"
+                value={targetAccountId}
+                onChange={(e) => setTargetAccountId(e.target.value)}
+                placeholder="e.g. acc-2, acc-3, my-node"
+                disabled={loading}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
                     bgcolor: "#0b0e14",
                     color: "#fff",
+                    fontFamily: "monospace",
+                    fontSize: "13px",
                     borderRadius: 2,
-                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "#30363d" },
-                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#38bdf8" },
+                    "& fieldset": { borderColor: "#30363d" },
+                    "&:hover fieldset": { borderColor: "#38bdf8" },
+                  },
+                }}
+              />
+              <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap", alignItems: "center" }}>
+                <Typography variant="caption" sx={{ color: "#6b7280" }}>Quick suggestions:</Typography>
+                {accounts.map((a) => (
+                  <Chip
+                    key={a.id}
+                    label={`${a.id} (Re-auth)`}
+                    size="small"
+                    clickable
+                    onClick={() => setTargetAccountId(a.id)}
+                    sx={{
+                      fontSize: "11px",
+                      bgcolor: targetAccountId === a.id ? "rgba(56, 189, 248, 0.2)" : "rgba(255, 255, 255, 0.05)",
+                      color: targetAccountId === a.id ? "#38bdf8" : "#9ca3af",
+                      borderColor: targetAccountId === a.id ? "#38bdf8" : "transparent",
+                    }}
+                  />
+                ))}
+                <Chip
+                  icon={<AddIcon sx={{ fontSize: "14px !important" }} />}
+                  label={`acc-${accounts.length + 1} (New Node)`}
+                  size="small"
+                  clickable
+                  onClick={() => setTargetAccountId(`acc-${accounts.length + 1}`)}
+                  sx={{
+                    fontSize: "11px",
+                    bgcolor: targetAccountId === `acc-${accounts.length + 1}` ? "rgba(34, 197, 94, 0.2)" : "rgba(255, 255, 255, 0.05)",
+                    color: targetAccountId === `acc-${accounts.length + 1}` ? "#22c55e" : "#9ca3af",
+                    borderColor: targetAccountId === `acc-${accounts.length + 1}` ? "#22c55e" : "transparent",
                   }}
-                >
-                  <MenuItem value="acc-1">acc-1 (Node 1 {accounts.find(a => a.id === "acc-1")?.email ? `· ${accounts.find(a => a.id === "acc-1")?.email}` : ""})</MenuItem>
-                  <MenuItem value="acc-2">acc-2 (Node 2 {accounts.find(a => a.id === "acc-2")?.email ? `· ${accounts.find(a => a.id === "acc-2")?.email}` : "· New Account"})</MenuItem>
-                  <MenuItem value="acc-3">acc-3 (Node 3 {accounts.find(a => a.id === "acc-3")?.email ? `· ${accounts.find(a => a.id === "acc-3")?.email}` : "· New Account"})</MenuItem>
-                  <MenuItem value="acc-4">acc-4 (Node 4 {accounts.find(a => a.id === "acc-4")?.email ? `· ${accounts.find(a => a.id === "acc-4")?.email}` : "· New Account"})</MenuItem>
-                </Select>
-              </FormControl>
+                />
+              </Box>
             </Box>
 
             <Paper
@@ -244,7 +281,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
                 variant="contained"
                 fullWidth
                 onClick={handleOpenGoogle}
-                disabled={loadingUrl || loading}
+                disabled={loadingUrl || loading || !targetAccountId.trim()}
                 startIcon={<OpenInNewIcon />}
                 sx={{
                   py: 1.3,
@@ -300,7 +337,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
               <Button
                 type="submit"
                 variant="contained"
-                disabled={loading || !authCode.trim()}
+                disabled={loading || !authCode.trim() || !targetAccountId.trim()}
                 sx={{
                   bgcolor: "#22c55e",
                   color: "#000",

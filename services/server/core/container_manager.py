@@ -15,22 +15,39 @@ except ImportError:
 logger = logging.getLogger("gravwatch.container_manager")
 
 
+def _get_docker_network() -> str:
+    try:
+        res = subprocess.run(["docker", "network", "ls", "--format", "{{.Name}}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if res.returncode == 0:
+            for net in res.stdout.strip().split("\n"):
+                if "gravwatch-net" in net:
+                    return net.strip()
+    except Exception:
+        pass
+    return "gravwatch-net"
+
+
 def provision_account_container(account_id: str, label: str = "Account") -> bool:
     container_name = f"gravwatch-{account_id}"
-    acc_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
-    os.makedirs(acc_dir, exist_ok=True)
+    local_acc_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
+    host_mount_dir = os.path.join(settings.HOST_DATA_DIR, account_id)
+    os.makedirs(local_acc_dir, exist_ok=True)
 
     try:
         check_cmd = ["docker", "inspect", container_name]
         check = subprocess.run(check_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if check.returncode == 0:
             subprocess.run(["docker", "start", container_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            logger.info("Started existing dynamic container %s", container_name)
             return True
+
+        image_name = "gravwatch-agent:latest"
+        net_name = _get_docker_network()
 
         cmd = [
             "docker", "run", "-d",
             "--name", container_name,
-            "--network", "gravwatch-net",
+            "--network", net_name,
             "--restart", "unless-stopped",
             "-e", f"ACCOUNT_ID={account_id}",
             "-e", f"ACCOUNT_LABEL={label}",
@@ -40,10 +57,10 @@ def provision_account_container(account_id: str, label: str = "Account") -> bool
             "-e", "GEMINI_DIR=/root/.gemini",
             "--dns", "8.8.8.8",
             "--dns", "8.8.4.4",
-            "-v", f"{acc_dir}:/root/.gemini",
+            "-v", f"{host_mount_dir}:/root/.gemini",
             "--memory", "256M",
             "--cpus", "0.25",
-            "docker-acc-1",
+            image_name,
         ]
 
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -67,15 +84,9 @@ def deprovision_account_container(account_id: str) -> bool:
         logger.warning("Error stopping container %s: %s", container_name, e)
 
     acc_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
-    acc_agent_dir = os.path.abspath(os.path.join(settings.DATA_DIR, f"{account_id}-agent"))
     if os.path.exists(acc_dir):
         try:
             shutil.rmtree(acc_dir, ignore_errors=True)
-        except OSError:
-            pass
-    if os.path.exists(acc_agent_dir):
-        try:
-            shutil.rmtree(acc_agent_dir, ignore_errors=True)
         except OSError:
             pass
 
@@ -108,6 +119,5 @@ def list_active_account_containers() -> List[Dict[str, Any]]:
                     "raw_status": status,
                 })
         return results
-    except Exception as e:
-        logger.warning("Could not list containers: %s", e)
+    except Exception:
         return []
