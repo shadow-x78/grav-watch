@@ -96,19 +96,23 @@ class TestIdeSessionParsing(unittest.TestCase):
 class TestContainerManager(unittest.TestCase):
     @patch("subprocess.run")
     def test_provision_account_container(self, mock_run):
-        mock_proc = MagicMock()
-        mock_proc.returncode = 0
-        mock_run.return_value = mock_proc
-        res = provision_account_container("acc-test", "Test Account")
-        self.assertTrue(res)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("services.server.core.config.settings.DATA_DIR", tmpdir):
+                mock_proc = MagicMock()
+                mock_proc.returncode = 0
+                mock_run.return_value = mock_proc
+                res = provision_account_container("acc-test", "Test Account")
+                self.assertTrue(res)
 
     @patch("subprocess.run")
     def test_deprovision_account_container(self, mock_run):
-        mock_proc = MagicMock()
-        mock_proc.returncode = 0
-        mock_run.return_value = mock_proc
-        res = deprovision_account_container("acc-test")
-        self.assertTrue(res)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch("services.server.core.config.settings.DATA_DIR", tmpdir):
+                mock_proc = MagicMock()
+                mock_proc.returncode = 0
+                mock_run.return_value = mock_proc
+                res = deprovision_account_container("acc-test")
+                self.assertTrue(res)
 
 
 if __name__ == "__main__":
