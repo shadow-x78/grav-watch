@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import Box from "@mui/material/Box";
-import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
 
 interface ProgressRingProps {
@@ -22,7 +21,7 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   colorVariant = "auto",
   className,
 }) => {
-  const safeValue = Math.min(100, Math.max(0, Math.round(value)));
+  const safeValue = Math.min(100, Math.max(0, isNaN(value) ? 0 : Number(value)));
 
   const getColor = () => {
     if (colorVariant === "emerald") return "#22c55e";
@@ -37,6 +36,9 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
   };
 
   const ringColor = getColor();
+  const radius = Math.max(1, (size - thickness) / 2);
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (safeValue / 100) * circumference;
 
   return (
     <Box
@@ -45,44 +47,51 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
+        width: size,
+        height: size,
+        minWidth: size,
+        minHeight: size,
         flexShrink: 0,
       }}
       className={className}
     >
-      <CircularProgress
-        variant="determinate"
-        sx={{
-          color: "rgba(255, 255, 255, 0.08)",
-        }}
-        size={size}
-        thickness={thickness}
-        value={100}
-      />
-      <CircularProgress
-        variant="determinate"
-        disableShrink
-        sx={{
-          color: ringColor,
-          position: "absolute",
-          left: 0,
-          [`& .MuiCircularProgress-circle`]: {
-            strokeLinecap: "round",
-            transition: "stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-          },
-          filter: safeValue > 0 ? `drop-shadow(0 0 3px ${ringColor}55)` : "none",
-        }}
-        size={size}
-        thickness={thickness}
-        value={safeValue}
-      />
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{ transform: "rotate(-90deg)", display: "block" }}
+      >
+        {/* Background Track */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(255, 255, 255, 0.12)"
+          strokeWidth={thickness}
+          fill="transparent"
+        />
+        {/* Indicator */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={ringColor}
+          strokeWidth={thickness}
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          fill="transparent"
+          style={{
+            transition: "stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease",
+            filter: safeValue > 0 ? `drop-shadow(0 0 3px ${ringColor}88)` : "none",
+          }}
+        />
+      </svg>
       {showValue && (
         <Box
           sx={{
-            top: 0,
-            left: 0,
-            bottom: 0,
-            right: 0,
             position: "absolute",
+            inset: 0,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -90,10 +99,9 @@ export const ProgressRing: React.FC<ProgressRingProps> = ({
         >
           <Typography
             variant="caption"
-            component="div"
             sx={{ fontWeight: 800, fontFamily: "monospace", fontSize: "10px", color: "#ffffff" }}
           >
-            {safeValue}%
+            {Math.round(safeValue)}%
           </Typography>
         </Box>
       )}

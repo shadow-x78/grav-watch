@@ -14,13 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Live Headless PTY `/usage` Quota Scraper:** Built a headless terminal automation engine using Python `pty` and termios to execute `/usage` commands directly in the `agy` CLI container, extracting live quota percentages and countdowns with decimal accuracy.
 - **Direct Prompt Execution API:** Added `/api/v1/prompt/execute` endpoint allowing users to test live prompts across accounts and models with real token calculation and latency monitoring.
 - **Interactive OAuth Web Pairing Flow:** Implemented complete 1-click Google OAuth pairing modal with sub-200ms PKCE code exchange and instant container provisioning.
+- **Humanized Multi-Unit Countdown Formatter:** Intelligent countdown parser (`_format_human_countdown` & `formatCountdownWithDays`) converting extended hour strings (e.g. `118h 1m`) into readable days, hours, and minutes (`4d 21h 57m`).
+- **Vibrant Gradient Letter Avatars:** Added glowing purple gradient initial avatars (`#a855f7` to `#7c3aed`) for accounts without cloud avatars.
+- **Pure SVG Progress Rings:** Replaced MUI dynamic circular bars with high-performance native SVG vectors that render instantaneously with zero layout collapse or flicker.
 
 ### Changed
+- **Persistent Account Identity:** Auto-restores account name and email directly from persistent storage (`credentials.json`) upon server restarts and telemetry ingestion.
 - **Eliminated Fake Fallbacks:** Removed all hardcoded 100% quota assumptions and synthetic numbers from both agent scrapers and dashboard telemetry streams.
 - **Fast Telemetry Polling (20s):** Updated default polling interval from 300s to 20s for continuous, real-time dashboard quota updates.
 - **Docker DNS & Network Resilience:** Configured Google DNS (`8.8.8.8`, `8.8.4.4`) across container services to eliminate IPv6 connection resets on Google CloudCode endpoints.
-- **Atomic State Storage:** Implemented atomic file writers (`.tmp` + `os.replace`) for `settings.json` and `onboarding.json` to prevent file corruption.
-- **Test Database Isolation:** Isolated unit test suites to in-memory SQLite (`sqlite+aiosqlite:///:memory:`), safeguarding production database files.
+- **Streamlined Volume Mounts:** Removed redundant `~/.antigravity-agent` volume mounts in favor of standard single-source `~/.gemini/` volume.
+- **Cleaned Unused Code & Assets:** Removed 7 unused template UI components and unreferenced test verification images in `clients/web/public/`.
+- **Test Environment Isolation:** Isolated all test suites to temporary directories and in-memory SQLite, ensuring zero contamination of production `./data/` directories.
 
 ---
 
