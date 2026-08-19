@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useGravWatch } from "@/context/GravWatchContext";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -11,6 +11,10 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -26,14 +30,30 @@ interface GooglePairingModalProps {
 export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, onClose }) => {
   const { accounts, refreshAllAccounts } = useGravWatch();
 
-  const nextAccountId = `acc-${Math.max(1, accounts.length + 1)}`;
-  const [targetAccountId, setTargetAccountId] = useState(accounts.length > 0 ? accounts[0].id : "acc-1");
+  const [targetAccountId, setTargetAccountId] = useState("acc-2");
   const [authCode, setAuthCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Find first unauthenticated account or pick next available
+      const unauth = accounts.find((a) => a.status !== "active" || a.email.includes("Unauthenticated") || a.email.includes("pending"));
+      if (unauth) {
+        setTargetAccountId(unauth.id);
+      } else {
+        const nextId = `acc-${Math.max(1, accounts.length + 1)}`;
+        setTargetAccountId(nextId);
+      }
+      setAuthCode("");
+      setErrorMsg(null);
+      setSuccessEmail(null);
+      setAuthUrl(null);
+    }
+  }, [isOpen, accounts]);
 
   const handleOpenGoogle = async () => {
     setLoadingUrl(true);
@@ -167,11 +187,37 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
               Node <strong>{targetAccountId}</strong> paired with <strong>{successEmail}</strong>
             </Typography>
             <Typography variant="caption" sx={{ color: "#9ca3af", display: "block", mt: 2 }}>
-              Updating dashboard telemetry...
+              Provisioning container and updating telemetry...
             </Typography>
           </Box>
         ) : (
           <Box component="form" onSubmit={handleExchangeCode}>
+            {/* Target Account Node Selection */}
+            <Box sx={{ mb: 2.5 }}>
+              <Typography variant="subtitle2" sx={{ color: "#e4e6eb", fontWeight: 600, mb: 0.8 }}>
+                Target Container Node
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={targetAccountId}
+                  onChange={(e) => setTargetAccountId(e.target.value)}
+                  disabled={loading}
+                  sx={{
+                    bgcolor: "#0b0e14",
+                    color: "#fff",
+                    borderRadius: 2,
+                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "#30363d" },
+                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#38bdf8" },
+                  }}
+                >
+                  <MenuItem value="acc-1">acc-1 (Node 1 {accounts.find(a => a.id === "acc-1")?.email ? `· ${accounts.find(a => a.id === "acc-1")?.email}` : ""})</MenuItem>
+                  <MenuItem value="acc-2">acc-2 (Node 2 {accounts.find(a => a.id === "acc-2")?.email ? `· ${accounts.find(a => a.id === "acc-2")?.email}` : "· New Account"})</MenuItem>
+                  <MenuItem value="acc-3">acc-3 (Node 3 {accounts.find(a => a.id === "acc-3")?.email ? `· ${accounts.find(a => a.id === "acc-3")?.email}` : "· New Account"})</MenuItem>
+                  <MenuItem value="acc-4">acc-4 (Node 4 {accounts.find(a => a.id === "acc-4")?.email ? `· ${accounts.find(a => a.id === "acc-4")?.email}` : "· New Account"})</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
             <Paper
               sx={{
                 p: 2,
@@ -209,7 +255,7 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
                   "&:hover": { bgcolor: "#1d4ed8" },
                 }}
               >
-                {loadingUrl ? "Generating Google Sign-in Link..." : "1. Open Google Sign-in Page →"}
+                {loadingUrl ? "Generating Google Sign-in Link..." : `1. Open Google Sign-in for [${targetAccountId}] →`}
               </Button>
               {authUrl ? (
                 <Typography variant="caption" sx={{ color: "#38bdf8", display: "block", mt: 1, wordBreak: "break-all" }}>
@@ -239,40 +285,37 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
                     color: "#fff",
                     fontFamily: "monospace",
                     fontSize: "13px",
+                    borderRadius: 2,
                     "& fieldset": { borderColor: "#30363d" },
-                    "&:hover fieldset": { borderColor: "#2563eb" },
+                    "&:hover fieldset": { borderColor: "#38bdf8" },
                   },
                 }}
               />
             </Box>
+
+            <DialogActions sx={{ px: 0, pt: 2 }}>
+              <Button onClick={handleClose} disabled={loading} sx={{ color: "#9ca3af" }}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={loading || !authCode.trim()}
+                sx={{
+                  bgcolor: "#22c55e",
+                  color: "#000",
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  px: 3,
+                  "&:hover": { bgcolor: "#16a34a" },
+                }}
+              >
+                {loading ? <CircularProgress size={20} color="inherit" /> : `Complete Pairing [${targetAccountId}]`}
+              </Button>
+            </DialogActions>
           </Box>
         )}
       </DialogContent>
-
-      {!successEmail && (
-        <DialogActions sx={{ p: 3, pt: 1, borderTop: "1px solid #21262d" }}>
-          <Button onClick={handleClose} disabled={loading} sx={{ color: "#9ca3af", textTransform: "none" }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleExchangeCode}
-            variant="contained"
-            disabled={loading || !authCode.trim()}
-            sx={{
-              bgcolor: "#22c55e",
-              color: "#fff",
-              fontWeight: 600,
-              textTransform: "none",
-              px: 3,
-              borderRadius: 2,
-              "&:hover": { bgcolor: "#16a34a" },
-              "&:disabled": { bgcolor: "#374151", color: "#9ca3af" },
-            }}
-          >
-            {loading ? <CircularProgress size={20} sx={{ color: "#fff" }} /> : "Complete Pairing"}
-          </Button>
-        </DialogActions>
-      )}
     </Dialog>
   );
 };

@@ -18,9 +18,7 @@ logger = logging.getLogger("gravwatch.container_manager")
 def provision_account_container(account_id: str, label: str = "Account") -> bool:
     container_name = f"gravwatch-{account_id}"
     acc_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
-    acc_agent_dir = os.path.abspath(os.path.join(settings.DATA_DIR, f"{account_id}-agent"))
     os.makedirs(acc_dir, exist_ok=True)
-    os.makedirs(acc_agent_dir, exist_ok=True)
 
     try:
         check_cmd = ["docker", "inspect", container_name]

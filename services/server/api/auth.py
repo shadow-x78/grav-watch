@@ -309,39 +309,38 @@ async def revoke_auth_token(
 async def get_auth_status(db: AsyncSession = Depends(get_db)):
     stmt = select(Account).order_by(Account.id)
     res = await db.execute(stmt)
-    accounts = res.scalars().all()
+    accounts = {a.id: a for a in res.scalars().all()}
+
+    known_ids = set(accounts.keys())
+    if os.path.exists(settings.DATA_DIR):
+        for entry in os.listdir(settings.DATA_DIR):
+            if entry.startswith("acc-") and os.path.isdir(os.path.join(settings.DATA_DIR, entry)):
+                if not entry.endswith("-agent"):
+                    known_ids.add(entry)
+
+    if not known_ids:
+        known_ids.add("acc-1")
 
     result: list[AuthStatusResponse] = []
-    if not accounts:
-        creds = load_account_credentials("acc-1")
+    for acc_id in sorted(known_ids):
+        a = accounts.get(acc_id)
+        creds = load_account_credentials(acc_id)
         has_creds = creds is not None and creds.get("status") == "authenticated"
+        is_healthy = a is not None and a.status == "healthy"
+        authenticated = has_creds or is_healthy
+        email = (a.email if a else None) or (creds.get("email") if creds else None)
+        name = (getattr(a, "name", None) if a else None) or (creds.get("name") or creds.get("account_label") if creds else None)
+        picture = (getattr(a, "picture", None) if a else None) or (creds.get("picture") if creds else None)
+        last_update = a.last_seen_at if a else (creds.get("authenticated_at") if creds else None)
         result.append(
             AuthStatusResponse(
-                account_id="acc-1",
-                authenticated=has_creds,
-                email=creds.get("email") if creds else None,
-                name=creds.get("name") if creds else None,
-                picture=creds.get("picture") if creds else None,
-                last_token_update=creds.get("authenticated_at") if creds else None,
-                message="Authenticated" if has_creds else "Unauthenticated",
-            )
-        )
-        return result
-    for a in accounts:
-        creds = load_account_credentials(a.id)
-        has_creds = creds is not None and (creds.get("status") == "authenticated" or a.status == "healthy")
-        email = a.email or (creds.get("email") if creds else None)
-        name = getattr(a, "name", None) or (creds.get("name") if creds else None)
-        picture = getattr(a, "picture", None) or (creds.get("picture") if creds else None)
-        result.append(
-            AuthStatusResponse(
-                account_id=a.id,
-                authenticated=has_creds,
+                account_id=acc_id,
+                authenticated=authenticated,
                 email=email,
                 name=name,
                 picture=picture,
-                last_token_update=a.last_seen_at,
-                message="Authenticated" if has_creds else "Unauthenticated",
+                last_token_update=last_update,
+                message="Authenticated" if authenticated else "Unauthenticated",
             )
         )
     return result
