@@ -76,126 +76,115 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       }
 
-      const mapped: GravAccount[] = authData.map((item: any, idx: number) => {
-        const id = item.account_id || `acc-${idx + 1}`;
-        const isAuth = Boolean(item.authenticated && item.email);
-        const email = item.email || (isAuth ? `Account ${id}` : "Unauthenticated");
-        const alias = item.name || `Node [${id}]`;
-        const avatarUrl = item.picture || "";
+      setAccounts((prevAccounts) => {
+        return authData.map((item: any, idx: number) => {
+          const id = item.account_id || `acc-${idx + 1}`;
+          const isAuth = Boolean(item.authenticated && item.email);
+          const prev = prevAccounts.find((a) => a.id === id);
 
-        const usageAcc = usageAccountsMap[id];
-        const geminiCat = usageAcc?.categories?.find((c: any) => c.category_id === "gemini-models");
-        const claudeCat = usageAcc?.categories?.find((c: any) => c.category_id === "claude-and-gpt-models");
+          const email = item.email || prev?.email || (isAuth ? `Account ${id}` : "Unauthenticated");
+          const alias = item.name || prev?.alias || `Node [${id}]`;
+          const avatarUrl = item.picture || prev?.avatarUrl || "";
 
-        const gWeeklyPct = geminiCat?.weekly_limit?.percentage_remaining ?? 0;
-        const gWeeklyCountdown = geminiCat?.weekly_limit?.refresh_in_human ?? (isAuth ? "Syncing..." : "Offline");
-        const g5hPct = geminiCat?.five_hour_limit?.percentage_remaining ?? 0;
-        const g5hCountdown = geminiCat?.five_hour_limit?.refresh_in_human ?? (isAuth ? "Syncing..." : "Offline");
+          const usageAcc = usageAccountsMap[id];
+          const geminiCat = usageAcc?.categories?.find((c: any) => c.category_id === "gemini-models");
+          const claudeCat = usageAcc?.categories?.find((c: any) => c.category_id === "claude-and-gpt-models");
 
-        const cWeeklyPct = claudeCat?.weekly_limit?.percentage_remaining ?? 0;
-        const cWeeklyCountdown = claudeCat?.weekly_limit?.refresh_in_human ?? (isAuth ? "Syncing..." : "Offline");
-        const c5hPct = claudeCat?.five_hour_limit?.percentage_remaining ?? 0;
-        const c5hCountdown = claudeCat?.five_hour_limit?.refresh_in_human ?? (isAuth ? "Syncing..." : "Offline");
+          const hasNewGeminiWeekly = geminiCat?.weekly_limit?.percentage_remaining !== undefined && geminiCat?.weekly_limit?.percentage_remaining !== null;
+          const gWeeklyPct = hasNewGeminiWeekly ? geminiCat.weekly_limit.percentage_remaining : (prev?.geminiQuota?.weekly?.percentRemaining ?? 0);
+          const gWeeklyCountdown = geminiCat?.weekly_limit?.refresh_in_human || (hasNewGeminiWeekly ? "Full capacity available" : (prev?.geminiQuota?.weekly?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline")));
 
-        return {
-          id: id,
-          alias: alias,
-          email: email,
-          avatarUrl: avatarUrl,
-          plan: "Google AI Pro" as AntigravityPlan,
-          containerName: `gravwatch-${id}`,
-          containerStatus: isAuth ? "running" : "stopped",
-          ramUsageMb: isAuth ? 48 : 0,
-          ramLimitMb: 256,
-          cpuUsagePercent: isAuth ? 1.2 : 0,
-          authType: "google_oauth",
-          status: isAuth ? "active" : "paused",
-          totalRequestsToday: 0,
-          totalTokensToday: 0,
-          geminiQuota: {
-            weekly: {
-              percentRemaining: gWeeklyPct,
-              refreshCountdown: gWeeklyCountdown,
-              used: 100 - gWeeklyPct,
-              limit: 10000000,
-              status: isAuth ? "healthy" : "warning",
+          const hasNewGemini5h = geminiCat?.five_hour_limit?.percentage_remaining !== undefined && geminiCat?.five_hour_limit?.percentage_remaining !== null;
+          const g5hPct = hasNewGemini5h ? geminiCat.five_hour_limit.percentage_remaining : (prev?.geminiQuota?.fiveHour?.percentRemaining ?? 0);
+          const g5hCountdown = geminiCat?.five_hour_limit?.refresh_in_human || (hasNewGemini5h ? "Full capacity available" : (prev?.geminiQuota?.fiveHour?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline")));
+
+          const hasNewClaudeWeekly = claudeCat?.weekly_limit?.percentage_remaining !== undefined && claudeCat?.weekly_limit?.percentage_remaining !== null;
+          const cWeeklyPct = hasNewClaudeWeekly ? claudeCat.weekly_limit.percentage_remaining : (prev?.claudeGptQuota?.weekly?.percentRemaining ?? 0);
+          const cWeeklyCountdown = claudeCat?.weekly_limit?.refresh_in_human || (hasNewClaudeWeekly ? "Full capacity available" : (prev?.claudeGptQuota?.weekly?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline")));
+
+          const hasNewClaude5h = claudeCat?.five_hour_limit?.percentage_remaining !== undefined && claudeCat?.five_hour_limit?.percentage_remaining !== null;
+          const c5hPct = hasNewClaude5h ? claudeCat.five_hour_limit.percentage_remaining : (prev?.claudeGptQuota?.fiveHour?.percentRemaining ?? 0);
+          const c5hCountdown = claudeCat?.five_hour_limit?.refresh_in_human || (hasNewClaude5h ? "Full capacity available" : (prev?.claudeGptQuota?.fiveHour?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline")));
+
+          return {
+            id: id,
+            alias: alias,
+            email: email,
+            avatarUrl: avatarUrl,
+            plan: "Google AI Pro" as AntigravityPlan,
+            containerName: `gravwatch-${id}`,
+            containerStatus: isAuth ? "running" : "stopped",
+            ramUsageMb: isAuth ? 48 : 0,
+            ramLimitMb: 256,
+            cpuUsagePercent: isAuth ? 1.2 : 0,
+            authType: "google_oauth",
+            status: isAuth ? "active" : "paused",
+            totalRequestsToday: 0,
+            totalTokensToday: 0,
+            geminiQuota: {
+              weekly: {
+                percentRemaining: gWeeklyPct,
+                refreshCountdown: gWeeklyCountdown,
+                used: 100 - gWeeklyPct,
+                limit: 10000000,
+                status: isAuth ? (gWeeklyPct < 15 ? "depleted" : gWeeklyPct < 40 ? "warning" : "healthy") : "warning",
+              },
+              fiveHour: {
+                percentRemaining: g5hPct,
+                refreshCountdown: g5hCountdown,
+                used: 100 - g5hPct,
+                limit: 2000000,
+                status: isAuth ? (g5hPct < 15 ? "depleted" : g5hPct < 40 ? "warning" : "healthy") : "warning",
+              },
             },
-            fiveHour: {
-              percentRemaining: g5hPct,
-              refreshCountdown: g5hCountdown,
-              used: 100 - g5hPct,
-              limit: 2000000,
-              status: isAuth ? "healthy" : "warning",
+            claudeGptQuota: {
+              weekly: {
+                percentRemaining: cWeeklyPct,
+                refreshCountdown: cWeeklyCountdown,
+                used: 100 - cWeeklyPct,
+                limit: 5000000,
+                status: isAuth ? (cWeeklyPct < 15 ? "depleted" : cWeeklyPct < 40 ? "warning" : "healthy") : "warning",
+              },
+              fiveHour: {
+                percentRemaining: c5hPct,
+                refreshCountdown: c5hCountdown,
+                used: 100 - c5hPct,
+                limit: 1000000,
+                status: isAuth ? (c5hPct < 15 ? "depleted" : c5hPct < 40 ? "warning" : "healthy") : "warning",
+              },
             },
-          },
-          claudeGptQuota: {
-            weekly: {
-              percentRemaining: cWeeklyPct,
-              refreshCountdown: cWeeklyCountdown,
-              used: 100 - cWeeklyPct,
-              limit: 5000000,
-              status: isAuth ? "healthy" : "warning",
-            },
-            fiveHour: {
-              percentRemaining: c5hPct,
-              refreshCountdown: c5hCountdown,
-              used: 100 - c5hPct,
-              limit: 1000000,
-              status: isAuth ? "healthy" : "warning",
-            },
-          },
-          lastScrapedAt: item.last_token_update || new Date().toISOString(),
-          tags: [isAuth ? "Online" : "Pending Pairing", "Google Antigravity"],
-          createdAt: item.last_token_update || new Date().toISOString(),
-        };
+            lastScrapedAt: item.last_token_update || prev?.lastScrapedAt || new Date().toISOString(),
+            tags: [isAuth ? "Online" : "Pending Pairing", "Google Antigravity"],
+            createdAt: item.last_token_update || prev?.createdAt || new Date().toISOString(),
+          };
+        });
       });
-
-      setAccounts(mapped);
       setEvents((prev) => {
         if (prev.length > 0) return prev;
-        const active = mapped.filter((a) => a.containerStatus === "running");
-        if (active.length === 0) return [];
-        const primary = active[0];
-        const gW = primary.geminiQuota.weekly.percentRemaining;
-        const g5 = primary.geminiQuota.fiveHour.percentRemaining;
-        const cW = primary.claudeGptQuota.weekly.percentRemaining;
-        const c5 = primary.claudeGptQuota.fiveHour.percentRemaining;
         return [
           {
             id: `evt-${Date.now()}-1`,
             timestamp: new Date(Date.now() - 15000).toISOString(),
-            accountId: primary.id,
-            accountAlias: primary.alias,
+            accountId: "acc-1",
+            accountAlias: "Shadow -7",
             modelGroup: "Gemini Models",
             specificModel: "gemini-3.7-flash-high",
             tokensUsed: 1420,
-            promptSnippet: `quota-scrape: Gemini (${gW}%) · 5h (${g5}%) — Live Google CloudCode Telemetry`,
+            promptSnippet: "Live Google CloudCode Telemetry Synchronization",
             status: "success",
             latencyMs: 185,
           },
           {
             id: `evt-${Date.now()}-2`,
             timestamp: new Date(Date.now() - 45000).toISOString(),
-            accountId: primary.id,
-            accountAlias: primary.alias,
+            accountId: "acc-1",
+            accountAlias: "Shadow -7",
             modelGroup: "Claude & GPT Models",
             specificModel: "claude-sonnet-4-6",
             tokensUsed: 2180,
-            promptSnippet: `quota-scrape: Claude/GPT (${cW}%) · 5h (${c5}%) — Multi-Model Allocation`,
+            promptSnippet: "Multi-Model Allocation & Telemetry Ingestion",
             status: "success",
             latencyMs: 240,
-          },
-          {
-            id: `evt-${Date.now()}-3`,
-            timestamp: new Date(Date.now() - 90000).toISOString(),
-            accountId: primary.id,
-            accountAlias: primary.alias,
-            modelGroup: "Gemini Models",
-            specificModel: "gemini-3.1-pro-high",
-            tokensUsed: 980,
-            promptSnippet: "session-heartbeat: Antigravity OAuth session authenticated in Docker container",
-            status: "success",
-            latencyMs: 120,
           },
         ];
       });
