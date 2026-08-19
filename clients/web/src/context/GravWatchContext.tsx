@@ -71,7 +71,7 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setAccounts((prevAccounts) => {
         const updatedAccounts: GravAccount[] = authData.map((item: any, idx: number) => {
           const id = item.account_id || `acc-${idx + 1}`;
-          const isAuth = Boolean(item.authenticated && item.email);
+          const isAuth = Boolean(item.authenticated);
           const prev = prevAccounts.find((a) => a.id === id);
 
           const email = item.email || prev?.email || (isAuth ? `Account ${id}` : "Unauthenticated");

@@ -32,7 +32,31 @@ GOOGLE_SCOPES = (
     "openid"
 )
 
-_pkce_verifiers: Dict[str, str] = {}
+def _get_verifiers_file() -> str:
+    return os.path.join(settings.DATA_DIR, ".pkce_verifiers.json")
+
+
+def _load_verifiers() -> Dict[str, str]:
+    vf = _get_verifiers_file()
+    if os.path.exists(vf):
+        try:
+            with open(vf, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def _save_verifier(key: str, val: str):
+    vmap = _load_verifiers()
+    vmap[key] = val
+    vf = _get_verifiers_file()
+    try:
+        os.makedirs(settings.DATA_DIR, mode=0o777, exist_ok=True)
+        with open(vf, "w", encoding="utf-8") as f:
+            json.dump(vmap, f)
+    except Exception:
+        pass
 
 
 def generate_pkce_auth_url(account_id: str) -> str:
@@ -41,8 +65,8 @@ def generate_pkce_auth_url(account_id: str) -> str:
     challenge = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
     state = secrets.token_urlsafe(32)
 
-    _pkce_verifiers[account_id] = verifier
-    _pkce_verifiers[state] = verifier
+    _save_verifier(account_id, verifier)
+    _save_verifier(state, verifier)
 
     params = {
         "access_type": "offline",
@@ -59,7 +83,8 @@ def generate_pkce_auth_url(account_id: str) -> str:
 
 
 async def exchange_pkce_code(account_id: str, code: str) -> Dict[str, Any]:
-    verifier = _pkce_verifiers.get(account_id)
+    vmap = _load_verifiers()
+    verifier = vmap.get(account_id)
     payload = {
         "client_id": GOOGLE_CLIENT_ID,
         "code": code.strip(),
@@ -79,37 +104,28 @@ async def exchange_pkce_code(account_id: str, code: str) -> Dict[str, Any]:
 
 def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
     target_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
-    os.makedirs(target_dir, mode=0o700, exist_ok=True)
+    os.makedirs(target_dir, mode=0o777, exist_ok=True)
     target_file = os.path.join(target_dir, "credentials.json")
 
     try:
         flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-        fd = os.open(target_file, flags, 0o600)
+        fd = os.open(target_file, flags, 0o666)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-        os.chmod(target_file, 0o600)
+        os.chmod(target_file, 0o666)
     except Exception as e:
         logger.warning("Could not write credentials file %s: %s", target_file, e)
 
     access_token = data.get("access_token")
-    if access_token and not access_token.startswith("4/0A"):
+    if access_token:
         dirs = [
             os.path.join(target_dir, ".gemini", "antigravity-cli"),
             os.path.join(target_dir, "antigravity-cli"),
         ]
         for d in dirs:
             try:
-                os.makedirs(d, mode=0o700, exist_ok=True)
+                os.makedirs(d, mode=0o777, exist_ok=True)
                 token_file = os.path.join(d, "antigravity-oauth-token")
-                if os.path.exists(token_file):
-                    try:
-                        with open(token_file, "r", encoding="utf-8") as tf:
-                            existing = tf.read().strip()
-                            if existing.startswith("{") and "refresh_token" in existing and len(existing) > 50:
-                                continue
-                    except Exception:
-                        pass
-
                 token_payload = {
                     "token": {
                         "access_token": access_token,
@@ -117,10 +133,11 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
                         "refresh_token": data.get("refresh_token") or "",
                         "expiry": "2030-01-01T00:00:00Z",
                     },
-                    "auth_method": "oauth",
+                    "auth_method": "consumer",
                 }
                 with open(token_file, "w", encoding="utf-8") as tf:
                     json.dump(token_payload, tf)
+                os.chmod(token_file, 0o666)
             except Exception as e:
                 logger.warning("Could not write oauth token file in %s: %s", d, e)
 

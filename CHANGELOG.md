@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.4.4] - 2026-08-19
 
+### Added & Fixed
+- **Persistent PKCE Verifiers & Universal Multi-Account Pairing:** Persisted OAuth code verifiers to disk (`data/.pkce_verifiers.json`) to eliminate token exchange timeouts/mismatches during pairing flows, automatically generating standard `antigravity-oauth-token` payloads for any newly added account container (`acc-2`, `acc-3`, ..., `acc-N`).
+- **Open Container Directory Permissions:** Updated agent container entrypoint and data directory permissions (`chmod 777`) ensuring seamless bidirectional access between the server and isolated agent containers.
+
 ### Removed & Refactored
 - **Header UI & State Simplification:** Removed legacy time-range filter button group (`1H | 24H | 7D | 30D`) and live stream toggle button from the header UI to provide a cleaner, focused monitoring experience.
 - **Root-Level Cleanup of Obsolete Types & Context:** Eliminated `TimeRangeFilter` type definition, `timeRange` / `setTimeRange`, and `isLiveStreaming` / `toggleLiveStreaming` state from `GravWatchContext`, `types/gravwatch.ts`, and localization catalogs (`en/layout.json` and `ar/layout.json`).

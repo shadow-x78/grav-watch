@@ -62,8 +62,9 @@ htmlcov/
 data/acc-*/
 data/acc-*-agent/
 data/acc-test*/
-data/server/
 data/*.db
+data/.pkce_verifiers.json
+data/*.json
 gravwatch.db
 
 # Environment & Secret Files
