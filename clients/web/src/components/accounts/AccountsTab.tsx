@@ -33,7 +33,7 @@ import { useLanguage } from "@/context/LanguageContext";
 
 export const AccountsTab: React.FC = () => {
   const { accounts, pooledTelemetry } = useGravWatch();
-  const { t } = useLanguage();
+  const { t, direction } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -230,14 +230,14 @@ export const AccountsTab: React.FC = () => {
                   },
                 }}
               >
-                <ToggleButton value="grid" title={t("accounts.page.viewMode.cardsTooltip")}>
-                  <GridViewIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                <ToggleButton value="grid" title={t("accounts.page.viewMode.cardsTooltip")} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                  <GridViewIcon sx={{ fontSize: 18 }} />
                   <Typography variant="caption" sx={{ display: { xs: "none", sm: "inline" }, fontWeight: 700 }}>
                     {t("accounts.page.viewMode.cards")}
                   </Typography>
                 </ToggleButton>
-                <ToggleButton value="list" title={t("accounts.page.viewMode.compactTooltip")}>
-                  <ViewListIcon sx={{ fontSize: 18, mr: 0.5 }} />
+                <ToggleButton value="list" title={t("accounts.page.viewMode.compactTooltip")} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                  <ViewListIcon sx={{ fontSize: 18 }} />
                   <Typography variant="caption" sx={{ display: { xs: "none", sm: "inline" }, fontWeight: 700 }}>
                     {t("accounts.page.viewMode.compact")}
                   </Typography>

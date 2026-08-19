@@ -36,6 +36,58 @@ body {
 html[dir="rtl"],
 html[dir="rtl"] body {
   font-family: 'Cairo', 'Inter', sans-serif;
+  letter-spacing: 0;
+}
+
+/* RTL Icon & Spacing Corrections for Material UI */
+html[dir="rtl"] .MuiButton-startIcon {
+  margin-left: 8px !important;
+  margin-right: -2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+html[dir="rtl"] .MuiButton-endIcon {
+  margin-right: 8px !important;
+  margin-left: -2px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+html[dir="rtl"] .MuiChip-icon {
+  margin-left: 6px !important;
+  margin-right: -2px !important;
+}
+
+html[dir="rtl"] .MuiChip-deleteIcon {
+  margin-right: 6px !important;
+  margin-left: -2px !important;
+}
+
+html[dir="rtl"] .MuiInputAdornment-positionStart {
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+}
+
+html[dir="rtl"] .MuiInputAdornment-positionEnd {
+  margin-right: 8px !important;
+  margin-left: 0 !important;
+}
+
+html[dir="rtl"] .MuiSelect-select {
+  padding-right: 14px !important;
+  padding-left: 36px !important;
+  text-align: right !important;
+}
+
+html[dir="rtl"] .MuiSelect-icon {
+  right: auto !important;
+  left: 7px !important;
+}
+
+html[dir="rtl"] .MuiMenuItem-root {
+  text-align: right !important;
+  flex-direction: row !important;
 }
 
 /* Custom Scrollbars */

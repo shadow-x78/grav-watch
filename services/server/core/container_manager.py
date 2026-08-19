@@ -87,8 +87,17 @@ def deprovision_account_container(account_id: str) -> bool:
     if os.path.exists(acc_dir):
         try:
             shutil.rmtree(acc_dir, ignore_errors=True)
-        except OSError:
+        except Exception:
             pass
+        if os.path.exists(acc_dir):
+            try:
+                subprocess.run(
+                    ["docker", "run", "--rm", "-v", f"{settings.HOST_DATA_DIR}:/host_data", "alpine", "rm", "-rf", f"/host_data/{account_id}"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE
+                )
+            except Exception:
+                pass
 
     return True
 

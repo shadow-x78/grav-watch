@@ -4,8 +4,6 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import {
   GravAccount,
   PooledTelemetry,
-  TelemetryEvent,
-  TimeSeriesDataPoint,
   TimeRangeFilter,
   TabView,
   AntigravityPlan,
@@ -17,8 +15,6 @@ interface GravWatchContextType {
   timeRange: TimeRangeFilter;
   activeTab: TabView;
   isLiveStreaming: boolean;
-  events: TelemetryEvent[];
-  timelineData: TimeSeriesDataPoint[];
   pooledTelemetry: PooledTelemetry;
   setSelectedAccountId: (id: string) => void;
   setTimeRange: (range: TimeRangeFilter) => void;
@@ -33,24 +29,27 @@ interface GravWatchContextType {
   refreshAccount: (id: string) => Promise<void>;
   refreshAllAccounts: () => Promise<void>;
   resetSampleData: () => void;
-  executePromptSimulation: (
-    modelGroup: "Gemini Models" | "Claude & GPT Models",
-    specificModel: string,
-    prompt: string,
-    strategy: "least" | "round"
-  ) => Promise<{ success: boolean; accountAlias: string; tokensUsed: number; response?: string }>;
 }
 
 const GravWatchContext = createContext<GravWatchContextType | undefined>(undefined);
 
 export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [accounts, setAccounts] = useState<GravAccount[]>([]);
+  const [accounts, setAccounts] = useState<GravAccount[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("gravwatch_accounts_cache");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
   const [selectedAccountId, setSelectedAccountId] = useState<string>("all");
   const [timeRange, setTimeRange] = useState<TimeRangeFilter>("24h");
   const [activeTab, setActiveTab] = useState<TabView>("overview");
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
-  const [events, setEvents] = useState<TelemetryEvent[]>([]);
-  const [timelineData, setTimelineData] = useState<TimeSeriesDataPoint[]>([]);
 
   const fetchLiveAccounts = useCallback(async () => {
     try {
@@ -77,7 +76,7 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
 
       setAccounts((prevAccounts) => {
-        return authData.map((item: any, idx: number) => {
+        const updatedAccounts: GravAccount[] = authData.map((item: any, idx: number) => {
           const id = item.account_id || `acc-${idx + 1}`;
           const isAuth = Boolean(item.authenticated && item.email);
           const prev = prevAccounts.find((a) => a.id === id);
@@ -158,75 +157,29 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             createdAt: item.last_token_update || prev?.createdAt || new Date().toISOString(),
           };
         });
-      });
-      setEvents((prev) => {
-        if (prev.length > 0) return prev;
-        return [
-          {
-            id: `evt-${Date.now()}-1`,
-            timestamp: new Date(Date.now() - 15000).toISOString(),
-            accountId: "acc-1",
-            accountAlias: "Shadow -7",
-            modelGroup: "Gemini Models",
-            specificModel: "gemini-3.7-flash-high",
-            tokensUsed: 1420,
-            promptSnippet: "Live Google CloudCode Telemetry Synchronization",
-            status: "success",
-            latencyMs: 185,
-          },
-          {
-            id: `evt-${Date.now()}-2`,
-            timestamp: new Date(Date.now() - 45000).toISOString(),
-            accountId: "acc-1",
-            accountAlias: "Shadow -7",
-            modelGroup: "Claude & GPT Models",
-            specificModel: "claude-sonnet-4-6",
-            tokensUsed: 2180,
-            promptSnippet: "Multi-Model Allocation & Telemetry Ingestion",
-            status: "success",
-            latencyMs: 240,
-          },
-        ];
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem("gravwatch_accounts_cache", JSON.stringify(updatedAccounts));
+          } catch {}
+        }
+        return updatedAccounts;
       });
     } catch (err) {
       console.warn("Failed to fetch live accounts from backend:", err);
     }
   }, []);
 
-  const fetchLiveHistory = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/v1/usage/history?range=${timeRange}`, { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (Array.isArray(data.series) && data.series.length > 0) {
-        setTimelineData(
-          data.series.map((pt: any) => ({
-            time: pt.time_label || new Date(pt.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            totalTokens: (pt.gemini_tokens || 0) + (pt.claude_tokens || 0),
-            geminiTokens: pt.gemini_tokens || 0,
-            claudeGptTokens: pt.claude_tokens || 0,
-            requests: (pt.active_nodes || 1) * 15,
-          }))
-        );
-      }
-    } catch (err) {
-      console.warn("Failed to fetch usage history:", err);
-    }
-  }, [timeRange]);
-
   useEffect(() => {
     fetchLiveAccounts();
-    fetchLiveHistory();
 
     const interval = setInterval(() => {
       if (isLiveStreaming) {
         fetchLiveAccounts();
-        fetchLiveHistory();
       }
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(interval);
-  }, [fetchLiveAccounts, fetchLiveHistory, isLiveStreaming]);
+  }, [fetchLiveAccounts, isLiveStreaming]);
 
   const pooledTelemetry = useMemo<PooledTelemetry>(() => {
     const totalAccounts = accounts.length;
@@ -321,18 +274,20 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const deleteAccount = async (id: string) => {
     try {
-      await fetch(`/api/v1/auth/token?account_id=${id}`, {
+      await fetch(`/api/v1/auth/token?account_id=${encodeURIComponent(id)}`, {
         method: "DELETE",
         headers: {
           "X-Master-Key": "default-master-key-change-in-production",
         },
       });
-    } catch {
+    } catch (err) {
+      console.warn("Failed to delete account on server:", err);
     }
     setAccounts((prev) => prev.filter((a) => a.id !== id));
     if (selectedAccountId === id) {
       setSelectedAccountId("all");
     }
+    await fetchLiveAccounts();
   };
 
   const toggleAccountStatus = (id: string) => {
@@ -347,66 +302,10 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const refreshAllAccounts = async () => {
     await fetchLiveAccounts();
-    await fetchLiveHistory();
   };
 
   const resetSampleData = () => {
     fetchLiveAccounts();
-  };
-
-  const executePromptSimulation = async (
-    modelGroup: "Gemini Models" | "Claude & GPT Models",
-    specificModel: string,
-    prompt: string,
-    strategy: "least" | "round"
-  ): Promise<{ success: boolean; accountAlias: string; tokensUsed: number; response?: string }> => {
-    const activeAccounts = accounts.filter((a) => a.status === "active");
-    if (activeAccounts.length === 0) {
-      throw new Error("No active accounts available in the cluster to process this prompt.");
-    }
-
-    const selected = activeAccounts[0];
-
-    try {
-      const res = await fetch("/api/v1/prompt/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          account_id: selected.id,
-          prompt: prompt,
-          model: specificModel,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Failed to execute prompt with model.");
-      }
-
-      const newEvt: TelemetryEvent = {
-        id: `evt-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        accountId: selected.id,
-        accountAlias: selected.alias,
-        modelGroup: modelGroup,
-        specificModel: specificModel,
-        tokensUsed: data.tokens_used || 15,
-        promptSnippet: prompt.length > 70 ? `${prompt.substring(0, 70)}...` : prompt,
-        status: "success",
-        latencyMs: data.latency_ms || 420,
-      };
-
-      setEvents((prev) => [newEvt, ...prev.slice(0, 49)]);
-
-      return {
-        success: true,
-        accountAlias: selected.alias,
-        tokensUsed: data.tokens_used || 15,
-        response: data.response,
-      };
-    } catch (err: any) {
-      throw new Error(err.message || "Execution error with Antigravity model.");
-    }
   };
 
   return (
@@ -417,8 +316,6 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         timeRange,
         activeTab,
         isLiveStreaming,
-        events,
-        timelineData,
         pooledTelemetry,
         setSelectedAccountId,
         setTimeRange,
@@ -433,7 +330,6 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         refreshAccount,
         refreshAllAccounts,
         resetSampleData,
-        executePromptSimulation,
       }}
     >
       {children}

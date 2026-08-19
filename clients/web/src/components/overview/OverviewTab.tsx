@@ -3,9 +3,7 @@
 import React from "react";
 import { MetricCardsGrid } from "./MetricCardsGrid";
 import { ModelQuotaMatrix } from "./ModelQuotaMatrix";
-import { UsageTimelineChart } from "./UsageTimelineChart";
 import { PoolDonutChart } from "./PoolDonutChart";
-import { LiveActivityFeed } from "./LiveActivityFeed";
 
 export const OverviewTab: React.FC = () => {
   return (
@@ -14,16 +12,9 @@ export const OverviewTab: React.FC = () => {
 
       <ModelQuotaMatrix />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <UsageTimelineChart />
-        </div>
-        <div className="lg:col-span-1">
-          <PoolDonutChart />
-        </div>
+      <div>
+        <PoolDonutChart />
       </div>
-
-      <LiveActivityFeed />
     </div>
   );
 };

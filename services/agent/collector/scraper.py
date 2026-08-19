@@ -322,11 +322,11 @@ class QuotaScraper:
         return []
 
     def scrape(self) -> List[Dict[str, Any]]:
-        categories = self.scrape_from_agy_cli()
+        categories = self.scrape_from_cloudcode_api()
         if categories:
             return categories
 
-        categories = self.scrape_from_cloudcode_api()
+        categories = self.scrape_from_agy_cli()
         if categories:
             return categories
 

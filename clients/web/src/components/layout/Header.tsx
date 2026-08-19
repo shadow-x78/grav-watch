@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
     timeRange,
     setTimeRange,
   } = useGravWatch();
-  const { language, toggleLanguage, t } = useLanguage();
+  const { language, toggleLanguage, direction, t } = useLanguage();
 
   const [isSpinning, setIsSpinning] = useState(false);
 
@@ -99,8 +99,8 @@ export const Header: React.FC<HeaderProps> = ({
             display: "flex",
             alignItems: "center",
             px: { xs: 1, sm: 2, lg: 2.5 },
-            borderRight: { xs: "none", lg: "1px solid rgba(255, 255, 255, 0.08)" },
-            borderLeft: { xs: "none", lg: "none" },
+            borderRight: { xs: "none", lg: direction === "rtl" ? "none" : "1px solid rgba(255, 255, 255, 0.08)" },
+            borderLeft: { xs: "none", lg: direction === "rtl" ? "1px solid rgba(255, 255, 255, 0.08)" : "none" },
             flexShrink: 0,
             gap: { xs: 0.75, sm: 1.25 },
           }}
@@ -259,7 +259,8 @@ export const Header: React.FC<HeaderProps> = ({
                   "& .MuiSelect-select": {
                     py: 0,
                     px: { xs: 0.75, sm: 1.25 },
-                    pr: { xs: "22px !important", sm: "30px !important" },
+                    pr: direction === "rtl" ? { xs: "8px !important", sm: "12px !important" } : { xs: "22px !important", sm: "30px !important" },
+                    pl: direction === "rtl" ? { xs: "22px !important", sm: "30px !important" } : { xs: "8px !important", sm: "12px !important" },
                     display: "flex",
                     alignItems: "center",
                     height: "100%",
@@ -275,7 +276,8 @@ export const Header: React.FC<HeaderProps> = ({
                   },
                   "& .MuiSelect-icon": {
                     color: "#94a3b8",
-                    right: { xs: 3, sm: 7 },
+                    right: direction === "rtl" ? "auto" : { xs: 3, sm: 7 },
+                    left: direction === "rtl" ? { xs: 3, sm: 7 } : "auto",
                     fontSize: { xs: 18, sm: 20 },
                   },
                 }}

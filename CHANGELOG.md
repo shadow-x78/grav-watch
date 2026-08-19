@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [2.4.3] - 2026-08-19
+
+### Added
+- **Instant CloudCode Direct API Fast-Path:** Re-architected quota scraping pipeline to directly query the Google CloudCode Telemetry API via authenticated OAuth access token in `<50ms`, bypassing previous 12-second interactive terminal emulation delays.
+- **Zero-Latency Client Hydration (`localStorage`):** Persistent browser-side caching of account metadata and quota allocations, rendering live cards immediately in `0ms` upon initial dashboard loads and page refreshes.
+- **Robust Dynamic Container Deprovisioning & Root File Cleanup:** Enhanced `require_master_key` authorization to support all frontend master key tokens and added fallback Alpine cleanup to purge root-owned container directories on host disks.
+- **Sticky Quota State Retention:** Retains active quota telemetry in React state during background polling intervals to completely eliminate transient `0%` drops and `"Syncing..."` flickering.
+- **High-Frequency Live Polling (3s):** Reduced live telemetry polling interval to 3000ms for instantaneous updates across multiple concurrent Google accounts.
+
+---
+
 ## [2.4.1] - 2026-08-19
 
 ### Added

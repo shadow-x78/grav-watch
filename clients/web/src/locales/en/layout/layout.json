@@ -23,7 +23,6 @@
     "navTitle": "NAVIGATION",
     "navOverview": "Overview & Pool",
     "navAccounts": "Accounts &\nSandboxes",
-    "navSimulator": "Prompt Router",
     "dockerCard": {
       "title": "Docker Sandboxes",
       "image": "Image:",

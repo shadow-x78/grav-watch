@@ -83,7 +83,7 @@
 | **عزل الحسابات** | Docker Compose (`debian:bookworm-slim`) | عزل توكنات الحسابات المتعددة | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **جامع الكوتا (Agent)** | Python 3.11 (`subprocess` + `requests`) | خدمة جمع خلفية بدون واجهة | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **الخادم المركزي** | FastAPI + SQLAlchemy (Async) | خادم استقبال وتجميع البيانات | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
-| **لوحة تحكم الويب** | Next.js 16 + Tailwind CSS v4 + TypeScript | لوحة تحكم تفاعلية ومحاكي توزيع الأوامر | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
+| **لوحة تحكم الويب** | Next.js 16 + Tailwind CSS v4 + TypeScript | لوحة تحكم تفاعلية وإدارة كوتا الحسابات | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **تطبيق Android** | Jetpack Compose + Material 3 | عميل أصلي للهواتف والأجهزة اللوحية | ![Coming Soon](https://img.shields.io/badge/status-coming_soon-f59e0b?style=flat-square) |
 
 ---
@@ -141,7 +141,7 @@ docker compose -f packaging/docker/docker-compose.yml logs -f server
 ## 🖥️ منظومة التطبيقات والعملاء
 
 ### 🖥️ لوحة تحكم الويب
-لوحة تحكم تفاعلية متطورة للمتصفح مبنية بـ **Next.js 16 + Tailwind CSS v4 + TypeScript + Recharts + Lucide** تعرض بيانات الكوتا اللحظية، ومؤشرات السعة المزدوجة (الأسبوعية ولكل 5 ساعات)، ومحاكي توجيه الأوامر، مع دعم كامل للغتين العربية والإنجليزية.
+لوحة تحكم تفاعلية متطورة للمتصفح مبنية بـ **Next.js 16 + Tailwind CSS v4 + TypeScript + Recharts + Lucide** تعرض بيانات الكوتا اللحظية، ومؤشرات السعة المزدوجة (الأسبوعية ولكل 5 ساعات)، مع دعم كامل للغتين العربية والإنجليزية.
 
 ### 📱 تطبيق Android *(قريباً)*
 تطبيق مراقبة أصلي مبني بـ **Material 3 + Jetpack Compose** يتصل مباشرة بخادم GravWatch لعرض الكوتا والتنبيهات على الهواتف والأجهزة اللوحية.

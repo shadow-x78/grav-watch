@@ -1,40 +1,39 @@
 {
   "header": {
     "title": "GravWatch",
-    "allAccountsPooled": "جميع الحسابات (السعة المجمعة)",
-    "allPooledShort": "الكل (مجمع)",
-    "liveStream": "بث لحظي",
-    "liveRunningTooltip": "البث اللحظي للبيانات يعمل",
-    "livePausedTooltip": "البث اللحظي متوقف",
-    "switchLangTooltip": "التبديل إلى English",
-    "refreshTooltip": "مزامنة وجلب بيانات الكوتا",
+    "allAccountsPooled": "جميع الحسابات (السعة التشغيلية المشتركة)",
+    "allPooledShort": "إجمالي الحوض المجمع",
+    "liveStream": "تحديث مباشر",
+    "liveRunningTooltip": "خدمة البث الحي للمؤشرات التشغيلية نشطة",
+    "livePausedTooltip": "خدمة البث الحي متوقفة مؤقتاً",
+    "switchLangTooltip": "Switch to English",
+    "refreshTooltip": "مزامنة وتحديث مؤشرات الحصص التشغيلية",
     "pairGoogleBtn": "ربط حساب Google",
-    "pairGoogleTooltip": "ربط حساب Google جديد",
-    "systemConfigTooltip": "إعدادات النظام",
-    "mobileMenuAria": "فتح قائمة التنقل",
+    "pairGoogleTooltip": "ربط وتوثيق حساب Google جديد",
+    "systemConfigTooltip": "تكوين إعدادات النظام والعنقود",
+    "mobileMenuAria": "فتح القائمة الرئيسية للتنقل",
     "timeRanges": {
-      "1h": "ساعة",
+      "1h": "ساعة واحدة",
       "24h": "24 ساعة",
       "7d": "7 أيام",
-      "30d": "30 يوم"
+      "30d": "30 يوماً"
     }
   },
   "sidebar": {
-    "navTitle": "التنقل الرئيسي",
-    "navOverview": "نظرة عامة والـ Pool",
-    "navAccounts": "الحسابات\nوالحاويات",
-    "navSimulator": "محاكي الأوامر",
+    "navTitle": "لوحة التحكم الرئيسية",
+    "navOverview": "لوحة المؤشرات والحصص المجمعة",
+    "navAccounts": "إدارة الحسابات\nوبيئات التشغيل",
     "dockerCard": {
-      "title": "حاويات Docker",
-      "image": "الصورة:",
-      "memoryCap": "حد الذاكرة:",
-      "memoryValue": "256MB / عقدة",
-      "fastApiHub": "FastAPI Hub:",
-      "fastApiLive": "• :8000 (مباشر)"
+      "title": "بيئات التشغيل المعزولة (Docker)",
+      "image": "صورة النظام:",
+      "memoryCap": "سعة الذاكرة القصوى:",
+      "memoryValue": "256MB / لكل عقدة",
+      "fastApiHub": "منفذ الخادم المركزي:",
+      "fastApiLive": "• المنفذ :8000 (نشط ومتصل)"
     },
-    "subtitle": "لوحة مراقبة وإدارة كوتا حسابات Google Antigravity المجمعة",
-    "issuesTooltip": "انقر لفحص المشاكل المكتشفة وحدود الـ 429",
-    "allHealthy": "جميع العقد سليمة",
-    "issuesDetected": "{count} مشكلة مكتشفة"
+    "subtitle": "المنصة المؤسسية المركزية لإدارة وتتبع حصص حسابات Google Antigravity",
+    "issuesTooltip": "فحص سجل التنبيهات التشغيلية وحدود الاستهلاك (429)",
+    "allHealthy": "كافة العقد التشغيلية تعمل بكفاءة",
+    "issuesDetected": "{count} تنبيه تشغيلي يتطلب المراجعة"
   }
 }

@@ -46,51 +46,62 @@ export function formatRelativeTime(date: Date | string, lang: "ar" | "en" = "ar"
 }
 
 export function formatCountdownWithDays(raw: string | undefined | null, lang: "ar" | "en" = "en"): string {
-  if (!raw) return lang === "ar" ? "نشط" : "Active";
+  if (!raw) return lang === "ar" ? "جاهز ونشط" : "Active";
   const str = raw.trim();
 
-  if (str.toLowerCase() === "active") return lang === "ar" ? "نشط" : "Active";
+  if (str.toLowerCase() === "active") return lang === "ar" ? "جاهز ونشط" : "Active";
   if (str.toLowerCase() === "offline") return lang === "ar" ? "غير متصل" : "Offline";
   if (str.toLowerCase() === "syncing...") return lang === "ar" ? "جاري المزامنة..." : "Syncing...";
-  if (str.toLowerCase().includes("full capacity")) return lang === "ar" ? "السعة الكاملة متاحة" : "Full capacity available";
+  if (str.toLowerCase().includes("full capacity")) return lang === "ar" ? "كامل السعة متوفرة" : "Full capacity available";
 
-  const match = str.match(/^(\d+)\s*h(?:\s*(\d+)\s*m)?/i);
-  if (match) {
-    const totalHours = parseInt(match[1], 10);
-    const minutes = match[2];
-    if (totalHours >= 24) {
-      const days = Math.floor(totalHours / 24);
-      const remHours = totalHours % 24;
+  // Match patterns like "4d 19h 25m", "19h 25m", "19h", "45m", "120h"
+  const daysMatch = str.match(/(\d+)\s*d/i);
+  const hoursMatch = str.match(/(\d+)\s*h/i);
+  const minutesMatch = str.match(/(\d+)\s*m/i);
 
-      if (lang === "ar") {
-        if (remHours > 0 && minutes) {
-          return `${days} يوم و ${remHours} س و ${minutes} د`;
-        } else if (remHours > 0) {
-          return `${days} يوم و ${remHours} ساعة`;
-        } else if (minutes) {
-          return `${days} يوم و ${minutes} دقيقة`;
-        } else {
-          return `${days} يوم`;
-        }
-      }
+  if (daysMatch || hoursMatch || minutesMatch) {
+    let days = daysMatch ? parseInt(daysMatch[1], 10) : 0;
+    let hours = hoursMatch ? parseInt(hoursMatch[1], 10) : 0;
+    let minutes = minutesMatch ? parseInt(minutesMatch[1], 10) : 0;
 
-      if (remHours > 0 && minutes) {
-        return `${days}d ${remHours}h ${minutes}m`;
-      } else if (remHours > 0) {
-        return `${days}d ${remHours}h`;
-      } else if (minutes) {
-        return `${days}d ${minutes}m`;
-      } else {
-        return `${days}d`;
-      }
-    } else {
-      if (lang === "ar") {
-        if (minutes) {
-          return `${totalHours} س و ${minutes} د`;
-        }
-        return `${totalHours} ساعة`;
-      }
+    // Convert excess hours into days if no explicit day was supplied
+    if (!daysMatch && hours >= 24) {
+      days = Math.floor(hours / 24);
+      hours = hours % 24;
     }
+
+    if (lang === "ar") {
+      const parts: string[] = [];
+      if (days > 0) {
+        if (days === 1) parts.push("يوم واحد");
+        else if (days === 2) parts.push("يومان");
+        else if (days >= 3 && days <= 10) parts.push(`${days} أيام`);
+        else parts.push(`${days} يوماً`);
+      }
+      if (hours > 0) {
+        if (hours === 1) parts.push("ساعة واحدة");
+        else if (hours === 2) parts.push("ساعتان");
+        else if (hours >= 3 && hours <= 10) parts.push(`${hours} ساعات`);
+        else parts.push(`${hours} ساعة`);
+      }
+      if (minutes > 0) {
+        if (minutes === 1) parts.push("دقيقة واحدة");
+        else if (minutes === 2) parts.push("دقيقتان");
+        else if (minutes >= 3 && minutes <= 10) parts.push(`${minutes} دقائق`);
+        else parts.push(`${minutes} دقيقة`);
+      }
+
+      if (parts.length === 0) return "لحظات معدودة";
+      return parts.join(" و ");
+    }
+
+    // English formatting
+    const parts: string[] = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    return parts.length > 0 ? parts.join(" ") : "less than a minute";
   }
+
   return str;
 }

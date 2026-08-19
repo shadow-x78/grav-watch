@@ -81,6 +81,16 @@ export const MuiAppThemeProvider: React.FC<{ children: React.ReactNode }> = ({ c
                   boxShadow: "none",
                 },
               },
+              startIcon: {
+                ...(direction === "rtl"
+                  ? { marginLeft: 8, marginRight: -2 }
+                  : { marginRight: 8, marginLeft: -2 }),
+              },
+              endIcon: {
+                ...(direction === "rtl"
+                  ? { marginRight: 8, marginLeft: -2 }
+                  : { marginLeft: 8, marginRight: -2 }),
+              },
               contained: {
                 background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
                 "&:hover": {

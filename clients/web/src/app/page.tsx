@@ -6,7 +6,6 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { OverviewTab } from "@/components/overview/OverviewTab";
 import { AccountsTab } from "@/components/accounts/AccountsTab";
-import { PromptSimulator } from "@/components/simulator/PromptSimulator";
 import { GooglePairingModal } from "@/components/accounts/GooglePairingModal";
 import { AddManualAccountModal } from "@/components/accounts/AddManualAccountModal";
 
@@ -35,7 +34,6 @@ export default function DashboardPage() {
         <main className="flex-1 p-4 pb-28 sm:p-6 sm:pb-20 lg:p-8 lg:pb-16 overflow-y-auto w-full min-w-0 h-full">
           {activeTab === "overview" && <OverviewTab />}
           {activeTab === "accounts" && <AccountsTab />}
-          {activeTab === "simulator" && <PromptSimulator />}
         </main>
       </div>
 

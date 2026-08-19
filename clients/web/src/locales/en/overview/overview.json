@@ -42,16 +42,6 @@
     "fullWeeklyCapacity": "You have full weekly limit capacity available.",
     "fullFiveHourCapacity": "You have full 5-hour limit capacity available."
   },
-  "timeline": {
-    "title": "Pooled Usage Timeline",
-    "subheader": "Token consumption and request volume over time across Antigravity model tiers",
-    "filterAll": "All Models",
-    "filterGemini": "Gemini Models",
-    "filterClaude": "Claude & GPT",
-    "tooltipTokens": "{tokens} Tokens",
-    "seriesGemini": "Gemini Models (Flash/Pro)",
-    "seriesClaude": "Claude & GPT (Sonnet/Opus 4.6)"
-  },
   "donut": {
     "title": "Quota Pool Distribution",
     "subheader": "Capacity contribution per Google account",
@@ -59,12 +49,5 @@
     "tooltipPlan": "Plan:",
     "tooltipAvgRemaining": "Average Remaining:",
     "capSuffix": "{value}% cap"
-  },
-  "activity": {
-    "title": "Live Antigravity Telemetry Stream",
-    "subheader": "Real-time agy command executions and quota drains across isolated Docker nodes",
-    "packetsChip": "{count} Packets",
-    "rateLimitError": "429 Limit",
-    "tokensDrained": "-{tokens} tok"
   }
 }

@@ -85,7 +85,7 @@ Each containerized agent periodically parses quota metrics for **Gemini Flash, G
 | **Account Isolation** | Docker Compose (`debian:bookworm-slim`) | Multi-account token sandboxing | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **Agent Collector** | Python 3.11 (`subprocess` + `requests`) | Headless quota daemon | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **API Server** | FastAPI + SQLAlchemy (Async) | Central telemetry ingestion hub | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
-| **Web Dashboard** | Next.js 16 + Tailwind CSS v4 + TypeScript | Interactive telemetry visualization & prompt simulator | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
+| **Web Dashboard** | Next.js 16 + Tailwind CSS v4 + TypeScript | Interactive telemetry visualization & quota management | ![Stable](https://img.shields.io/badge/status-stable-10b981?style=flat-square) |
 | **Android App** | Jetpack Compose + Material 3 | Mobile quota monitoring client | ![Coming Soon](https://img.shields.io/badge/status-coming_soon-f59e0b?style=flat-square) |
 
 ---
@@ -143,7 +143,7 @@ docker compose -f packaging/docker/docker-compose.yml logs -f server
 ## 🖥️ Clients Ecosystem
 
 ### 🖥️ Web Dashboard
-A modern, rich browser dashboard built with **Next.js 16 + Tailwind CSS v4 + TypeScript + Recharts + Lucide** visualizing live telemetry metrics, account states, twin-tier quota gauges (Weekly & 5-Hour limits), prompt simulation router, and bilingual (English/Arabic) UI support.
+A modern, rich browser dashboard built with **Next.js 16 + Tailwind CSS v4 + TypeScript + Recharts + Lucide** visualizing live telemetry metrics, account states, twin-tier quota gauges (Weekly & 5-Hour limits), and bilingual (English/Arabic) UI support.
 
 ### 📱 Android App *(Coming Soon)*
 A native **Material 3 + Jetpack Compose** companion app for Android tablets and smartphones, connecting directly to the GravWatch API hub with quick glance widgets and status cards.

@@ -9,7 +9,6 @@ import Tooltip from "@mui/material/Tooltip";
 import Drawer from "@mui/material/Drawer";
 import GridViewIcon from "@mui/icons-material/GridView";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
-import PlayCircleOutlineIcon from "@mui/icons-material/PlayArrow";
 import DnsIcon from "@mui/icons-material/Dns";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useGravWatch } from "@/context/GravWatchContext";
@@ -55,11 +54,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: t("layout.sidebar.navAccounts"),
       icon: PeopleAltOutlinedIcon,
       badge: `${accounts.length}`,
-    },
-    {
-      id: "simulator" as const,
-      label: t("layout.sidebar.navSimulator"),
-      icon: PlayCircleOutlineIcon,
     },
   ];
 

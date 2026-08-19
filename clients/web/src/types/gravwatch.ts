@@ -56,27 +56,5 @@ export interface PooledTelemetry {
   averageLatencyMs: number;
 }
 
-export interface TelemetryEvent {
-  id: string;
-  timestamp: string;
-  accountId: string;
-  accountAlias: string;
-  modelGroup: "Gemini Models" | "Claude & GPT Models";
-  specificModel: string;
-  tokensUsed: number;
-  promptSnippet: string;
-  status: "success" | "rate_limit" | "fail";
-  latencyMs: number;
-}
-
-export interface TimeSeriesDataPoint {
-  time: string;
-  totalTokens: number;
-  geminiTokens: number;
-  claudeGptTokens: number;
-  requests: number;
-  [key: string]: string | number;
-}
-
 export type TimeRangeFilter = "1h" | "24h" | "7d" | "30d" | "all";
-export type TabView = "overview" | "accounts" | "simulator";
+export type TabView = "overview" | "accounts";
