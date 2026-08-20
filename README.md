@@ -1,13 +1,13 @@
 <div align="center">
 
-<img src="data/gravwatch.svg" alt="GravWatch" width="160" />
+<img src="data/gravwatch.svg" alt="GravWatch" width="180" />
 
 # GravWatch
 
 Multi-account Google Antigravity CLI quota monitoring & telemetry engine - isolated containers & centralized API
 
 <p align="center">
-  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.5.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.5.0"></a>
+  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.6.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.6.0"></a>
 </p>
 
 <p align="center">
@@ -32,6 +32,7 @@ Multi-account Google Antigravity CLI quota monitoring & telemetry engine - isola
 
 - [What is GravWatch?](#what-is-gravwatch)
 - [Why GravWatch Exists](#why-gravwatch-exists)
+- [Screenshots](#screenshots)
 - [Highlights](#highlights)
 - [Status](#status)
 - [Quick Start](#quick-start)
@@ -63,6 +64,28 @@ Each containerized agent periodically parses quota metrics for **Gemini Flash, G
 | **Fragmented Visibility** | ❌ Checking quotas one by one in terminal | ✅ Unified pooled capacity across all active developer accounts |
 | **Model Tracking Limits** | ❌ Manual estimation of model quotas | ✅ Automated parsing for Gemini Flash, Gemini Pro, Claude Sonnet, Claude Opus, and GPT OSS |
 | **Zero Maintenance** | ❌ Complex setups requiring desktop GUIs | ✅ Headless terminal-first daemon running in background |
+
+---
+
+<a id="screenshots"></a>
+## 📸 Screenshots
+
+<div align="center">
+
+### Overview Telemetry Dashboard
+<img src="docs/assets/screenshots/dashboard_overview.png" alt="GravWatch Overview Dashboard" width="850" />
+
+<br/>
+
+### Multi-Account Cluster & Quotas Grid
+<img src="docs/assets/screenshots/dashboard_accounts.png" alt="GravWatch Multi-Account Management" width="850" />
+
+<br/>
+
+### Individual Account Metrics & 5-Hour Countdown
+<img src="docs/assets/screenshots/account_card.png" alt="GravWatch Account Metrics Card" width="450" />
+
+</div>
 
 ---
 

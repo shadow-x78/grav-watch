@@ -34,6 +34,8 @@ try:
     from services.server.core.container_manager import (
         provision_account_container,
         deprovision_account_container,
+        toggle_account_container,
+        list_active_account_containers,
     )
     from services.server.models.db import Account, UsageSnapshot
     from services.server.models.schemas import AuthTokenPayload, AuthStatusResponse
@@ -60,6 +62,8 @@ except ImportError:
     from ..core.container_manager import (
         provision_account_container,
         deprovision_account_container,
+        toggle_account_container,
+        list_active_account_containers,
     )
     from ..models.db import Account, UsageSnapshot
     from ..models.schemas import AuthTokenPayload, AuthStatusResponse
@@ -71,11 +75,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 @router.get("/url")
 async def get_auth_url(account_id: str = Query("acc-1")):
     account_id = validate_account_id(account_id)
-    try:
-        url = start_agy_login_flow(account_id)
-    except Exception as e:
-        logger.warning("start_agy_login_flow fallback to direct PKCE url: %s", e)
-        url = generate_pkce_auth_url(account_id)
+    url = generate_pkce_auth_url(account_id)
     return {
         "account_id": account_id,
         "auth_url": url,
@@ -86,11 +86,7 @@ async def get_auth_url(account_id: str = Query("acc-1")):
 @router.get("/start")
 async def start_oauth(account_id: str = Query("acc-1")):
     account_id = validate_account_id(account_id)
-    try:
-        url = start_agy_login_flow(account_id)
-    except Exception as e:
-        logger.warning("start_agy_login_flow fallback to direct PKCE url: %s", e)
-        url = generate_pkce_auth_url(account_id)
+    url = generate_pkce_auth_url(account_id)
     return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
 
 
@@ -318,11 +314,23 @@ async def revoke_auth_token(
     }
 
 
+@router.post("/container/toggle")
+async def toggle_container_endpoint(
+    account_id: str = Query("acc-1"),
+    db: AsyncSession = Depends(get_db),
+):
+    account_id = validate_account_id(account_id)
+    res = toggle_account_container(account_id)
+    return res
+
+
 @router.get("/status", response_model=list[AuthStatusResponse])
 async def get_auth_status(db: AsyncSession = Depends(get_db)):
     stmt = select(Account).order_by(Account.id)
     res = await db.execute(stmt)
     accounts = {a.id: a for a in res.scalars().all()}
+
+    active_containers = {c["account_id"]: c["status"] for c in list_active_account_containers()}
 
     known_ids = set()
     for acc_id, a in accounts.items():
@@ -353,6 +361,7 @@ async def get_auth_status(db: AsyncSession = Depends(get_db)):
         name = (getattr(a, "name", None) if a else None) or (creds.get("name") or creds.get("account_label") if creds else None)
         picture = (getattr(a, "picture", None) if a else None) or (creds.get("picture") if creds else None)
         last_update = a.last_seen_at if a else (creds.get("authenticated_at") if creds else None)
+        c_status = active_containers.get(acc_id, "running" if authenticated else "stopped")
         result.append(
             AuthStatusResponse(
                 account_id=acc_id,
@@ -360,6 +369,7 @@ async def get_auth_status(db: AsyncSession = Depends(get_db)):
                 email=email,
                 name=name,
                 picture=picture,
+                container_status=c_status,
                 last_token_update=last_update,
                 message="Authenticated" if authenticated else "Unauthenticated",
             )

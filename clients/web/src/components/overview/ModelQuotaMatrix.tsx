@@ -1,22 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Sparkles, Zap, RefreshCw, Info, ShieldCheck, Clock } from "lucide-react";
 import { useGravWatch } from "@/context/GravWatchContext";
-import Card from "@mui/material/Card";
-import CardHeader from "@mui/material/CardHeader";
-import CardContent from "@mui/material/CardContent";
-import Typography from "@mui/material/Typography";
-import IconButton from "@mui/material/IconButton";
-import Chip from "@mui/material/Chip";
-import Box from "@mui/material/Box";
-import Divider from "@mui/material/Divider";
-import Tooltip from "@mui/material/Tooltip";
-import Paper from "@mui/material/Paper";
-import { ProgressRing } from "@/components/ui/progress-ring";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { formatCountdownWithDays } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
+import { ProgressRing } from "@/components/ui/progress-ring";
+import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatCountdownWithDays } from "@/lib/utils";
 
 export const ModelQuotaMatrix: React.FC = () => {
   const { accounts, selectedAccountId, refreshAllAccounts, pooledTelemetry } = useGravWatch();
@@ -28,7 +20,11 @@ export const ModelQuotaMatrix: React.FC = () => {
       ? null
       : accounts.find((a) => a.id === selectedAccountId);
 
-  const displayPlan = selectedAccount ? selectedAccount.plan : (language === "ar" ? "Google AI Pro (عنقود مجمع)" : "Google AI Pro (Pooled Cluster)");
+  const displayPlan = selectedAccount
+    ? selectedAccount.plan
+    : language === "ar"
+    ? "مجمع الحسابات"
+    : "Pooled Cluster";
 
   const geminiWeeklyPct = selectedAccount
     ? selectedAccount.geminiQuota.weekly.percentRemaining
@@ -80,335 +76,148 @@ export const ModelQuotaMatrix: React.FC = () => {
     setTimeout(() => setIsRefreshing(false), 700);
   };
 
+  const QuotaRow = ({
+    label,
+    pct,
+    countdown,
+    color,
+    fullLabel,
+  }: {
+    label: string;
+    pct: number;
+    countdown: string;
+    color: string;
+    fullLabel: string;
+  }) => (
+    <div className="flex items-center justify-between py-3.5 px-4 rounded-lg bg-[#060911]/60 border border-white/[0.06] hover:border-white/10 transition-colors">
+      <div className="flex-1 min-w-0">
+        <span className="text-xs font-semibold text-slate-200 block">{label}</span>
+        <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+          <Clock className="h-2.5 w-2.5 shrink-0" />
+          <span className="truncate">
+            {pct < 100 ? countdown : fullLabel}
+          </span>
+        </span>
+      </div>
+      <div className="flex items-center gap-3 shrink-0">
+        <span className="text-lg font-black font-mono" style={{ color }}>
+          {pct}%
+        </span>
+        <ProgressRing
+          value={pct}
+          size={36}
+          thickness={3.5}
+          color={color}
+          trackColor="rgba(255,255,255,0.06)"
+        />
+      </div>
+    </div>
+  );
+
   return (
-    <Card
-      sx={{
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        background: "rgba(13, 19, 34, 0.75)",
-        backdropFilter: "blur(20px)",
-        borderRadius: 3.5,
-      }}
-    >
-      <CardHeader
-        title={
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: "#ffffff" }}>
-              {t("overview.matrix.title")}
-            </Typography>
-            <Tooltip title={t("overview.matrix.refreshTooltip")}>
-              <IconButton
-                size="small"
-                onClick={handleManualRefresh}
-                sx={{ color: "text.secondary", "&:hover": { color: "primary.main" } }}
-              >
-                <RefreshIcon
-                  sx={{
-                    fontSize: 18,
-                    animation: isRefreshing ? "spin 1s linear infinite" : "none",
-                  }}
-                />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        }
-        subheader={
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {selectedAccount
-              ? t("overview.matrix.subheaderManaging", { alias: selectedAccount.alias, email: selectedAccount.email })
-              : t("overview.matrix.subheaderPooled")}
-          </Typography>
-        }
-        action={
-          <Chip
-            label={selectedAccount ? selectedAccount.containerName : t("overview.matrix.multiAccountPool")}
-            size="small"
-            color="primary"
-            variant="outlined"
-            sx={{ fontFamily: "monospace", fontSize: "0.75rem", mt: 1 }}
-          />
-        }
-        sx={{ borderBottom: "1px solid rgba(255, 255, 255, 0.06)", pb: 2 }}
-      />
+    <TooltipProvider delayDuration={200}>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut", delay: 0.15 }}
+        className="rounded-xl border border-white/10 bg-[#0b0f1d] overflow-hidden"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-bold text-white">{t("overview.matrix.title")}</h2>
+          </div>
+          <div>
+            <p className="text-xs text-slate-400">
+              {selectedAccount
+                ? t("overview.matrix.subheaderManaging", {
+                    alias: selectedAccount.alias,
+                    email: selectedAccount.email,
+                  })
+                : t("overview.matrix.subheaderPooled")}
+            </p>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border bg-[#4285f4]/15 text-[#4285f4] border-[#4285f4]/25">
+            <ShieldCheck className="h-3 w-3" />
+            {displayPlan}
+          </div>
+        </div>
 
-      <CardContent sx={{ p: { xs: 2, sm: 3 }, display: "flex", flexDirection: "column", gap: 3 }}>
-        <Box>
-          <Typography
-            variant="caption"
-            sx={{
-              fontWeight: 700,
-              textTransform: "uppercase",
-              color: "text.secondary",
-              letterSpacing: "0.05em",
-              mb: 1,
-              display: "block",
-            }}
-          >
-            {t("overview.matrix.planSection")}
-          </Typography>
-          <Paper
-            elevation={0}
-            sx={{
-              p: { xs: 1.75, sm: 2.5 },
-              border: "1px solid rgba(255, 255, 255, 0.06)",
-              backgroundColor: "rgba(9, 13, 22, 0.6)",
-              borderRadius: 2.5,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 2,
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-              <Typography
-                variant="subtitle2"
-                sx={{ fontWeight: 700, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.95rem" } }}
-              >
-                {t("overview.matrix.yourPlan", { plan: displayPlan })}
-              </Typography>
-              <Chip
-                label={t("common.active").toUpperCase()}
-                size="small"
-                color="success"
-                sx={{ height: 20, fontSize: "0.65rem", fontWeight: 800 }}
-              />
-            </Box>
-          </Paper>
-        </Box>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x rtl:lg:divide-x-reverse divide-white/[0.06]">
+          <div className="p-5 space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#4285f4]/15 text-[#4285f4]">
+                  <Sparkles className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-sm font-bold text-white">
+                  {t("overview.matrix.geminiModels")}
+                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-slate-600 cursor-pointer hover:text-slate-400 transition-colors" />
+                  </TooltipTrigger>
+                  <TooltipContent>{t("overview.matrix.geminiTooltip")}</TooltipContent>
+                </Tooltip>
+              </div>
+              <span className="text-[10px] font-mono text-[#4285f4] bg-[#4285f4]/10 px-2 py-0.5 rounded border border-[#4285f4]/20">
+                Flash & Pro
+              </span>
+            </div>
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.85rem" }}>
-              {t("overview.matrix.geminiModels")}
-            </Typography>
-            <Tooltip title={t("overview.matrix.geminiTooltip")}>
-              <InfoOutlinedIcon sx={{ fontSize: 15, color: "text.secondary", cursor: "pointer" }} />
-            </Tooltip>
-          </Box>
+            <QuotaRow
+              label={t("overview.matrix.weeklyLimitRemaining")}
+              pct={geminiWeeklyPct}
+              countdown={geminiWeeklyCountdown}
+              color="#34a853"
+              fullLabel={t("overview.matrix.fullWeeklyCapacity")}
+            />
+            <QuotaRow
+              label={t("overview.matrix.fiveHourLimitRemaining")}
+              pct={gemini5hPct}
+              countdown={gemini5hCountdown}
+              color="#4285f4"
+              fullLabel={t("overview.matrix.fullFiveHourCapacity")}
+            />
+          </div>
 
-          <Paper
-            elevation={0}
-            sx={{
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              backgroundColor: "rgba(18, 22, 34, 0.75)",
-              borderRadius: 3,
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              sx={{
-                p: { xs: 2, sm: 2.25 },
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.9rem" } }}
-                >
-                  {t("overview.matrix.weeklyLimitRemaining")}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "text.secondary",
-                    fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                    display: "block",
-                    mt: 0.3,
-                  }}
-                >
-                  {geminiWeeklyPct < 100
-                    ? t("overview.matrix.weeklyPartialUsed", { time: geminiWeeklyCountdown })
-                    : t("overview.matrix.fullWeeklyCapacity")}
-                </Typography>
-              </Box>
+          <div className="p-5 space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#ea4335]/15 text-[#ea4335]">
+                  <Zap className="h-3.5 w-3.5" />
+                </div>
+                <span className="text-sm font-bold text-white">
+                  {t("overview.matrix.claudeGptModels")}
+                </span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-slate-600 cursor-pointer hover:text-slate-400 transition-colors" />
+                  </TooltipTrigger>
+                  <TooltipContent>{t("overview.matrix.claudeTooltip")}</TooltipContent>
+                </Tooltip>
+              </div>
+              <span className="text-[10px] font-mono text-[#ea4335] bg-[#ea4335]/10 px-2 py-0.5 rounded border border-[#ea4335]/20">
+                Sonnet, Opus & GPT
+              </span>
+            </div>
 
-              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1.5, sm: 2 }, flexShrink: 0 }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 700,
-                    fontFamily: "monospace",
-                    color: "#ffffff",
-                    fontSize: { xs: "0.85rem", sm: "0.95rem" },
-                  }}
-                >
-                  {geminiWeeklyPct}%
-                </Typography>
-                <ProgressRing value={geminiWeeklyPct} size={30} thickness={3.5} />
-              </Box>
-            </Box>
-
-            <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.06)" }} />
-
-            <Box
-              sx={{
-                p: { xs: 2, sm: 2.25 },
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.9rem" } }}
-                >
-                  {t("overview.matrix.fiveHourLimitRemaining")}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "text.secondary",
-                    fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                    display: "block",
-                    mt: 0.3,
-                  }}
-                >
-                  {gemini5hPct < 100
-                    ? t("overview.matrix.fiveHourPartialUsed", { time: gemini5hCountdown })
-                    : t("overview.matrix.fullFiveHourCapacity")}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1.5, sm: 2 }, flexShrink: 0 }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 700,
-                    fontFamily: "monospace",
-                    color: "#ffffff",
-                    fontSize: { xs: "0.85rem", sm: "0.95rem" },
-                  }}
-                >
-                  {gemini5hPct}%
-                </Typography>
-                <ProgressRing value={gemini5hPct} size={30} thickness={3.5} />
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
-
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.85rem" }}>
-              {t("overview.matrix.claudeGptModels")}
-            </Typography>
-            <Tooltip title={t("overview.matrix.claudeTooltip")}>
-              <InfoOutlinedIcon sx={{ fontSize: 15, color: "text.secondary", cursor: "pointer" }} />
-            </Tooltip>
-          </Box>
-
-          <Paper
-            elevation={0}
-            sx={{
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              backgroundColor: "rgba(18, 22, 34, 0.75)",
-              borderRadius: 3,
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              sx={{
-                p: { xs: 2, sm: 2.25 },
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.9rem" } }}
-                >
-                  {t("overview.matrix.weeklyLimitRemaining")}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "text.secondary",
-                    fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                    display: "block",
-                    mt: 0.3,
-                  }}
-                >
-                  {claudeWeeklyPct < 100
-                    ? t("overview.matrix.weeklyPartialUsed", { time: claudeWeeklyCountdown })
-                    : t("overview.matrix.fullWeeklyCapacity")}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1.5, sm: 2 }, flexShrink: 0 }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 700,
-                    fontFamily: "monospace",
-                    color: "#ffffff",
-                    fontSize: { xs: "0.85rem", sm: "0.95rem" },
-                  }}
-                >
-                  {claudeWeeklyPct}%
-                </Typography>
-                <ProgressRing value={claudeWeeklyPct} size={30} thickness={3.5} />
-              </Box>
-            </Box>
-
-            <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.06)" }} />
-
-            <Box
-              sx={{
-                p: { xs: 2, sm: 2.25 },
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: "#ffffff", fontSize: { xs: "0.85rem", sm: "0.9rem" } }}
-                >
-                  {t("overview.matrix.fiveHourLimitRemaining")}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "text.secondary",
-                    fontSize: { xs: "0.72rem", sm: "0.78rem" },
-                    display: "block",
-                    mt: 0.3,
-                  }}
-                >
-                  {claude5hPct < 100
-                    ? t("overview.matrix.fiveHourPartialUsed", { time: claude5hCountdown })
-                    : t("overview.matrix.fullFiveHourCapacity")}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1.5, sm: 2 }, flexShrink: 0 }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 700,
-                    fontFamily: "monospace",
-                    color: "#ffffff",
-                    fontSize: { xs: "0.85rem", sm: "0.95rem" },
-                  }}
-                >
-                  {claude5hPct}%
-                </Typography>
-                <ProgressRing value={claude5hPct} size={30} thickness={3.5} />
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
-      </CardContent>
-    </Card>
+            <QuotaRow
+              label={t("overview.matrix.weeklyLimitRemaining")}
+              pct={claudeWeeklyPct}
+              countdown={claudeWeeklyCountdown}
+              color="#34a853"
+              fullLabel={t("overview.matrix.fullWeeklyCapacity")}
+            />
+            <QuotaRow
+              label={t("overview.matrix.fiveHourLimitRemaining")}
+              pct={claude5hPct}
+              countdown={claude5hCountdown}
+              color="#ea4335"
+              fullLabel={t("overview.matrix.fullFiveHourCapacity")}
+            />
+          </div>
+        </div>
+      </motion.div>
+    </TooltipProvider>
   );
 };

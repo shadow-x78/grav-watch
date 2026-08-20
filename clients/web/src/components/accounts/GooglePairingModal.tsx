@@ -1,36 +1,43 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import {
+  ShieldCheck,
+  ExternalLink,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Terminal,
+  KeyRound,
+  Server,
+} from "lucide-react";
 import { useGravWatch } from "@/context/GravWatchContext";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
-import TextField from "@mui/material/TextField";
-import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
-import Alert from "@mui/material/Alert";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import TerminalIcon from "@mui/icons-material/Terminal";
-import SecurityIcon from "@mui/icons-material/Security";
-import AddIcon from "@mui/icons-material/Add";
 import { useLanguage } from "@/context/LanguageContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface GooglePairingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialAccountId?: string;
 }
 
-export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, onClose }) => {
+export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({
+  isOpen,
+  onClose,
+  initialAccountId,
+}) => {
   const { accounts, refreshAllAccounts } = useGravWatch();
-  const { t, direction } = useLanguage();
+  const { t } = useLanguage();
 
-  const [targetAccountId, setTargetAccountId] = useState("acc-2");
+  const [targetAccountId, setTargetAccountId] = useState("acc-1");
   const [authCode, setAuthCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -38,24 +45,43 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
   const [loadingUrl, setLoadingUrl] = useState(false);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
 
+  const isReauthMode = Boolean(initialAccountId);
+
   useEffect(() => {
     if (isOpen) {
-      const existingIds = new Set(accounts.map((a) => a.id));
-      let nextNum = 1;
-      while (existingIds.has(`acc-${nextNum}`)) {
-        nextNum++;
+      let accId = initialAccountId;
+      if (!accId) {
+        const existingIds = new Set(accounts.map((a) => a.id));
+        let nextNum = 1;
+        while (existingIds.has(`acc-${nextNum}`)) {
+          nextNum++;
+        }
+        accId = `acc-${nextNum}`;
       }
-      setTargetAccountId(`acc-${nextNum}`);
+      setTargetAccountId(accId);
       setAuthCode("");
       setErrorMsg(null);
       setSuccessEmail(null);
       setAuthUrl(null);
+
+      // Pre-generate URL instantly
+      fetch(`/api/v1/auth/url?account_id=${encodeURIComponent(accId)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.auth_url) setAuthUrl(data.auth_url);
+        })
+        .catch(() => {});
     }
-  }, [isOpen, accounts]);
+  }, [isOpen, accounts, initialAccountId]);
 
   const handleOpenGoogle = async () => {
     if (!targetAccountId.trim()) {
       setErrorMsg(t("accounts.googlePairingModal.errors.missingId"));
+      return;
+    }
+
+    if (authUrl) {
+      window.open(authUrl, "_blank", "noopener,noreferrer");
       return;
     }
 
@@ -100,264 +126,179 @@ export const GooglePairingModal: React.FC<GooglePairingModalProps> = ({ isOpen, 
         },
         body: JSON.stringify({
           account_id: targetAccountId.trim(),
-          code: authCode.trim(),
+          auth_code: authCode.trim(),
         }),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || data.detail || t("accounts.googlePairingModal.errors.failed"));
+      if (!res.ok || data.status === "error") {
+        throw new Error(data.message || t("accounts.googlePairingModal.errors.failed"));
       }
 
-      setSuccessEmail(data.email || `Account ${targetAccountId}`);
-      await refreshAllAccounts();
-
+      setSuccessEmail(data.email || "Google Account");
+      refreshAllAccounts();
       setTimeout(() => {
-        setSuccessEmail(null);
-        setAuthCode("");
-        setLoading(false);
         onClose();
-      }, 1800);
-    } catch (err: any) {
-      setErrorMsg(err.message || t("accounts.googlePairingModal.errors.failed"));
+      }, 1600);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : t("accounts.googlePairingModal.errors.failed");
+      setErrorMsg(message);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleClose = () => {
-    if (loading) return;
-    setErrorMsg(null);
-    setSuccessEmail(null);
-    setAuthCode("");
-    onClose();
-  };
-
   return (
-    <Dialog
-      open={isOpen}
-      onClose={handleClose}
-      maxWidth="sm"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            bgcolor: "#161b22",
-            backgroundImage: "none",
-            border: "1px solid #30363d",
-            borderRadius: 3,
-            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7)",
-          },
-        },
-      }}
-    >
-      <DialogTitle sx={{ p: 3, pb: 1.5 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 42,
-              height: 42,
-              borderRadius: 2,
-              bgcolor: "primary.main",
-              background: "linear-gradient(135deg, #2563eb, #7c3aed)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <SecurityIcon sx={{ color: "#fff", fontSize: 24 }} />
-          </Box>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: "#fff", lineHeight: 1.2 }}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md bg-[#0b0f1d] border-white/10 text-slate-100 p-5">
+        <DialogHeader className="text-start space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#4285f4]/15 text-[#4285f4]">
+              <ShieldCheck className="h-4 w-4" />
+            </div>
+            <DialogTitle className="text-base font-bold text-white">
               {t("accounts.googlePairingModal.title")}
-            </Typography>
-            <Typography variant="caption" sx={{ color: "#9ca3af" }}>
-              {t("accounts.googlePairingModal.subtitle")}
-            </Typography>
-          </Box>
-        </Box>
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 3, pt: 1 }}>
-        {errorMsg && (
-          <Alert severity="error" sx={{ mb: 2, bgcolor: "rgba(239, 68, 68, 0.1)", border: "1px solid #ef4444", color: "#fca5a5" }}>
-            {errorMsg}
-          </Alert>
-        )}
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-xs text-slate-400">
+            {t("accounts.googlePairingModal.subtitle")}
+          </DialogDescription>
+        </DialogHeader>
 
         {successEmail ? (
-          <Box sx={{ textAlign: "center", py: 4 }}>
-            <CheckCircleIcon sx={{ fontSize: 56, color: "#22c55e", mb: 1.5 }} />
-            <Typography variant="h6" sx={{ color: "#fff", fontWeight: 700, mb: 0.5 }}>
+          <div className="rounded-lg bg-[#34a853]/10 border border-[#34a853]/30 p-4 text-center space-y-2">
+            <CheckCircle2 className="h-8 w-8 text-[#34a853] mx-auto" />
+            <p className="text-sm font-bold text-white">
               {t("accounts.googlePairingModal.successTitle")}
-            </Typography>
-            <Typography variant="body2" sx={{ color: "#86efac" }}>
-              {t("accounts.googlePairingModal.successMessage", { id: targetAccountId, email: successEmail })}
-            </Typography>
-            <Typography variant="caption" sx={{ color: "#9ca3af", display: "block", mt: 2 }}>
+            </p>
+            <p className="text-xs text-slate-300 font-mono">
+              {t("accounts.googlePairingModal.successMessage", {
+                id: targetAccountId,
+                email: successEmail,
+              })}
+            </p>
+            <p className="text-[11px] text-[#34a853] font-semibold">
               {t("accounts.googlePairingModal.successStreaming")}
-            </Typography>
-          </Box>
+            </p>
+          </div>
         ) : (
-          <Box component="form" onSubmit={handleExchangeCode}>
-            <Box sx={{ mb: 2.5 }}>
-              <Typography variant="subtitle2" sx={{ color: "#e4e6eb", fontWeight: 600, mb: 0.8 }}>
-                {t("accounts.googlePairingModal.targetIdLabel")}
-              </Typography>
-              <TextField
-                fullWidth
-                size="small"
-                value={targetAccountId}
-                onChange={(e) => setTargetAccountId(e.target.value)}
-                placeholder={t("accounts.googlePairingModal.targetIdPlaceholder")}
-                disabled={loading}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    bgcolor: "#0b0e14",
-                    color: "#fff",
-                    fontFamily: "monospace",
-                    fontSize: "13px",
-                    borderRadius: 2,
-                    "& fieldset": { borderColor: "#30363d" },
-                    "&:hover fieldset": { borderColor: "#38bdf8" },
-                  },
-                }}
-              />
-              <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap", alignItems: "center" }}>
-                <Typography variant="caption" sx={{ color: "#6b7280" }}>
-                  {t("accounts.googlePairingModal.quickSuggestions")}
-                </Typography>
-                {accounts.map((a) => (
-                  <Chip
-                    key={a.id}
-                    label={`${a.id} (${t("accounts.googlePairingModal.reAuth")})`}
-                    size="small"
-                    clickable
-                    onClick={() => setTargetAccountId(a.id)}
-                    sx={{
-                      fontSize: "11px",
-                      bgcolor: targetAccountId === a.id ? "rgba(56, 189, 248, 0.2)" : "rgba(255, 255, 255, 0.05)",
-                      color: targetAccountId === a.id ? "#38bdf8" : "#9ca3af",
-                      borderColor: targetAccountId === a.id ? "#38bdf8" : "transparent",
-                    }}
-                  />
-                ))}
-                <Chip
-                  icon={<AddIcon sx={{ fontSize: "14px !important" }} />}
-                  label={`acc-${accounts.length + 1} (${t("accounts.googlePairingModal.newNode")})`}
-                  size="small"
-                  clickable
-                  onClick={() => setTargetAccountId(`acc-${accounts.length + 1}`)}
-                  sx={{
-                    fontSize: "11px",
-                    bgcolor: targetAccountId === `acc-${accounts.length + 1}` ? "rgba(34, 197, 94, 0.2)" : "rgba(255, 255, 255, 0.05)",
-                    color: targetAccountId === `acc-${accounts.length + 1}` ? "#22c55e" : "#9ca3af",
-                    borderColor: targetAccountId === `acc-${accounts.length + 1}` ? "#22c55e" : "transparent",
-                  }}
-                />
-              </Box>
-            </Box>
+          <form onSubmit={handleExchangeCode} className="space-y-4">
+            {errorMsg && (
+              <div className="rounded-md bg-[#ea4335]/15 border border-[#ea4335]/30 p-2.5 text-xs text-[#ea4335] flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
 
-            <Paper
-              sx={{
-                p: 2,
-                mb: 2.5,
-                bgcolor: "#0b0e14",
-                border: "1px solid #21262d",
-                borderRadius: 2,
-                display: "flex",
-                alignItems: "center",
-                gap: 1.5,
-                direction: "ltr",
-              }}
+            <div
+              className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-xs border ${
+                isReauthMode
+                  ? "bg-[#4285f4]/10 border-[#4285f4]/30"
+                  : "bg-[#34a853]/10 border-[#34a853]/30"
+              }`}
             >
-              <TerminalIcon sx={{ color: "#38bdf8", fontSize: 20 }} />
-              <Typography variant="body2" sx={{ fontFamily: "monospace", color: "#38bdf8", fontSize: "13px" }}>
-                $ agy auth login --target [{targetAccountId}]
-              </Typography>
-            </Paper>
-
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" sx={{ color: "#e4e6eb", fontWeight: 600, mb: 1 }}>
-                {t("accounts.googlePairingModal.step1Title")}
-              </Typography>
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={handleOpenGoogle}
-                disabled={loadingUrl || loading || !targetAccountId.trim()}
-                startIcon={<OpenInNewIcon sx={{ transform: direction === "rtl" ? "scaleX(-1)" : "none" }} />}
-                sx={{
-                  py: 1.3,
-                  bgcolor: "#2563eb",
-                  fontWeight: 600,
-                  textTransform: "none",
-                  borderRadius: 2,
-                  "&:hover": { bgcolor: "#1d4ed8" },
-                }}
+              <div className="flex items-center gap-2">
+                {isReauthMode ? (
+                  <KeyRound className="h-4 w-4 text-[#4285f4] shrink-0" />
+                ) : (
+                  <Server className="h-4 w-4 text-[#34a853] shrink-0" />
+                )}
+                <span className="font-semibold text-white">
+                  {isReauthMode
+                    ? t("accounts.googlePairingModal.reAuthNode", { id: targetAccountId })
+                    : t("accounts.googlePairingModal.autoAssignedNode", { id: targetAccountId })}
+                </span>
+              </div>
+              <span
+                className={`font-mono text-[11px] font-bold px-2 py-0.5 rounded border ${
+                  isReauthMode
+                    ? "bg-[#4285f4]/20 text-[#4285f4] border-[#4285f4]/30"
+                    : "bg-[#34a853]/20 text-[#34a853] border-[#34a853]/30"
+                }`}
               >
-                {loadingUrl
-                  ? t("accounts.googlePairingModal.step1Loading")
-                  : t("accounts.googlePairingModal.step1Btn", { id: targetAccountId })}
-              </Button>
-              {authUrl ? (
-                <Typography variant="caption" sx={{ color: "#38bdf8", display: "block", mt: 1, wordBreak: "break-all" }}>
-                  <a href={authUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8", textDecoration: "underline" }}>
-                    {t("accounts.googlePairingModal.step1PopupBlocked")}
-                  </a>
-                </Typography>
-              ) : (
-                <Typography variant="caption" sx={{ color: "#9ca3af", display: "block", mt: 0.8 }}>
-                  {t("accounts.googlePairingModal.step1Help")}
-                </Typography>
-              )}
-            </Box>
+                gravwatch-{targetAccountId}
+              </span>
+            </div>
 
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="subtitle2" sx={{ color: "#e4e6eb", fontWeight: 600, mb: 1 }}>
+            <div className="rounded-lg border border-white/5 bg-[#060911]/60 p-3 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-white">
+                  {t("accounts.googlePairingModal.step1Title")}
+                </span>
+                <Terminal className="h-3.5 w-3.5 text-slate-500" />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleOpenGoogle}
+                disabled={loadingUrl}
+                className="w-full h-8 text-xs font-semibold justify-between border-white/10 hover:border-[#4285f4]/50"
+              >
+                <span>
+                  {loadingUrl
+                    ? t("accounts.googlePairingModal.step1Loading")
+                    : t("accounts.googlePairingModal.step1Btn", { id: targetAccountId })}
+                </span>
+                {loadingUrl ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <ExternalLink className="h-3.5 w-3.5 text-[#4285f4]" />
+                )}
+              </Button>
+
+              <p className="text-[11px] text-slate-500">
+                {t("accounts.googlePairingModal.step1Help")}
+              </p>
+
+              {authUrl && (
+                <a
+                  href={authUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] text-[#4285f4] underline block text-center"
+                >
+                  {t("accounts.googlePairingModal.step1PopupBlocked")}
+                </a>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-300">
                 {t("accounts.googlePairingModal.step2Title")}
-              </Typography>
-              <TextField
-                fullWidth
-                placeholder={t("accounts.googlePairingModal.step2Placeholder")}
+              </label>
+              <Input
                 value={authCode}
                 onChange={(e) => setAuthCode(e.target.value)}
-                disabled={loading}
-                size="small"
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    bgcolor: "#0b0e14",
-                    color: "#fff",
-                    fontFamily: "monospace",
-                    fontSize: "13px",
-                    borderRadius: 2,
-                    "& fieldset": { borderColor: "#30363d" },
-                    "&:hover fieldset": { borderColor: "#38bdf8" },
-                  },
-                }}
+                placeholder={t("accounts.googlePairingModal.step2Placeholder")}
+                className="h-8 text-xs font-mono"
               />
-            </Box>
+            </div>
 
-            <DialogActions sx={{ px: 0, pt: 2 }}>
-              <Button onClick={handleClose} disabled={loading} sx={{ color: "#9ca3af" }}>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                disabled={loading}
+                className="h-8 text-xs"
+              >
                 {t("common.cancel")}
               </Button>
               <Button
                 type="submit"
-                variant="contained"
-                disabled={loading || !authCode.trim() || !targetAccountId.trim()}
-                sx={{
-                  bgcolor: "#22c55e",
-                  color: "#000",
-                  fontWeight: 700,
-                  borderRadius: 2,
-                  px: 3,
-                  "&:hover": { bgcolor: "#16a34a" },
-                }}
+                variant="default"
+                size="sm"
+                disabled={loading || !authCode.trim()}
+                className="h-8 text-xs font-semibold bg-[#4285f4] hover:bg-[#3367d6]"
               >
-                {loading ? <CircularProgress size={20} color="inherit" /> : t("accounts.googlePairingModal.completeBtn", { id: targetAccountId })}
+                {loading && <Loader2 className="h-3.5 w-3.5 animate-spin me-1.5" />}
+                {t("accounts.googlePairingModal.completeBtn")}
               </Button>
-            </DialogActions>
-          </Box>
+            </div>
+          </form>
         )}
       </DialogContent>
     </Dialog>

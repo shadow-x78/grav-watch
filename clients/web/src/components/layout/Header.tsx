@@ -1,45 +1,49 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
+import {
+  RefreshCw,
+  Globe,
+  PlusCircle,
+  LayoutGrid,
+  Users,
+  Layers,
+} from "lucide-react";
 import { useGravWatch } from "@/context/GravWatchContext";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import Tooltip from "@mui/material/Tooltip";
-import Chip from "@mui/material/Chip";
-import LayersIcon from "@mui/icons-material/Layers";
-import PublicIcon from "@mui/icons-material/Public";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import MenuIcon from "@mui/icons-material/Menu";
-import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
-import TranslateIcon from "@mui/icons-material/Translate";
 import { useLanguage } from "@/context/LanguageContext";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface HeaderProps {
   onOpenGooglePairing: () => void;
-  onOpenManualAdd?: () => void;
-  onToggleMobileSidebar?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   onOpenGooglePairing,
-  onOpenManualAdd,
-  onToggleMobileSidebar,
 }) => {
   const {
     accounts,
     selectedAccountId,
     setSelectedAccountId,
     refreshAllAccounts,
+    activeTab,
+    setActiveTab,
   } = useGravWatch();
-  const { language, toggleLanguage, direction, t } = useLanguage();
+  const { language, toggleLanguage, t } = useLanguage();
 
   const [isSpinning, setIsSpinning] = useState(false);
 
@@ -50,375 +54,158 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <AppBar
-      position="sticky"
-      elevation={0}
-      sx={{
-        backgroundColor: "#070b14",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-        color: "#ffffff",
-        zIndex: 1100,
-        p: 0,
-        m: 0,
-        width: "100%",
-        maxWidth: "100vw",
-        overflow: "hidden",
-        flexShrink: 0,
-      }}
-    >
-      <Toolbar
-        disableGutters
-        sx={{
-          minHeight: { xs: 60, sm: 68 },
-          height: { xs: 60, sm: 68 },
-          p: 0,
-          m: 0,
-          width: "100%",
-          maxWidth: "100vw",
-          boxSizing: "border-box",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Box
-          sx={{
-            width: { xs: "auto", lg: 250 },
-            minWidth: { xs: "auto", lg: 250 },
-            height: { xs: 60, sm: 68 },
-            display: "flex",
-            alignItems: "center",
-            px: { xs: 1, sm: 2, lg: 2.5 },
-            borderRight: { xs: "none", lg: direction === "rtl" ? "none" : "1px solid rgba(255, 255, 255, 0.08)" },
-            borderLeft: { xs: "none", lg: direction === "rtl" ? "1px solid rgba(255, 255, 255, 0.08)" : "none" },
-            flexShrink: 0,
-            gap: { xs: 0.75, sm: 1.25 },
-          }}
-        >
-          <IconButton
-            id="mobile-menu-toggle"
-            onClick={onToggleMobileSidebar}
-            size="small"
-            aria-label={t("layout.header.mobileMenuAria")}
-            sx={{
-              display: { xs: "flex", lg: "none" },
-              color: "#94a3b8",
-              p: { xs: 0.5, sm: 0.75 },
-              "&:hover": { color: "#ffffff" },
-            }}
-          >
-            <MenuIcon sx={{ fontSize: { xs: 22, sm: 24 } }} />
-          </IconButton>
+    <TooltipProvider delayDuration={200}>
+      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#060911]/95 backdrop-blur-md">
+        <div className="flex h-14 w-full items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2.5 cursor-pointer group" onClick={() => setActiveTab("overview")}>
+              <div className="relative h-10 w-11 sm:h-11 sm:w-12 flex-shrink-0 group-hover:scale-105 transition-transform">
+                <Image
+                  src="/gravwatch.svg"
+                  alt="GravWatch Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-black tracking-tight text-white group-hover:text-[#4285f4] transition-colors">
+                  GravWatch
+                </span>
+                <span className="hidden sm:inline-block h-1.5 w-1.5 rounded-full bg-[#4285f4]" />
+                <span className="hidden sm:inline-block font-mono text-[10px] text-slate-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
+                  v2.6.0
+                </span>
+              </div>
+            </div>
 
-          <Box
-            sx={{
-              width: { xs: 28, sm: 32 },
-              height: { xs: 28, sm: 32 },
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, #10b981 0%, #06b6d4 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <LayersIcon sx={{ color: "#ffffff", fontSize: { xs: 16, sm: 18 } }} />
-          </Box>
-
-          <Typography
-            variant="subtitle1"
-            sx={{
-              fontWeight: 800,
-              color: "#ffffff",
-              letterSpacing: "-0.01em",
-              fontSize: "1.05rem",
-              display: { xs: "none", sm: "block" },
-            }}
-          >
-            {t("layout.header.title")}
-          </Typography>
-
-          <Chip
-            label="v2.5.0"
-            size="small"
-            sx={{
-              height: 20,
-              fontSize: "0.65rem",
-              fontWeight: 700,
-              fontFamily: "monospace",
-              color: "#10b981",
-              backgroundColor: "rgba(16, 185, 129, 0.1)",
-              border: "1px solid rgba(16, 185, 129, 0.3)",
-              display: { xs: "none", sm: "inline-flex" },
-            }}
-          />
-        </Box>
-
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            px: { xs: 1, sm: 2, lg: 3 },
-            height: { xs: 60, sm: 68 },
-            minWidth: 0,
-            gap: { xs: 0.75, sm: 1.5 },
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", minWidth: 0, flex: { xs: 1, sm: "initial" } }}>
-            <FormControl
-              size="small"
-              sx={{
-                width: { xs: "100%", sm: "auto" },
-                minWidth: 0,
-                maxWidth: { xs: 145, sm: 220, md: 270 },
-              }}
-            >
-              <Select
-                value={selectedAccountId}
-                onChange={(e) => setSelectedAccountId(e.target.value)}
-                renderValue={(value) => {
-                  if (value === "all") {
-                    return (
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        <PublicIcon sx={{ fontSize: { xs: 14, sm: 16 }, color: "#38bdf8", flexShrink: 0 }} />
-                        <Typography
-                          component="span"
-                          sx={{
-                            fontSize: { xs: "0.72rem", sm: "0.82rem" },
-                            fontWeight: 600,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            color: "#cbd5e1",
-                          }}
-                        >
-                          <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-                            {t("layout.header.allPooledShort")}
-                          </Box>
-                          <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                            {t("layout.header.allAccountsPooled")}
-                          </Box>
-                        </Typography>
-                      </Box>
-                    );
-                  }
-                  const acc = accounts.find((a) => a.id === value);
-                  return (
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      <span
-                        style={{
-                          width: 7,
-                          height: 7,
-                          borderRadius: "50%",
-                          flexShrink: 0,
-                          backgroundColor:
-                            acc?.status === "active"
-                              ? "#10b981"
-                              : acc?.status === "warning"
-                              ? "#f59e0b"
-                              : acc?.status === "depleted"
-                              ? "#f43f5e"
-                              : "#94a3b8",
-                        }}
-                      />
-                      <Typography
-                        component="span"
-                        sx={{
-                          fontSize: { xs: "0.72rem", sm: "0.82rem" },
-                          fontWeight: 600,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                          color: "#cbd5e1",
-                        }}
-                      >
-                        {acc ? acc.alias : value}
-                      </Typography>
-                    </Box>
-                  );
-                }}
-                sx={{
-                  backgroundColor: "#0b1220",
-                  color: "#cbd5e1",
-                  borderRadius: 2,
-                  fontSize: { xs: "0.72rem", sm: "0.82rem" },
-                  fontWeight: 600,
-                  height: { xs: 34, sm: 38 },
-                  "& .MuiSelect-select": {
-                    py: 0,
-                    px: { xs: 0.75, sm: 1.25 },
-                    pr: direction === "rtl" ? { xs: "8px !important", sm: "12px !important" } : { xs: "22px !important", sm: "30px !important" },
-                    pl: direction === "rtl" ? { xs: "22px !important", sm: "30px !important" } : { xs: "8px !important", sm: "12px !important" },
-                    display: "flex",
-                    alignItems: "center",
-                    height: "100%",
-                  },
-                  "& .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(255, 255, 255, 0.12)",
-                  },
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(16, 185, 129, 0.4)",
-                  },
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "#10b981",
-                  },
-                  "& .MuiSelect-icon": {
-                    color: "#94a3b8",
-                    right: direction === "rtl" ? "auto" : { xs: 3, sm: 7 },
-                    left: direction === "rtl" ? { xs: 3, sm: 7 } : "auto",
-                    fontSize: { xs: 18, sm: 20 },
-                  },
-                }}
+            <nav className="hidden sm:flex items-center gap-1 bg-[#0b0f1d] p-1 rounded-lg border border-white/5">
+              <button
+                type="button"
+                onClick={() => setActiveTab("overview")}
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === "overview"
+                    ? "bg-[#4285f4] text-white font-semibold"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                }`}
               >
-                <MenuItem value="all" sx={{ fontSize: "0.82rem" }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <PublicIcon sx={{ fontSize: 16, color: "#38bdf8" }} />
-                    <span>{t("layout.header.allAccountsPooled")}</span>
-                  </Box>
-                </MenuItem>
-                {accounts.map((acc) => (
-                  <MenuItem key={acc.id} value={acc.id} sx={{ fontSize: "0.82rem" }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          backgroundColor:
-                            acc.status === "active"
-                              ? "#10b981"
-                              : acc.status === "warning"
-                              ? "#f59e0b"
-                              : acc.status === "depleted"
-                              ? "#f43f5e"
-                              : "#94a3b8",
-                        }}
-                      />
-                      <span>{acc.alias}</span>
-                    </Box>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>{t("layout.sidebar.navOverview")}</span>
+              </button>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.35, sm: 0.75, lg: 1.5 }, flexShrink: 0 }}>
-            <Tooltip title={t("layout.header.switchLangTooltip")}>
-              <Button
-                size="small"
-                onClick={toggleLanguage}
-                aria-label="Toggle language"
-                startIcon={<TranslateIcon sx={{ fontSize: 15 }} />}
-                sx={{
-                  color: "#94a3b8",
-                  backgroundColor: "#0b1220",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  borderRadius: 2,
-                  px: { xs: 0.8, sm: 1.2 },
-                  height: { xs: 30, sm: 34 },
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  textTransform: "uppercase",
-                  "&:hover": {
-                    color: "#38bdf8",
-                    borderColor: "rgba(56, 189, 248, 0.4)",
-                    backgroundColor: "#0d1527",
-                  },
-                }}
+              <button
+                type="button"
+                onClick={() => setActiveTab("accounts")}
+                className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  activeTab === "accounts"
+                    ? "bg-[#4285f4] text-white font-semibold"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                }`}
               >
-                {language === "ar" ? "EN" : "عربي"}
-              </Button>
-            </Tooltip>
-
-            <Tooltip title={t("layout.header.refreshTooltip")}>
-              <IconButton
-                size="small"
-                onClick={handleManualRefresh}
-                aria-label={t("layout.header.refreshTooltip")}
-                sx={{
-                  color: "#94a3b8",
-                  backgroundColor: "#0b1220",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
-                  borderRadius: 2,
-                  p: { xs: 0.5, sm: 0.8 },
-                  width: { xs: 30, sm: 34 },
-                  height: { xs: 30, sm: 34 },
-                  "&:hover": {
-                    color: "#10b981",
-                    borderColor: "rgba(16, 185, 129, 0.4)",
-                    backgroundColor: "#0d1527",
-                  },
-                }}
-              >
-                <RefreshIcon sx={{ fontSize: { xs: 16, sm: 18 }, animation: isSpinning ? "spin 1s linear infinite" : "none" }} />
-              </IconButton>
-            </Tooltip>
-
-            <Tooltip title={t("layout.header.pairGoogleTooltip")}>
-              <Box sx={{ display: { xs: "flex", lg: "none" } }}>
-                <IconButton
-                  size="small"
-                  onClick={onOpenGooglePairing}
-                  aria-label={t("layout.header.pairGoogleTooltip")}
-                  sx={{
-                    background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                    color: "#ffffff",
-                    width: { xs: 30, sm: 34 },
-                    height: { xs: 30, sm: 34 },
-                    borderRadius: 2,
-                    p: { xs: 0.5, sm: 0.8 },
-                    "&:hover": {
-                      background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                    },
-                  }}
+                <Users className="h-3.5 w-3.5" />
+                <span>{t("layout.sidebar.navAccounts")}</span>
+                <span
+                  className={`ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full ${
+                    activeTab === "accounts"
+                      ? "bg-white/20 text-white font-bold"
+                      : "bg-[#34a853]/20 text-[#34a853] font-semibold"
+                  }`}
                 >
-                  <AddCircleIcon sx={{ fontSize: { xs: 17, sm: 20 } }} />
-                </IconButton>
-              </Box>
-            </Tooltip>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddCircleIcon sx={{ fontSize: 18 }} />}
-              onClick={onOpenGooglePairing}
-              aria-label={t("layout.header.pairGoogleTooltip")}
-              sx={{
-                display: { xs: "none", lg: "inline-flex" },
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                color: "#ffffff",
-                fontWeight: 700,
-                fontSize: "0.8rem",
-                px: 2,
-                py: 0.8,
-                borderRadius: 2,
-                boxShadow: "none",
-                "&:hover": {
-                  background: "linear-gradient(135deg, #059669 0%, #047857 100%)",
-                  boxShadow: "none",
-                },
-              }}
-            >
-              {t("layout.header.pairGoogleBtn")}
-            </Button>
+                  {accounts.length}
+                </span>
+              </button>
+            </nav>
+          </div>
 
-            <Tooltip title={t("layout.header.systemConfigTooltip")}>
-              <IconButton
-                size="small"
-                sx={{
-                  color: "#64748b",
-                  p: 0.8,
-                  display: { xs: "none", sm: "flex" },
-                  "&:hover": { color: "#ffffff" },
-                }}
-              >
-                <SettingsOutlinedIcon sx={{ fontSize: 19 }} />
-              </IconButton>
+          <div className="flex items-center gap-2.5">
+            <Select
+              value={selectedAccountId}
+              onValueChange={(val) => setSelectedAccountId(val)}
+            >
+              <SelectTrigger className="h-9 max-w-[145px] sm:max-w-[210px] text-xs bg-[#0b0f1d] border-white/10">
+                <SelectValue placeholder={t("layout.header.allAccountsPooled")} />
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="all">{t("layout.header.allAccountsPooled")}</SelectItem>
+                {accounts.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id}>
+                    {acc.alias} ({acc.plan.replace("Google AI ", "")})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleLanguage}
+                  className="h-9 px-3 text-xs font-semibold text-slate-200 border-white/10 hover:border-white/20 hover:bg-white/5 gap-1.5"
+                >
+                  <Globe className="h-4 w-4 text-[#4285f4]" />
+                  <span>{language === "ar" ? "English" : "العربية"}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {language === "ar" ? "Switch to English" : "تبديل إلى اللغة العربية"}
+              </TooltipContent>
             </Tooltip>
-          </Box>
-        </Box>
-      </Toolbar>
-    </AppBar>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleManualRefresh}
+                  className="h-9 w-9 shrink-0 aspect-square min-w-[36px] min-h-[36px] text-slate-200 border-white/10 hover:border-white/20 hover:bg-white/5 hover:text-white"
+                >
+                  <RefreshCw className={`h-4 w-4 shrink-0 ${isSpinning ? "animate-spin text-[#34a853]" : ""}`} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("layout.header.refreshTooltip")}</TooltipContent>
+            </Tooltip>
+
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onOpenGooglePairing}
+              className="h-9 px-3.5 text-xs font-semibold bg-[#4285f4] hover:bg-[#3367d6] text-white gap-1.5"
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">{t("layout.header.pairGoogleBtn")}</span>
+              <span className="sm:hidden">Google</span>
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex sm:hidden border-t border-white/5 px-3 py-1.5 gap-1 bg-[#0b0f1d]">
+          <button
+            type="button"
+            onClick={() => setActiveTab("overview")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-xs font-medium rounded-md ${
+              activeTab === "overview"
+                ? "bg-[#4285f4] text-white font-semibold"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            <span>{t("layout.sidebar.navOverview")}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("accounts")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1 text-xs font-medium rounded-md ${
+              activeTab === "accounts"
+                ? "bg-[#4285f4] text-white font-semibold"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span>{t("layout.sidebar.navAccounts")} ({accounts.length})</span>
+          </button>
+        </div>
+      </header>
+    </TooltipProvider>
   );
 };

@@ -94,6 +94,27 @@ def _seed_onboarding_state(acc_home: str):
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(tmp_settings, settings_file)
+            os.chmod(settings_file, 0o666)
+
+            pbtxt_file = os.path.join(d, "jetski_state.pbtxt")
+            tmp_pbtxt = pbtxt_file + ".tmp"
+            with open(tmp_pbtxt, "w", encoding="utf-8") as f:
+                f.write(JETSKI_PRESET)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_pbtxt, pbtxt_file)
+            os.chmod(pbtxt_file, 0o666)
+
+            cache_dir = os.path.join(d, "cache")
+            os.makedirs(cache_dir, mode=0o777, exist_ok=True)
+            onboard_f = os.path.join(cache_dir, "onboarding.json")
+            with open(onboard_f, "w", encoding="utf-8") as f:
+                json.dump({
+                    "consumerOnboardingComplete": True,
+                    "enterpriseOnboardingComplete": True,
+                    "onboardingComplete": True
+                }, f, indent=2)
+            os.chmod(onboard_f, 0o666)
         except Exception:
             pass
 

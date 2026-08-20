@@ -2,52 +2,68 @@
   "metricCards": {
     "pooledCapacity": {
       "title": "Pooled Capacity",
-      "subValue": "Combined capacity across all accounts",
-      "badge": "Healthy Pool"
+      "subValue": "Total capacity across all accounts",
+      "badge": "Active Pool"
     },
     "gemini5h": {
-      "title": "Gemini 5-Hour Limit",
-      "subValue": "Pooled 5-hour rolling limit remaining",
-      "badge": "High Concurrency"
+      "title": "Gemini 5h Limit",
+      "subValue": "Rolling 5-hour limit remaining",
+      "badge": "Gemini"
     },
     "claude5h": {
-      "title": "Claude & GPT 5-Hour Limit",
-      "subValue": "Pooled Claude & GPT quota capacity",
-      "badge": "Sonnet & Opus 4.6"
+      "title": "Claude & GPT 5h Limit",
+      "subValue": "Sonnet, Opus & GPT capacity",
+      "badge": "Claude / GPT"
+    },
+    "activeAccounts": {
+      "title": "Active Accounts",
+      "subValue": "Healthy sandbox nodes",
+      "allHealthySubValue": "All accounts healthy",
+      "depletedSubValue": "{count} need attention",
+      "badge": "Nodes"
     },
     "dockerSandboxes": {
       "title": "Docker Sandboxes",
-      "subValue": "Dynamic container sandboxes",
+      "subValue": "Dynamic containers",
       "badgeWarnings": "{count} Warnings",
-      "badgeAllRunning": "All Nodes Running",
+      "badgeAllRunning": "All Running",
       "liveHub": "Live Hub"
     }
   },
   "matrix": {
-    "title": "Models & Usage",
-    "refreshTooltip": "Refresh Quota Telemetry",
-    "subheaderManaging": "Managing quota & credits for {alias} ({email})",
-    "subheaderPooled": "Manage your pooled multi-account model quota and credits across all Docker sandboxes.",
-    "multiAccountPool": "Multi-Account Pool",
+    "title": "Model Quotas",
+    "refreshTooltip": "Refresh Telemetry",
+    "subheaderManaging": "Quota and limits for {alias} ({email})",
+    "subheaderPooled": "Pooled quota metrics across all sandbox nodes.",
+    "multiAccountPool": "All Accounts Pool",
     "planSection": "Plan",
-    "yourPlan": "Your Plan: {plan}",
+    "yourPlan": "Plan: {plan}",
     "geminiModels": "Gemini Models",
-    "geminiTooltip": "Flash and Pro models share this quota pool",
-    "claudeGptModels": "Claude and GPT models",
-    "claudeTooltip": "Sonnet 4.6, Opus 4.6, and GPT-OSS share this quota pool",
-    "weeklyLimitRemaining": "Weekly Limit Remaining",
-    "fiveHourLimitRemaining": "Five Hour Limit Remaining",
-    "weeklyPartialUsed": "You have used some of your weekly limit, it will fully refresh in {time}.",
-    "fiveHourPartialUsed": "You have used some of your 5-hour limit, it will fully refresh in {time}.",
-    "fullWeeklyCapacity": "You have full weekly limit capacity available.",
-    "fullFiveHourCapacity": "You have full 5-hour limit capacity available."
+    "geminiTooltip": "Flash & Pro models share this quota pool",
+    "claudeGptModels": "Claude & GPT Models",
+    "claudeTooltip": "Sonnet, Opus & GPT share this quota pool",
+    "weeklyLimitRemaining": "Weekly Limit",
+    "fiveHourLimitRemaining": "5-Hour Limit",
+    "weeklyPartialUsed": "Refreshes in {time}",
+    "fiveHourPartialUsed": "Refreshes in {time}",
+    "fullWeeklyCapacity": "100% available",
+    "fullFiveHourCapacity": "100% available"
   },
   "donut": {
-    "title": "Quota Pool Distribution",
-    "subheader": "Capacity contribution per Google account",
+    "title": "Pool Distribution",
+    "subheader": "Contribution per account",
     "poolCap": "Pool Cap",
     "tooltipPlan": "Plan:",
-    "tooltipAvgRemaining": "Average Remaining:",
+    "tooltipAvgRemaining": "Avg Remaining:",
     "capSuffix": "{value}% cap"
+  },
+  "clusterNodes": {
+    "title": "Connected Sandbox Nodes",
+    "subtitle": "Live telemetry and quota distribution across Docker containers",
+    "viewAll": "Manage Accounts",
+    "online": "ONLINE",
+    "offline": "OFFLINE",
+    "weeklyCap": "Weekly",
+    "fiveHourCap": "5-Hour"
   }
 }

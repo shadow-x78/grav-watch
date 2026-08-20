@@ -1,53 +1,69 @@
 {
   "metricCards": {
     "pooledCapacity": {
-      "title": "إجمالي السعة التشغيلية المجمعة",
-      "subValue": "الطاقة الاستيعابية الإجمالية المتاحة عبر كافة الحسابات النشطة",
-      "badge": "سعة مثالية"
+      "title": "السعة المجمعة",
+      "subValue": "إجمالي السعة لكافة الحسابات",
+      "badge": "سعة نشطة"
     },
     "gemini5h": {
-      "title": "حصة نماذج Gemini (دورة 5 ساعات)",
-      "subValue": "السعة المتبقية للاستهلاك خلال دورة الـ 5 ساعات لنماذج Gemini",
-      "badge": "تزامن فوري"
+      "title": "حد 5 ساعات لـ Gemini",
+      "subValue": "المتبقي من دورة الـ 5 ساعات",
+      "badge": "Gemini"
     },
     "claude5h": {
-      "title": "حصة نماذج Claude و GPT (دورة 5 ساعات)",
-      "subValue": "السعة المتبقية للاستهلاك لنماذج Sonnet و Opus و GPT",
-      "badge": "Sonnet & Opus 4.6"
+      "title": "حد 5 ساعات لـ Claude و GPT",
+      "subValue": "سعة Sonnet و Opus و GPT",
+      "badge": "Claude / GPT"
+    },
+    "activeAccounts": {
+      "title": "الحسابات النشطة",
+      "subValue": "العقد التشغيلية النشطة",
+      "allHealthySubValue": "كافة الحسابات نشطة",
+      "depletedSubValue": "{count} بحاجة لمراجعة",
+      "badge": "العقد"
     },
     "dockerSandboxes": {
-      "title": "عقد وبيئات التشغيل (Docker)",
-      "subValue": "بيئات تنفيذية معزولة لتشغيل أوامر Antigravity CLI",
-      "badgeWarnings": "{count} تنبيهات قيد المتابعة",
-      "badgeAllRunning": "كافة العقد التشغيلية تعمل بكفاءة",
-      "liveHub": "الخادم المركزي"
+      "title": "حاويات Docker",
+      "subValue": "بيئات معزولة ديناميكية",
+      "badgeWarnings": "{count} تنبيهات",
+      "badgeAllRunning": "الكل يعمل",
+      "liveHub": "بث مباشر"
     }
   },
   "matrix": {
-    "title": "مصفوفة الحصص والاستهلاك التشغيلي",
-    "refreshTooltip": "تحديث ومزامنة بيانات استهلاك النماذج",
-    "subheaderManaging": "إدارة ومراقبة الحصص التشغيلية للحساب: {alias} ({email})",
-    "subheaderPooled": "إدارة ومراقبة الحصص التشغيلية المجمعة لكافة النماذج عبر بيئات العمل المعزولة",
-    "multiAccountPool": "مجمع الحسابات المشترك (Pooled Cluster)",
-    "planSection": "بيانات الاشتراك والترخيص",
-    "yourPlan": "فئة الاشتراك الحالية: {plan}",
-    "geminiModels": "حصة نماذج Gemini",
-    "geminiTooltip": "تتقاسم نماذج Flash و Pro هذه الحصة المشتركة من سعة الاستهلاك",
-    "claudeGptModels": "حصة نماذج Claude و GPT",
-    "claudeTooltip": "تتقاسم نماذج Claude Sonnet 4.6 و Opus 4.6 و GPT هذه الحصة المشتركة",
-    "weeklyLimitRemaining": "الحصة الأسبوعية المتبقية",
-    "fiveHourLimitRemaining": "الحصة المتبقية لدورة 5 ساعات",
-    "weeklyPartialUsed": "تم استهلاك جزء من الحصة الأسبوعية، وستكتمل استعادة السعة بالكامل خلال {time}.",
-    "fiveHourPartialUsed": "تم استهلاك جزء من حصة الـ 5 ساعات، وستكتمل استعادة السعة بالكامل خلال {time}.",
-    "fullWeeklyCapacity": "كامل السعة التشغيلية للأسبوع متوفرة دون أي استهلاك.",
-    "fullFiveHourCapacity": "كامل السعة التشغيلية لدورة الـ 5 ساعات متوفرة دون أي استهلاك."
+    "title": "حصص النماذج",
+    "refreshTooltip": "تحديث المؤشرات",
+    "subheaderManaging": "إدارة حصص {alias} ({email})",
+    "subheaderPooled": "مؤشرات الحصص المجمعة لكافة الحسابات.",
+    "multiAccountPool": "مجمع كافة الحسابات",
+    "planSection": "الاشتراك",
+    "yourPlan": "الاشتراك: {plan}",
+    "geminiModels": "نماذج Gemini",
+    "geminiTooltip": "تتقاسم نماذج Flash و Pro هذه الحصة",
+    "claudeGptModels": "نماذج Claude و GPT",
+    "claudeTooltip": "تتقاسم نماذج Sonnet و Opus و GPT هذه الحصة",
+    "weeklyLimitRemaining": "الحد الأسبوعي",
+    "fiveHourLimitRemaining": "حد 5 ساعات",
+    "weeklyPartialUsed": "تستعاد السعة خلال {time}",
+    "fiveHourPartialUsed": "تستعاد السعة خلال {time}",
+    "fullWeeklyCapacity": "100% متوفرة",
+    "fullFiveHourCapacity": "100% متوفرة"
   },
   "donut": {
-    "title": "توزيع نسب السعة التشغيلية في المجمع",
-    "subheader": "نسبة مساهمة وتوزيع السعة المتاحة لكل حساب Google",
-    "poolCap": "إجمالي السعة المتاحة",
-    "tooltipPlan": "فئة الخطة:",
-    "tooltipAvgRemaining": "متوسط السعة المتبقية:",
+    "title": "توزيع السعة",
+    "subheader": "مساهمة كل حساب",
+    "poolCap": "السعة القصوى",
+    "tooltipPlan": "الاشتراك:",
+    "tooltipAvgRemaining": "المتوسط المتبقي:",
     "capSuffix": "{value}% من السعة"
+  },
+  "clusterNodes": {
+    "title": "عقد الحاويات المتصلة",
+    "subtitle": "المؤشرات المباشرة وتوزيع الحصص عبر بيئات Docker المعزولة",
+    "viewAll": "إدارة الحسابات",
+    "online": "نشط",
+    "offline": "متوقف",
+    "weeklyCap": "أسبوعي",
+    "fiveHourCap": "5 ساعات"
   }
 }

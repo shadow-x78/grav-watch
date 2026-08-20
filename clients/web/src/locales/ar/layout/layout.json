@@ -1,30 +1,37 @@
 {
   "header": {
     "title": "GravWatch",
-    "allAccountsPooled": "جميع الحسابات (السعة التشغيلية المشتركة)",
-    "allPooledShort": "إجمالي الحوض المجمع",
+    "allAccountsPooled": "كافة الحسابات",
+    "allPooledShort": "الكل",
     "switchLangTooltip": "Switch to English",
-    "refreshTooltip": "مزامنة وتحديث مؤشرات الحصص التشغيلية",
+    "refreshTooltip": "مزامنة المؤشرات",
     "pairGoogleBtn": "ربط حساب Google",
-    "pairGoogleTooltip": "ربط وتوثيق حساب Google جديد",
-    "systemConfigTooltip": "تكوين إعدادات النظام والعنقود",
-    "mobileMenuAria": "فتح القائمة الرئيسية للتنقل"
+    "pairGoogleTooltip": "ربط حساب Google",
+    "systemConfigTooltip": "الإعدادات",
+    "mobileMenuAria": "فتح القائمة"
   },
   "sidebar": {
-    "navTitle": "لوحة التحكم الرئيسية",
-    "navOverview": "لوحة المؤشرات والحصص المجمعة",
-    "navAccounts": "إدارة الحسابات\nوبيئات التشغيل",
+    "navTitle": "التنقل",
+    "navOverview": "نظرة عامة",
+    "navAccounts": "الحسابات",
     "dockerCard": {
-      "title": "بيئات التشغيل المعزولة (Docker)",
-      "image": "صورة النظام:",
-      "memoryCap": "سعة الذاكرة القصوى:",
-      "memoryValue": "256MB / لكل عقدة",
-      "fastApiHub": "منفذ الخادم المركزي:",
-      "fastApiLive": "• المنفذ :8000 (نشط ومتصل)"
+      "title": "بيئات Docker",
+      "image": "الصورة:",
+      "memoryCap": "الذاكرة:",
+      "memoryValue": "256MB / عقدة",
+      "fastApiHub": "الواجهة:",
+      "fastApiLive": ":8000"
     },
-    "subtitle": "المنصة المؤسسية المركزية لإدارة وتتبع حصص حسابات Google Antigravity",
-    "issuesTooltip": "فحص سجل التنبيهات التشغيلية وحدود الاستهلاك (429)",
-    "allHealthy": "كافة العقد التشغيلية تعمل بكفاءة",
-    "issuesDetected": "{count} تنبيه تشغيلي يتطلب المراجعة"
+    "subtitle": "لوحة متابعة Google Antigravity",
+    "issuesTooltip": "تنبيهات الحاويات",
+    "allHealthy": "الكل نشط",
+    "issuesDetected": "{count} بحاجة لمراجعة"
+  },
+  "footer": {
+    "statusOperational": "كافة الأنظمة تعمل بكفاءة",
+    "clusterActive": "{count} عقد معزولة متصلة",
+    "realtimeTelemetry": "مركز القياس والمتابعة المباشر",
+    "version": "v2.5.0",
+    "rights": "جميع الحقوق محفوظة."
   }
 }

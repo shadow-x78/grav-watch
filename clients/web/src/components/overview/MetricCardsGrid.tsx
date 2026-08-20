@@ -1,176 +1,132 @@
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
+import { Layers, Sparkles, Zap, Server, TrendingUp } from "lucide-react";
 import { useGravWatch } from "@/context/GravWatchContext";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
-import Divider from "@mui/material/Divider";
-import { ProgressRing } from "@/components/ui/progress-ring";
-import LayersIcon from "@mui/icons-material/Layers";
-import SparklesIcon from "@mui/icons-material/AutoAwesome";
-import BoltIcon from "@mui/icons-material/Bolt";
-import StorageIcon from "@mui/icons-material/Dns";
-import ArrowOutwardIcon from "@mui/icons-material/ArrowOutward";
 import { useLanguage } from "@/context/LanguageContext";
+import { ProgressRing } from "@/components/ui/progress-ring";
+
+const containerVariants: Variants = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 12, scale: 0.98 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.25 } },
+};
 
 export const MetricCardsGrid: React.FC = () => {
   const { pooledTelemetry, accounts } = useGravWatch();
-  const { t, direction } = useLanguage();
+  const { t } = useLanguage();
 
-  const depletedCount = accounts.filter(
+  const activeCount = accounts.filter((a) => a.status === "active").length;
+  const attentionCount = accounts.filter(
     (a) => a.status === "depleted" || a.status === "warning"
   ).length;
 
   const cards = [
     {
       title: t("overview.metricCards.pooledCapacity.title"),
-      value: `${pooledTelemetry.overallPooledCapacity}%`,
+      display: `${pooledTelemetry.overallPooledCapacity}%`,
       subValue: t("overview.metricCards.pooledCapacity.subValue"),
       badge: t("overview.metricCards.pooledCapacity.badge"),
-      badgeColor: "success" as const,
       ringValue: pooledTelemetry.overallPooledCapacity,
-      icon: LayersIcon,
-      accentColor: "#10b981",
-      gradient: "linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(13, 19, 34, 0.8) 100%)",
+      icon: Layers,
+      color: "#34a853",
+      badgeClass: "bg-[#34a853]/10 text-[#34a853] border-[#34a853]/30",
     },
     {
       title: t("overview.metricCards.gemini5h.title"),
-      value: `${pooledTelemetry.geminiFiveHourPooledPercent}%`,
+      display: `${pooledTelemetry.geminiFiveHourPooledPercent}%`,
       subValue: t("overview.metricCards.gemini5h.subValue"),
       badge: t("overview.metricCards.gemini5h.badge"),
-      badgeColor: "secondary" as const,
       ringValue: pooledTelemetry.geminiFiveHourPooledPercent,
-      icon: SparklesIcon,
-      accentColor: "#06b6d4",
-      gradient: "linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(13, 19, 34, 0.8) 100%)",
+      icon: Sparkles,
+      color: "#4285f4",
+      badgeClass: "bg-[#4285f4]/10 text-[#4285f4] border-[#4285f4]/30",
     },
     {
       title: t("overview.metricCards.claude5h.title"),
-      value: `${pooledTelemetry.claudeGptFiveHourPooledPercent}%`,
+      display: `${pooledTelemetry.claudeGptFiveHourPooledPercent}%`,
       subValue: t("overview.metricCards.claude5h.subValue"),
       badge: t("overview.metricCards.claude5h.badge"),
-      badgeColor: "warning" as const,
       ringValue: pooledTelemetry.claudeGptFiveHourPooledPercent,
-      icon: BoltIcon,
-      accentColor: "#f59e0b",
-      gradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(13, 19, 34, 0.8) 100%)",
+      icon: Zap,
+      color: "#ea4335",
+      badgeClass: "bg-[#ea4335]/10 text-[#ea4335] border-[#ea4335]/30",
     },
     {
-      title: t("overview.metricCards.dockerSandboxes.title"),
-      value: `${pooledTelemetry.activeContainers} / ${pooledTelemetry.totalAccounts}`,
-      subValue: t("overview.metricCards.dockerSandboxes.subValue"),
-      badge: depletedCount > 0 ? t("overview.metricCards.dockerSandboxes.badgeWarnings", { count: depletedCount }) : t("overview.metricCards.dockerSandboxes.badgeAllRunning"),
-      badgeColor: (depletedCount > 0 ? "warning" : "success") as "warning" | "success",
-      ringValue: Math.round((pooledTelemetry.activeContainers / Math.max(1, pooledTelemetry.totalAccounts)) * 100),
-      icon: StorageIcon,
-      accentColor: "#8b5cf6",
-      gradient: "linear-gradient(135deg, rgba(139, 92, 246, 0.12) 0%, rgba(13, 19, 34, 0.8) 100%)",
+      title: t("overview.metricCards.activeAccounts.title"),
+      display: `${activeCount}/${accounts.length}`,
+      subValue:
+        attentionCount > 0
+          ? t("overview.metricCards.activeAccounts.depletedSubValue", { count: attentionCount })
+          : t("overview.metricCards.activeAccounts.allHealthySubValue"),
+      badge: t("overview.metricCards.activeAccounts.badge"),
+      ringValue: accounts.length > 0 ? (activeCount / accounts.length) * 100 : 100,
+      icon: Server,
+      color: "#fbbc05",
+      badgeClass: "bg-[#fbbc05]/10 text-[#fbbc05] border-[#fbbc05]/30",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((card, idx) => {
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full"
+    >
+      {cards.map((card, index) => {
+        const Icon = card.icon;
         return (
-          <Card
-            key={idx}
-            sx={{
-              background: card.gradient,
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              height: "100%",
-              transition: "transform 0.25s ease",
-              "&:hover": {
-                transform: "translateY(-2px)",
-                borderColor: `${card.accentColor}55`,
-                boxShadow: "none",
-              },
-            }}
+          <motion.div
+            key={index}
+            variants={cardVariants}
+            whileHover={{ y: -2, transition: { duration: 0.15 } }}
+            className="rounded-xl border border-white/10 bg-[#0b0f1d] p-5 cursor-default hover:border-white/20 transition-colors"
           >
-            <CardContent
-              sx={{
-                p: { xs: 2, sm: 2.5 },
-                "&:last-child": { pb: { xs: 2, sm: 2.5 } },
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                height: "100%",
-              }}
-            >
-              <Box>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: "text.secondary",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        fontSize: { xs: "0.65rem", sm: "0.7rem" },
-                        letterSpacing: "0.05em",
-                        display: "block",
-                      }}
-                      noWrap
-                    >
-                      {card.title}
-                    </Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 800, color: "#ffffff", my: 0.5, fontFamily: "monospace", fontSize: { xs: "1.25rem", sm: "1.5rem" } }}>
-                      {card.value}
-                    </Typography>
-                  </Box>
+            <div className="flex items-start justify-between mb-3.5">
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-[#060911]"
+                style={{ color: card.color }}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${card.badgeClass}`}>
+                {card.badge}
+              </span>
+            </div>
 
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", ml: direction === "rtl" ? 0 : 1, mr: direction === "rtl" ? 1 : 0, flexShrink: 0 }}>
-                    <ProgressRing value={card.ringValue} size={42} thickness={4} />
-                  </Box>
-                </Box>
-
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: "text.secondary",
-                    display: "-webkit-box",
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    minHeight: 34,
-                    lineHeight: 1.35,
-                    fontSize: "0.75rem",
-                    mt: 0.5,
-                  }}
-                >
-                  {card.subValue}
-                </Typography>
-              </Box>
-
-              <Box>
-                <Divider sx={{ my: 1.5, borderColor: "rgba(255, 255, 255, 0.06)" }} />
-
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Chip
-                    label={card.badge}
-                    color={card.badgeColor}
-                    size="small"
-                    sx={{
-                      height: 22,
-                      fontSize: "0.68rem",
-                      fontWeight: 700,
-                    }}
-                  />
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5, fontFamily: "monospace" }}>
-                    <ArrowOutwardIcon sx={{ fontSize: 13, transform: direction === "rtl" ? "scaleX(-1)" : "none" }} />
-                    {t("overview.metricCards.dockerSandboxes.liveHub")}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+            <div>
+              <p className="text-xs font-medium text-slate-400 mb-1">{card.title}</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-black tracking-tight text-white leading-none">
+                    {card.display}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3 shrink-0" style={{ color: card.color }} />
+                    <span className="truncate">{card.subValue}</span>
+                  </p>
+                </div>
+                <ProgressRing
+                  value={card.ringValue}
+                  size={50}
+                  thickness={3.5}
+                  color={card.color}
+                  trackColor="rgba(255,255,255,0.06)"
+                />
+              </div>
+            </div>
+          </motion.div>
         );
       })}
-    </div>
+    </motion.div>
   );
 };

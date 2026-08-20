@@ -1,19 +1,18 @@
 "use client";
 
 import React from "react";
+import { AlertTriangle } from "lucide-react";
 import { GravAccount } from "@/types/gravwatch";
 import { useGravWatch } from "@/context/GravWatchContext";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
-import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import Avatar from "@mui/material/Avatar";
-import Paper from "@mui/material/Paper";
-import DeleteIcon from "@mui/icons-material/Delete";
 import { useLanguage } from "@/context/LanguageContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 interface DeleteConfirmModalProps {
   account: GravAccount | null;
@@ -37,83 +36,64 @@ export const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
   };
 
   return (
-    <Dialog
-      open={isOpen}
-      onClose={onClose}
-      maxWidth="xs"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            backgroundColor: "#0d1322",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            borderRadius: { xs: 3, sm: 4 },
-            m: { xs: 1.5, sm: 2 },
-            maxHeight: { xs: "calc(100% - 24px)", sm: "calc(100% - 64px)" },
-            display: "flex",
-            flexDirection: "column",
-          },
-        },
-      }}
-    >
-      <DialogTitle sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.75, sm: 2 } }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Avatar sx={{ bgcolor: "rgba(244, 63, 94, 0.15)", color: "error.main", width: 34, height: 34, flexShrink: 0 }}>
-            <DeleteIcon sx={{ fontSize: 20 }} />
-          </Avatar>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#ffffff", fontSize: { xs: "0.92rem", sm: "1.05rem" }, lineHeight: 1.3 }}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-sm bg-[#0b0f1d] border-white/10 text-slate-100 p-5">
+        <DialogHeader className="text-start space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#ea4335]/15 text-[#ea4335]">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+            <DialogTitle className="text-base font-bold text-white">
               {t("accounts.deleteModal.title")}
-            </Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: { xs: "0.7rem", sm: "0.75rem" }, display: "block" }}>
-              {t("accounts.deleteModal.subtitle")}
-            </Typography>
-          </Box>
-        </Box>
-      </DialogTitle>
+            </DialogTitle>
+          </div>
+          <DialogDescription className="text-xs text-slate-400">
+            {t("accounts.deleteModal.subtitle")}
+          </DialogDescription>
+        </DialogHeader>
 
-      <DialogContent dividers sx={{ borderColor: "rgba(255, 255, 255, 0.08)", px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 2.5 }, overflowY: "auto" }}>
-        <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, fontSize: { xs: "0.82rem", sm: "0.875rem" }, wordBreak: "break-word" }}>
-          {t("accounts.deleteModal.confirmText", { alias: account.alias, email: account.email })}
-        </Typography>
+        <div className="space-y-3 mt-1">
+          <p className="text-xs text-slate-300">
+            {t("accounts.deleteModal.confirmText", {
+              alias: account.alias,
+              email: account.email,
+            })}
+          </p>
 
-        <Paper
-          elevation={0}
-          sx={{
-            p: 2,
-            border: "1px solid rgba(244, 63, 94, 0.2)",
-            backgroundColor: "rgba(244, 63, 94, 0.05)",
-            borderRadius: 2,
-            fontFamily: "monospace",
-            fontSize: { xs: "0.7rem", sm: "0.75rem" },
-          }}
-        >
-          <Box sx={{ color: "error.main", fontWeight: 700, mb: 0.5 }}>
-            {t("accounts.deleteModal.irreversibleWarning")}
-          </Box>
-          <Box sx={{ color: "text.secondary" }}>
-            {t("accounts.deleteModal.warningContainer", { container: account.containerName })}
-          </Box>
-          <Box sx={{ color: "text.secondary" }}>
-            {t("accounts.deleteModal.warningQuota")}
-          </Box>
-        </Paper>
+          <div className="rounded-lg bg-[#ea4335]/10 border border-[#ea4335]/25 p-3 text-[11px] font-mono text-slate-300 space-y-1">
+            <p className="text-[#ea4335] font-bold">
+              {t("accounts.deleteModal.warningContainer", {
+                container: account.containerName || `gravwatch-${account.id}`,
+                id: account.id,
+              })}
+            </p>
+            <p className="text-slate-400">
+              {t("accounts.deleteModal.warningQuota")}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 text-xs"
+          >
+            {t("common.cancel")}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={handleDelete}
+            className="h-8 text-xs font-semibold bg-[#ea4335] hover:bg-[#d93025]"
+          >
+            {t("accounts.deleteModal.confirmBtn")}
+          </Button>
+        </div>
       </DialogContent>
-
-      <DialogActions sx={{ px: { xs: 2, sm: 3 }, py: { xs: 1.5, sm: 1.75 }, gap: 1.25, borderTop: "1px solid rgba(255, 255, 255, 0.08)", backgroundColor: "rgba(9, 13, 22, 0.95)" }}>
-        <Button variant="outlined" size="small" onClick={onClose} sx={{ borderColor: "rgba(255, 255, 255, 0.15)", color: "#cbd5e1" }}>
-          {t("common.cancel")}
-        </Button>
-        <Button
-          variant="contained"
-          size="small"
-          color="error"
-          onClick={handleDelete}
-          sx={{ fontWeight: 700 }}
-        >
-          {t("accounts.deleteModal.confirmBtn")}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };

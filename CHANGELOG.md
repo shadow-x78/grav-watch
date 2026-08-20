@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-08-20
+
+### Added & Fixed
+- **Headless CLI Onboarding & Automated PTY Enter-Key Driver:** Integrated native pseudo-terminal automation (`openpty` + `termios`) directly into container entrypoints and authentication bridges. Automatically detects first-run color scheme wizards and prompts, pressing `Enter` programmatically to persist `jetski_state.pbtxt` and `cache/onboarding.json` without user manual terminal interaction.
+- **Robust Bi-Directional RTL / LTR Architecture:** System-wide audit and enhancement of all UI layouts:
+  - Corrected search input icon alignment and text padding (`rtl:right-2.5 rtl:pr-8`).
+  - Fixed Select dropdown chevrons, margin offsets, and checkmark indicators in Arabic (`rtl:left-auto rtl:right-2.5`).
+  - Unified localized badge statuses (`ONLINE`/`OFFLINE` translated to "متصل" / "غير متصل").
+  - Fixed quota matrix border dividers in Arabic (`rtl:lg:divide-x-reverse`).
+  - Added localized parameters and automatic container ID interpolation in delete confirmation dialogs (`DeleteConfirmModal`).
+- **Zero-Jitter & Instant Client Hydration:** Completely eliminated screen flickering and infinite re-render loops by stabilizing polling intervals, state batching, and eliminating redundant local storage calls.
+- **Enlarged Pure Vector Logo Branding & Asset Cleanup:**
+  - Optimized `gravwatch.svg` `viewBox` (`85 95 630 410`), eliminating empty padding and magnifying the icon by over 200% for crisp, prominent visibility in browser tabs and head favicon.
+  - Enlarged header navbar logo container and interactive brand typography.
+  - Purged all legacy PNG image files from `public/` and `data/` directories, transitioning to 100% SVG vector assets.
+- **Dynamic Account Management & Locked Node Pairing:**
+  - Locked container node IDs during account re-authentication and creation to prevent node drift.
+  - Fixed toggle power buttons and action buttons on account cards.
+  - Added 5-hour quota reset countdown timers across both List and Grid views.
+- **Visual Documentation & Screenshots:** Added high-definition UI screenshots to both English and Arabic README guides.
+
+---
+
 ## [2.5.0] - 2026-08-20
 
 ### Added & Fixed

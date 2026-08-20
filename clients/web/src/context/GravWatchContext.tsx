@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   GravAccount,
   PooledTelemetry,
@@ -28,27 +27,34 @@ interface GravWatchContextType {
 
 const GravWatchContext = createContext<GravWatchContextType | undefined>(undefined);
 
+let memoryAccountsCache: GravAccount[] = [];
+let isFetchingInProgress = false;
+
 export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [accounts, setAccounts] = useState<GravAccount[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cached = localStorage.getItem("gravwatch_accounts_cache");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch {}
-    }
-    return [];
-  });
+  const [accounts, setAccounts] = useState<GravAccount[]>(() => memoryAccountsCache);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<TabView>("overview");
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchLiveAccounts = useCallback(async () => {
+    if (isFetchingInProgress) return;
+    isFetchingInProgress = true;
+
     try {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      abortControllerRef.current = new AbortController();
+
       const [authRes, usageRes] = await Promise.all([
-        fetch("/api/v1/auth/status", { cache: "no-store" }),
-        fetch("/api/v1/usage/latest", { cache: "no-store" })
+        fetch("/api/v1/auth/status", {
+          cache: "no-store",
+          signal: abortControllerRef.current.signal,
+        }),
+        fetch("/api/v1/usage/latest", {
+          cache: "no-store",
+          signal: abortControllerRef.current.signal,
+        }),
       ]);
 
       if (!authRes.ok) return;
@@ -64,8 +70,7 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               usageAccountsMap[acc.account_id] = acc;
             });
           }
-        } catch {
-        }
+        } catch {}
       }
 
       setAccounts((prevAccounts) => {
@@ -82,21 +87,56 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           const geminiCat = usageAcc?.categories?.find((c: any) => c.category_id === "gemini-models");
           const claudeCat = usageAcc?.categories?.find((c: any) => c.category_id === "claude-and-gpt-models");
 
-          const hasNewGeminiWeekly = geminiCat?.weekly_limit?.percentage_remaining !== undefined && geminiCat?.weekly_limit?.percentage_remaining !== null;
-          const gWeeklyPct = hasNewGeminiWeekly ? geminiCat.weekly_limit.percentage_remaining : (prev?.geminiQuota?.weekly?.percentRemaining ?? 0);
-          const gWeeklyCountdown = geminiCat?.weekly_limit?.refresh_in_human || (hasNewGeminiWeekly ? "Full capacity available" : (prev?.geminiQuota?.weekly?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline")));
+          const hasNewGeminiWeekly =
+            geminiCat?.weekly_limit?.percentage_remaining !== undefined &&
+            geminiCat?.weekly_limit?.percentage_remaining !== null;
+          const gWeeklyPct = hasNewGeminiWeekly
+            ? geminiCat.weekly_limit.percentage_remaining
+            : prev?.geminiQuota?.weekly?.percentRemaining ?? 0;
+          const gWeeklyCountdown =
+            geminiCat?.weekly_limit?.refresh_in_human ||
+            (hasNewGeminiWeekly
+              ? "Full capacity available"
+              : prev?.geminiQuota?.weekly?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline"));
 
-          const hasNewGemini5h = geminiCat?.five_hour_limit?.percentage_remaining !== undefined && geminiCat?.five_hour_limit?.percentage_remaining !== null;
-          const g5hPct = hasNewGemini5h ? geminiCat.five_hour_limit.percentage_remaining : (prev?.geminiQuota?.fiveHour?.percentRemaining ?? 0);
-          const g5hCountdown = geminiCat?.five_hour_limit?.refresh_in_human || (hasNewGemini5h ? "Full capacity available" : (prev?.geminiQuota?.fiveHour?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline")));
+          const hasNewGemini5h =
+            geminiCat?.five_hour_limit?.percentage_remaining !== undefined &&
+            geminiCat?.five_hour_limit?.percentage_remaining !== null;
+          const g5hPct = hasNewGemini5h
+            ? geminiCat.five_hour_limit.percentage_remaining
+            : prev?.geminiQuota?.fiveHour?.percentRemaining ?? 0;
+          const g5hCountdown =
+            geminiCat?.five_hour_limit?.refresh_in_human ||
+            (hasNewGemini5h
+              ? "Full capacity available"
+              : prev?.geminiQuota?.fiveHour?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline"));
 
-          const hasNewClaudeWeekly = claudeCat?.weekly_limit?.percentage_remaining !== undefined && claudeCat?.weekly_limit?.percentage_remaining !== null;
-          const cWeeklyPct = hasNewClaudeWeekly ? claudeCat.weekly_limit.percentage_remaining : (prev?.claudeGptQuota?.weekly?.percentRemaining ?? 0);
-          const cWeeklyCountdown = claudeCat?.weekly_limit?.refresh_in_human || (hasNewClaudeWeekly ? "Full capacity available" : (prev?.claudeGptQuota?.weekly?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline")));
+          const hasNewClaudeWeekly =
+            claudeCat?.weekly_limit?.percentage_remaining !== undefined &&
+            claudeCat?.weekly_limit?.percentage_remaining !== null;
+          const cWeeklyPct = hasNewClaudeWeekly
+            ? claudeCat.weekly_limit.percentage_remaining
+            : prev?.claudeGptQuota?.weekly?.percentRemaining ?? 0;
+          const cWeeklyCountdown =
+            claudeCat?.weekly_limit?.refresh_in_human ||
+            (hasNewClaudeWeekly
+              ? "Full capacity available"
+              : prev?.claudeGptQuota?.weekly?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline"));
 
-          const hasNewClaude5h = claudeCat?.five_hour_limit?.percentage_remaining !== undefined && claudeCat?.five_hour_limit?.percentage_remaining !== null;
-          const c5hPct = hasNewClaude5h ? claudeCat.five_hour_limit.percentage_remaining : (prev?.claudeGptQuota?.fiveHour?.percentRemaining ?? 0);
-          const c5hCountdown = claudeCat?.five_hour_limit?.refresh_in_human || (hasNewClaude5h ? "Full capacity available" : (prev?.claudeGptQuota?.fiveHour?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline")));
+          const hasNewClaude5h =
+            claudeCat?.five_hour_limit?.percentage_remaining !== undefined &&
+            claudeCat?.five_hour_limit?.percentage_remaining !== null;
+          const c5hPct = hasNewClaude5h
+            ? claudeCat.five_hour_limit.percentage_remaining
+            : prev?.claudeGptQuota?.fiveHour?.percentRemaining ?? 0;
+          const c5hCountdown =
+            claudeCat?.five_hour_limit?.refresh_in_human ||
+            (hasNewClaude5h
+              ? "Full capacity available"
+              : prev?.claudeGptQuota?.fiveHour?.refreshCountdown ?? (isAuth ? "Syncing..." : "Offline"));
+
+          const containerState = item.container_status || (isAuth ? "running" : "stopped");
+          const isRunning = containerState === "running";
 
           return {
             id: id,
@@ -105,12 +145,12 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             avatarUrl: avatarUrl,
             plan: "Google AI Pro" as AntigravityPlan,
             containerName: `gravwatch-${id}`,
-            containerStatus: isAuth ? "running" : "stopped",
-            ramUsageMb: isAuth ? 48 : 0,
+            containerStatus: isRunning ? ("running" as const) : ("stopped" as const),
+            ramUsageMb: isRunning ? 48 : 0,
             ramLimitMb: 256,
-            cpuUsagePercent: isAuth ? 1.2 : 0,
+            cpuUsagePercent: isRunning ? 1.2 : 0,
             authType: "google_oauth",
-            status: isAuth ? "active" : "paused",
+            status: isRunning ? ("active" as const) : ("paused" as const),
             totalRequestsToday: 0,
             totalTokensToday: 0,
             geminiQuota: {
@@ -150,15 +190,41 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             createdAt: item.last_token_update || prev?.createdAt || new Date().toISOString(),
           };
         });
-        if (typeof window !== "undefined") {
-          try {
-            localStorage.setItem("gravwatch_accounts_cache", JSON.stringify(updatedAccounts));
-          } catch {}
+
+        const isUnchanged =
+          prevAccounts.length === updatedAccounts.length &&
+          prevAccounts.every((prev, i) => {
+            const next = updatedAccounts[i];
+            return (
+              prev.id === next.id &&
+              prev.status === next.status &&
+              prev.containerStatus === next.containerStatus &&
+              prev.email === next.email &&
+              prev.alias === next.alias &&
+              prev.geminiQuota.weekly.percentRemaining === next.geminiQuota.weekly.percentRemaining &&
+              prev.geminiQuota.weekly.refreshCountdown === next.geminiQuota.weekly.refreshCountdown &&
+              prev.geminiQuota.fiveHour.percentRemaining === next.geminiQuota.fiveHour.percentRemaining &&
+              prev.geminiQuota.fiveHour.refreshCountdown === next.geminiQuota.fiveHour.refreshCountdown &&
+              prev.claudeGptQuota.weekly.percentRemaining === next.claudeGptQuota.weekly.percentRemaining &&
+              prev.claudeGptQuota.weekly.refreshCountdown === next.claudeGptQuota.weekly.refreshCountdown &&
+              prev.claudeGptQuota.fiveHour.percentRemaining === next.claudeGptQuota.fiveHour.percentRemaining &&
+              prev.claudeGptQuota.fiveHour.refreshCountdown === next.claudeGptQuota.fiveHour.refreshCountdown
+            );
+          });
+
+        if (isUnchanged) {
+          return prevAccounts;
         }
+
+        memoryAccountsCache = updatedAccounts;
         return updatedAccounts;
       });
-    } catch (err) {
-      console.warn("Failed to fetch live accounts from backend:", err);
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        console.warn("Live sync error:", err);
+      }
+    } finally {
+      isFetchingInProgress = false;
     }
   }, []);
 
@@ -167,9 +233,14 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const interval = setInterval(() => {
       fetchLiveAccounts();
-    }, 3000);
+    }, 2500);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchLiveAccounts]);
 
   const pooledTelemetry = useMemo<PooledTelemetry>(() => {
@@ -243,7 +314,11 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       createdAt: new Date().toISOString(),
     };
 
-    setAccounts((prev) => [...prev, newAcc]);
+    setAccounts((prev) => {
+      const next = [...prev, newAcc];
+      memoryAccountsCache = next;
+      return next;
+    });
   };
 
   const pairGoogleAccount = (profile: { name: string; email: string; avatarUrl?: string; plan?: GravAccount["plan"] }) => {
@@ -256,17 +331,17 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateAccount = (id: string, updates: Partial<GravAccount>) => {
-    setAccounts((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)));
+    setAccounts((prev) => {
+      const next = prev.map((a) => (a.id === id ? { ...a, ...updates } : a));
+      memoryAccountsCache = next;
+      return next;
+    });
   };
 
   const deleteAccount = async (id: string) => {
     setAccounts((prev) => {
       const remaining = prev.filter((a) => a.id !== id);
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem("gravwatch_accounts_cache", JSON.stringify(remaining));
-        } catch {}
-      }
+      memoryAccountsCache = remaining;
       return remaining;
     });
     if (selectedAccountId === id) {
@@ -285,17 +360,44 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     await fetchLiveAccounts();
   };
 
-  const toggleAccountStatus = (id: string) => {
-    setAccounts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: a.status === "active" ? "paused" : "active" } : a))
-    );
+  const toggleAccountStatus = async (id: string) => {
+    setAccounts((prev) => {
+      const next = prev.map((a) => {
+        if (a.id === id) {
+          const willBeRunning = a.containerStatus !== "running";
+          return {
+            ...a,
+            containerStatus: willBeRunning ? ("running" as const) : ("stopped" as const),
+            status: willBeRunning ? ("active" as const) : ("paused" as const),
+            ramUsageMb: willBeRunning ? 48 : 0,
+            cpuUsagePercent: willBeRunning ? 1.2 : 0,
+          };
+        }
+        return a;
+      });
+      memoryAccountsCache = next;
+      return next;
+    });
+
+    try {
+      await fetch(`/api/v1/auth/container/toggle?account_id=${encodeURIComponent(id)}`, {
+        method: "POST",
+      });
+    } catch (err) {
+      console.warn("Failed to toggle container on server:", err);
+    }
+
+    isFetchingInProgress = false;
+    await fetchLiveAccounts();
   };
 
-  const refreshAccount = async (id: string) => {
+  const refreshAccount = async (_id: string) => {
+    isFetchingInProgress = false;
     await fetchLiveAccounts();
   };
 
   const refreshAllAccounts = async () => {
+    isFetchingInProgress = false;
     await fetchLiveAccounts();
   };
 

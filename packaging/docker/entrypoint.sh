@@ -78,6 +78,57 @@ for cli_dir in ["/root/.gemini/antigravity-cli", "/root/.gemini/.gemini/antigrav
         f.flush()
         os.fsync(f.fileno())
     os.replace(tmp_pbtxt, pbtxt_file)
+
+    cache_dir = os.path.join(cli_dir, "cache")
+    os.makedirs(cache_dir, exist_ok=True)
+    onboard_file = os.path.join(cache_dir, "onboarding.json")
+    with open(onboard_file, "w") as f:
+        json.dump({
+            "consumerOnboardingComplete": True,
+            "enterpriseOnboardingComplete": True,
+            "onboardingComplete": True
+        }, f, indent=2)
+' 2>/dev/null || true
+
+python3 -c '
+import pty, os, time, select, signal
+try:
+    master, slave = pty.openpty()
+    pid = os.fork()
+    if pid == 0:
+        os.setsid()
+        os.dup2(slave, 0)
+        os.dup2(slave, 1)
+        os.dup2(slave, 2)
+        os.close(master)
+        os.close(slave)
+        os.environ["TERM"] = "xterm-256color"
+        os.execvp("agy", ["agy"])
+    else:
+        os.close(slave)
+        out = b""
+        start = time.time()
+        while time.time() - start < 3:
+            r, _, _ = select.select([master], [], [], 0.3)
+            if r:
+                try:
+                    data = os.read(master, 1024)
+                    if not data:
+                        break
+                    out += data
+                    if b"color scheme" in out.lower() or b"welcome" in out.lower():
+                        os.write(master, b"\r\n\r\n")
+                        break
+                except Exception:
+                    break
+        time.sleep(0.5)
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except Exception:
+            pass
+        os.close(master)
+except Exception:
+    pass
 ' 2>/dev/null || true
 
 if [ "$#" -gt 0 ]; then

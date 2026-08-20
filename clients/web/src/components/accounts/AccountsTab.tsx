@@ -1,48 +1,52 @@
 "use client";
 
 import React, { useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Users,
+  Search,
+  LayoutGrid,
+  List,
+  PlusCircle,
+} from "lucide-react";
 import { useGravWatch } from "@/context/GravWatchContext";
 import { GravAccount } from "@/types/gravwatch";
+import { useLanguage } from "@/context/LanguageContext";
 import { AccountCard } from "./AccountCard";
 import { AccountListItemCard } from "./AccountListItemCard";
 import { GooglePairingModal } from "./GooglePairingModal";
-import { AddManualAccountModal } from "./AddManualAccountModal";
-import { EditAccountModal } from "./EditAccountModal";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import TextField from "@mui/material/TextField";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import InputAdornment from "@mui/material/InputAdornment";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import ToggleButton from "@mui/material/ToggleButton";
-import Chip from "@mui/material/Chip";
-import PeopleIcon from "@mui/icons-material/People";
-import SearchIcon from "@mui/icons-material/Search";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import ViewListIcon from "@mui/icons-material/ViewList";
-import GridViewIcon from "@mui/icons-material/GridView";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import KeyIcon from "@mui/icons-material/VpnKey";
-import { useLanguage } from "@/context/LanguageContext";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const AccountsTab: React.FC = () => {
-  const { accounts, pooledTelemetry } = useGravWatch();
-  const { t, direction } = useLanguage();
+  const { accounts } = useGravWatch();
+  const { t } = useLanguage();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
-  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [editingAccount, setEditingAccount] = useState<GravAccount | null>(null);
+  const [reauthAccountId, setReauthAccountId] = useState<string | undefined>(undefined);
   const [deletingAccount, setDeletingAccount] = useState<GravAccount | null>(null);
+
+  const handleStartReauth = (account: GravAccount) => {
+    setReauthAccountId(account.id);
+    setIsGoogleModalOpen(true);
+  };
+
+  const handleCloseGoogleModal = () => {
+    setIsGoogleModalOpen(false);
+    setReauthAccountId(undefined);
+  };
 
   const filteredAccounts = accounts.filter((acc) => {
     const matchesSearch =
@@ -51,10 +55,7 @@ export const AccountsTab: React.FC = () => {
       acc.containerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       acc.plan.toLowerCase().includes(searchQuery.toLowerCase()) ||
       acc.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-
-    const matchesStatus =
-      statusFilter === "all" || acc.status === statusFilter;
-
+    const matchesStatus = statusFilter === "all" || acc.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -62,220 +63,132 @@ export const AccountsTab: React.FC = () => {
   const warningCount = accounts.filter((a) => a.status === "warning" || a.status === "depleted").length;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          justifyContent: "space-between",
-          alignItems: { xs: "flex-start", sm: "center" },
-          gap: 2,
-        }}
-      >
-        <Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <PeopleIcon sx={{ fontSize: 26, color: "primary.main" }} />
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "#ffffff" }}>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      className="flex flex-col gap-4 w-full"
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#060911] border border-white/10 text-[#4285f4]">
+            <Users className="h-4 w-4" />
+          </div>
+          <div>
+            <h1 className="text-base font-bold text-white tracking-tight leading-none">
               {t("accounts.page.title")}
-            </Typography>
-          </Box>
-          <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
-            {t("accounts.page.subtitle")}
-          </Typography>
-        </Box>
+            </h1>
+            <p className="text-[11px] text-slate-500 mt-0.5">{t("accounts.page.subtitle")}</p>
+          </div>
+        </div>
 
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+        <div className="flex items-center gap-2">
           <Button
-            variant="outlined"
-            size="small"
-            startIcon={<KeyIcon />}
-            onClick={() => setIsManualModalOpen(true)}
-            sx={{
-              borderColor: "rgba(255, 255, 255, 0.12)",
-              color: "text.primary",
-              "&:hover": { borderColor: "secondary.main", color: "secondary.main" },
+            size="sm"
+            onClick={() => {
+              setReauthAccountId(undefined);
+              setIsGoogleModalOpen(true);
             }}
+            className="h-8 text-xs font-semibold bg-[#4285f4] hover:bg-[#3367d6] text-white"
           >
-            {t("accounts.page.addManualBtn")}
+            <PlusCircle className="h-3.5 w-3.5" />
+            <span>{t("accounts.page.pairGoogleBtn")}</span>
           </Button>
+        </div>
+      </div>
 
-          <Button
-            variant="contained"
-            size="small"
-            startIcon={<AddCircleIcon />}
-            onClick={() => setIsGoogleModalOpen(true)}
-            sx={{
-              background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-              color: "#ffffff",
-              fontWeight: 700,
-            }}
-          >
-            {t("accounts.page.pairGoogleBtn")}
-          </Button>
-        </Box>
-      </Box>
-
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
-        <Chip
-          label={t("accounts.page.totalAccountsChip", { count: accounts.length })}
-          size="small"
-          sx={{
-            backgroundColor: "rgba(255, 255, 255, 0.05)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            color: "text.primary",
-            fontFamily: "monospace",
-            fontSize: "0.75rem",
-          }}
-        />
-        <Chip
-          label={t("accounts.page.activeSandboxesChip", { count: activeCount })}
-          size="small"
-          color="success"
-          variant="outlined"
-          sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}
-        />
-        {warningCount > 0 && (
-          <Chip
-            label={t("accounts.page.warningsChip", { count: warningCount })}
-            size="small"
-            color="warning"
-            variant="outlined"
-            sx={{ fontFamily: "monospace", fontSize: "0.75rem" }}
+      <div className="flex flex-col md:flex-row md:items-center gap-2.5 rounded-xl border border-white/10 bg-[#0b0f1d] px-3.5 py-3 w-full">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="absolute left-2.5 rtl:left-auto rtl:right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500 pointer-events-none" />
+          <Input
+            placeholder={t("accounts.page.searchPlaceholder")}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-8 w-full pl-8 rtl:pl-3 rtl:pr-8 text-xs bg-[#060911]/60 border-white/[0.08]"
           />
-        )}
-      </Box>
+        </div>
 
-      <Card sx={{ border: "1px solid rgba(255, 255, 255, 0.08)", background: "rgba(13, 19, 34, 0.75)", borderRadius: 3 }}>
-        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", md: "row" },
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 2,
-            }}
+        <div className="w-[140px] shrink-0">
+          <Select
+            value={statusFilter}
+            onValueChange={(val) => setStatusFilter(val)}
           >
-            <TextField
-              size="small"
-              placeholder={t("accounts.page.searchPlaceholder")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ fontSize: 18, color: "text.secondary" }} />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-              sx={{
-                width: { xs: "100%", md: 340 },
-                "& .MuiOutlinedInput-root": {
-                  backgroundColor: "rgba(9, 13, 22, 0.7)",
-                  borderRadius: 2,
-                  fontSize: "0.8rem",
-                },
-              }}
-            />
+            <SelectTrigger className="h-8 text-xs bg-[#060911]/60 border-white/[0.08]">
+              <SelectValue placeholder={t("accounts.page.filterAll", { count: accounts.length })} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("accounts.page.filterAll", { count: accounts.length })}</SelectItem>
+              <SelectItem value="active">{t("accounts.page.filterActive", { count: activeCount })}</SelectItem>
+              <SelectItem value="warning">{t("accounts.page.filterWarning", { count: warningCount })}</SelectItem>
+              <SelectItem value="paused">{t("accounts.page.filterPaused")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-            <Box
-              sx={{
-                display: "flex",
-                gap: { xs: 1, sm: 2 },
-                width: { xs: "100%", md: "auto" },
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
+        <div className="flex items-center gap-2 ml-auto rtl:ml-0 rtl:mr-auto shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#34a853]/15 text-[#34a853] border border-[#34a853]/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#34a853]" />
+              {activeCount} {t("common.active")}
+            </span>
+            {warningCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#fbbc05]/15 text-[#fbbc05] border border-[#fbbc05]/20">
+                ⚠ {warningCount}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center bg-[#060911] p-0.5 rounded-lg border border-white/[0.08]">
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === "grid" ? "bg-[#4285f4] text-white" : "text-slate-500 hover:text-slate-200"}`}
             >
-              <FormControl size="small" sx={{ minWidth: { xs: 130, sm: 160 }, flex: { xs: 1, sm: "initial" } }}>
-                <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <FilterListIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-                    </InputAdornment>
-                  }
-                  sx={{
-                    backgroundColor: "rgba(9, 13, 22, 0.7)",
-                    borderRadius: 2,
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  <MenuItem value="all">{t("accounts.page.filterStatus.all")}</MenuItem>
-                  <MenuItem value="active">{t("accounts.page.filterStatus.active")}</MenuItem>
-                  <MenuItem value="warning">{t("accounts.page.filterStatus.warning")}</MenuItem>
-                  <MenuItem value="depleted">{t("accounts.page.filterStatus.depleted")}</MenuItem>
-                  <MenuItem value="paused">{t("accounts.page.filterStatus.paused")}</MenuItem>
-                </Select>
-              </FormControl>
-
-              <ToggleButtonGroup
-                size="small"
-                value={viewMode}
-                exclusive
-                onChange={(_, next) => next && setViewMode(next)}
-                sx={{
-                  backgroundColor: "rgba(9, 13, 22, 0.7)",
-                  "& .MuiToggleButton-root": {
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    color: "text.secondary",
-                    px: 1.5,
-                    "&.Mui-selected": {
-                      color: "primary.main",
-                      backgroundColor: "rgba(16, 185, 129, 0.12)",
-                    },
-                  },
-                }}
-              >
-                <ToggleButton value="grid" title={t("accounts.page.viewMode.cardsTooltip")} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                  <GridViewIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="caption" sx={{ display: { xs: "none", sm: "inline" }, fontWeight: 700 }}>
-                    {t("accounts.page.viewMode.cards")}
-                  </Typography>
-                </ToggleButton>
-                <ToggleButton value="list" title={t("accounts.page.viewMode.compactTooltip")} sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                  <ViewListIcon sx={{ fontSize: 18 }} />
-                  <Typography variant="caption" sx={{ display: { xs: "none", sm: "inline" }, fontWeight: 700 }}>
-                    {t("accounts.page.viewMode.compact")}
-                  </Typography>
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`p-1.5 rounded-md transition-colors ${viewMode === "list" ? "bg-[#4285f4] text-white" : "text-slate-500 hover:text-slate-200"}`}
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
 
       {filteredAccounts.length === 0 ? (
-        <Card sx={{ p: 6, textAlign: "center", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: 3.5 }}>
-          <PeopleIcon sx={{ fontSize: 48, color: "text.secondary", mb: 1, opacity: 0.5 }} />
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#ffffff" }}>
-            {t("accounts.page.emptyState.title")}
-          </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {t("accounts.page.emptyState.description")}
-          </Typography>
-        </Card>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-[#0b0f1d] py-16 gap-3">
+          <Users className="h-10 w-10 text-slate-700" />
+          <p className="text-sm font-semibold text-slate-300">{t("accounts.page.noAccountsFound")}</p>
+          <p className="text-xs text-slate-500">{t("accounts.page.tryAdjustingFilters")}</p>
+          <button
+            onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
+            className="mt-1 text-xs text-[#4285f4] hover:underline"
+          >
+            {t("accounts.page.resetFiltersBtn")}
+          </button>
+        </div>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-          {filteredAccounts.map((account) => (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {filteredAccounts.map((account, i) => (
             <AccountCard
               key={account.id}
               account={account}
-              onEdit={(acc) => setEditingAccount(acc)}
+              index={i}
+              onReauth={handleStartReauth}
               onDelete={(acc) => setDeletingAccount(acc)}
             />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {filteredAccounts.map((account) => (
+        <div className="flex flex-col gap-2">
+          {filteredAccounts.map((account, i) => (
             <AccountListItemCard
               key={account.id}
               account={account}
-              onEdit={(acc) => setEditingAccount(acc)}
+              index={i}
+              onReauth={handleStartReauth}
               onDelete={(acc) => setDeletingAccount(acc)}
             />
           ))}
@@ -284,25 +197,14 @@ export const AccountsTab: React.FC = () => {
 
       <GooglePairingModal
         isOpen={isGoogleModalOpen}
-        onClose={() => setIsGoogleModalOpen(false)}
+        onClose={handleCloseGoogleModal}
+        initialAccountId={reauthAccountId}
       />
-
-      <AddManualAccountModal
-        isOpen={isManualModalOpen}
-        onClose={() => setIsManualModalOpen(false)}
-      />
-
-      <EditAccountModal
-        account={editingAccount}
-        isOpen={Boolean(editingAccount)}
-        onClose={() => setEditingAccount(null)}
-      />
-
       <DeleteConfirmModal
         account={deletingAccount}
         isOpen={Boolean(deletingAccount)}
         onClose={() => setDeletingAccount(null)}
       />
-    </Box>
+    </motion.div>
   );
 };

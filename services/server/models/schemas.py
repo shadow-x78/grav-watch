@@ -76,6 +76,7 @@ class AuthStatusResponse(BaseModel):
     email: Optional[str] = None
     name: Optional[str] = None
     picture: Optional[str] = None
+    container_status: Optional[str] = "running"
     last_token_update: Optional[datetime] = None
     message: str
 

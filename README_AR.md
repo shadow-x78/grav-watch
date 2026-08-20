@@ -1,11 +1,11 @@
 <div align="center">
 
-<img src="data/gravwatch.svg" alt="GravWatch" width="160" />
+<img src="clients/web/public/gravwatch.svg" alt="GravWatch" width="180" />
 
 # GravWatch
 
 <p align="center">
-  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.5.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.5.0"></a>
+  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.6.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.6.0"></a>
 </p>
 
 <p align="center">
@@ -30,6 +30,7 @@
 
 - [ما هو GravWatch؟](#ما-هو-gravwatch)
 - [لماذا وجد GravWatch؟](#لماذا-وجد-gravwatch)
+- [لقطات الشاشة](#لقطات-الشاشة)
 - [أبرز المزايا](#أبرز-المزايا)
 - [الحالة](#الحالة)
 - [البدء السريع](#البدء-السريع)
@@ -61,6 +62,28 @@
 | **تشتت الرؤية والمتابعة** | ❌ فحص كل حساب على حدة يدوياً عبر الطرفية | ✅ سعة مجمعة موحدة (Pooled Quota) عبر كافة الحسابات النشطة |
 | **تتبع كوتا النماذج** | ❌ التقدير اليدوي لاستهلاك كل نموذج | ✅ استخراج آلي ودقيق لكوتا Gemini Flash, Gemini Pro, Claude Sonnet, Claude Opus, GPT OSS |
 | **انعدام الصيانة** | ❌ إعدادات معقدة تتطلب واجهات سطح مكتب | ✅ تشغيل صامت عبر الطرفية يعمل كخلفية دائمة |
+
+---
+
+<a id="لقطات-الشاشة"></a>
+## 📸 لقطات الشاشة (Screenshots)
+
+<div align="center">
+
+### لوحة المؤشرات العامة وسعة مجمع الحصص (نظرة عامة)
+<img src="docs/assets/screenshots/dashboard_overview_ar.png" alt="لوحة مؤشرات GravWatch العامة" width="850" />
+
+<br/>
+
+### إدارة العناقيد وشبكة الحسابات المتصلة (الحسابات)
+<img src="docs/assets/screenshots/dashboard_accounts_ar.png" alt="إدارة حسابات وعقد GravWatch" width="850" />
+
+<br/>
+
+### بطاقة تفاصيل الحصص ودورات الـ 5 ساعات (Account Card)
+<img src="docs/assets/screenshots/account_card.png" alt="بطاقة كوتا الحساب" width="450" />
+
+</div>
 
 ---
 

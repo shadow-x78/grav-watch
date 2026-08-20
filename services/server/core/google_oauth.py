@@ -134,6 +134,19 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
             except Exception:
                 pass
 
+        JETSKI_PRESET = """post_onboarding:  {
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_COLOR_SCHEME
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_MANAGER_WELCOME
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_USAGE_MODE
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_AGENT_CONFIGURATION
+  completed_steps:  POST_ONBOARDING_STEP_TYPE_ADD_WORKSPACE
+}
+installation_uuid:  "98d027cc-5310-4b0e-a832-fab3183df8b7"
+migrations:  { key:  3 value:  MIGRATION_STATUS_COMPLETED }
+migrations:  { key:  4 value:  MIGRATION_STATUS_COMPLETED }
+migrations:  { key:  5 value:  MIGRATION_STATUS_COMPLETED }
+"""
+
         dirs = [
             os.path.join(target_dir, ".gemini", "antigravity-cli"),
             os.path.join(target_dir, "antigravity-cli"),
@@ -154,8 +167,29 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
                 with open(token_file, "w", encoding="utf-8") as tf:
                     json.dump(token_payload, tf)
                 os.chmod(token_file, 0o666)
+
+                pbtxt = os.path.join(d, "jetski_state.pbtxt")
+                with open(pbtxt, "w", encoding="utf-8") as pf:
+                    pf.write(JETSKI_PRESET)
+                os.chmod(pbtxt, 0o666)
+
+                settings_json = os.path.join(d, "settings.json")
+                with open(settings_json, "w", encoding="utf-8") as sf:
+                    sf.write('{\n  "trustedWorkspaces": [\n    "/app",\n    "/root",\n    "/",\n    "/tmp"\n  ]\n}\n')
+                os.chmod(settings_json, 0o666)
+
+                cache_d = os.path.join(d, "cache")
+                os.makedirs(cache_d, mode=0o777, exist_ok=True)
+                onboard_json = os.path.join(cache_d, "onboarding.json")
+                with open(onboard_json, "w", encoding="utf-8") as of:
+                    json.dump({
+                        "consumerOnboardingComplete": True,
+                        "enterpriseOnboardingComplete": True,
+                        "onboardingComplete": True
+                    }, of, indent=2)
+                os.chmod(onboard_json, 0o666)
             except Exception as e:
-                logger.warning("Could not write oauth token file in %s: %s", d, e)
+                logger.warning("Could not write oauth token/config files in %s: %s", d, e)
 
     return target_file
 

@@ -1,39 +1,43 @@
 "use client";
 
 import React, { useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Sparkles,
+  Zap,
+  RefreshCw,
+  Power,
+  KeyRound,
+  Trash2,
+  Server,
+} from "lucide-react";
 import { GravAccount } from "@/types/gravwatch";
 import { useGravWatch } from "@/context/GravWatchContext";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardActions from "@mui/material/CardActions";
-import Avatar from "@mui/material/Avatar";
-import Chip from "@mui/material/Chip";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import Paper from "@mui/material/Paper";
-import Divider from "@mui/material/Divider";
-import { ProgressRing } from "@/components/ui/progress-ring";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import DnsIcon from "@mui/icons-material/Dns";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { formatCountdownWithDays } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
+import { Badge } from "@/components/ui/badge";
+import { ProgressRing } from "@/components/ui/progress-ring";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatCountdownWithDays } from "@/lib/utils";
 
 interface AccountCardProps {
   account: GravAccount;
-  onEdit: (account: GravAccount) => void;
+  onReauth: (account: GravAccount) => void;
   onDelete: (account: GravAccount) => void;
+  index?: number;
 }
+
+const STATUS_CONFIG = {
+  active: { label: "Active", color: "#34a853", badge: "success" as const },
+  warning: { label: "Warning", color: "#fbbc05", badge: "warning" as const },
+  depleted: { label: "Depleted", color: "#ea4335", badge: "destructive" as const },
+  paused: { label: "Paused", color: "#64748b", badge: "outline" as const },
+};
 
 export const AccountCard: React.FC<AccountCardProps> = ({
   account,
-  onEdit,
+  onReauth,
   onDelete,
+  index = 0,
 }) => {
   const { toggleAccountStatus, refreshAccount } = useGravWatch();
   const { t, language } = useLanguage();
@@ -45,365 +49,171 @@ export const AccountCard: React.FC<AccountCardProps> = ({
     setTimeout(() => setIsSpinning(false), 700);
   };
 
-  const getPlanBadgeColor = (plan: string) => {
-    if (plan.toLowerCase().includes("ultra")) {
-      return {
-        bg: "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)",
-        color: "#ffffff",
-      };
-    }
-    if (plan.toLowerCase().includes("pro")) {
-      return {
-        bg: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)",
-        color: "#ffffff",
-      };
-    }
-    return {
-      bg: "rgba(148, 163, 184, 0.2)",
-      color: "#94a3b8",
-    };
-  };
+  const status = STATUS_CONFIG[account.status] || STATUS_CONFIG.paused;
+  const initial = account.alias ? account.alias.charAt(0).toUpperCase() : "G";
 
-  const planStyle = getPlanBadgeColor(account.plan);
+  const geminiWeekly = account.geminiQuota.weekly;
+  const gemini5h = account.geminiQuota.fiveHour;
+  const claudeWeekly = account.claudeGptQuota.weekly;
+  const claude5h = account.claudeGptQuota.fiveHour;
 
   return (
-    <Card
-      sx={{
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        background: "rgba(13, 19, 34, 0.75)",
-        backdropFilter: "blur(16px)",
-        borderRadius: 3.5,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        transition: "transform 0.2s ease, border-color 0.25s ease",
-        "&:hover": {
-          borderColor: "rgba(16, 185, 129, 0.4)",
-          transform: "translateY(-2px)",
-          boxShadow: "none",
-        },
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2, sm: 2.5 }, pb: 1 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, gap: 1 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
-            <Avatar
-              src={account.avatarUrl || undefined}
-              alt={account.alias}
-              sx={{
-                width: 42,
-                height: 42,
-                border: "1.5px solid rgba(255, 255, 255, 0.15)",
-                flexShrink: 0,
-                background: "linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)",
-                color: "#ffffff",
-                fontWeight: 700,
-                fontSize: "1.1rem",
-              }}
+    <TooltipProvider delayDuration={150}>
+      <div
+        className="flex flex-col rounded-xl border border-white/10 bg-[#0b0f1d] overflow-hidden hover:border-white/20 transition-all"
+      >
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-bold text-sm border border-white/10 bg-[#060911]"
+              style={{ color: status.color }}
             >
-              {account.alias ? account.alias.charAt(0).toUpperCase() : "S"}
-            </Avatar>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                <Typography
-                  variant="subtitle2"
-                  sx={{ fontWeight: 800, color: "#ffffff", fontSize: { xs: "0.88rem", sm: "0.95rem" } }}
-                  noWrap
+              {initial}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold text-white truncate">{account.alias}</span>
+                <span className="shrink-0 text-[10px] text-slate-400 font-mono bg-white/5 border border-white/10 px-1.5 py-px rounded">
+                  {account.plan.replace("Google AI ", "").replace("Gemini ", "")}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 font-mono truncate mt-0.5">{account.email}</p>
+            </div>
+          </div>
+          <Badge variant={status.badge} className="text-[10px] font-bold shrink-0">
+            {t(`common.${account.status}`) || status.label}
+          </Badge>
+        </div>
+
+        <div className="flex-1 p-4 space-y-3">
+          <div className="rounded-lg bg-[#060911]/60 border border-white/[0.08] p-3.5">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Sparkles className="h-3.5 w-3.5 text-[#4285f4]" />
+              <span className="text-xs font-semibold text-slate-200">{t("accounts.card.geminiModels")}</span>
+              <span className="ml-auto text-[10px] font-mono text-slate-500">
+                {geminiWeekly.percentRemaining < 100
+                  ? formatCountdownWithDays(geminiWeekly.refreshCountdown, language)
+                  : t("accounts.card.fullCapacity")}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: t("accounts.card.weeklyRemaining"), pct: geminiWeekly.percentRemaining, color: "#34a853" },
+                { label: t("accounts.card.fiveHourRemaining"), pct: gemini5h.percentRemaining, color: "#4285f4" },
+              ].map(({ label, pct, color }) => (
+                <div key={label} className="flex items-center justify-between bg-[#0b0f1d] rounded-md px-2.5 py-2 border border-white/[0.05]">
+                  <span className="text-[11px] text-slate-400">{label}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black font-mono" style={{ color }}>{pct}%</span>
+                    <ProgressRing value={pct} size={20} thickness={2.5} color={color} trackColor="rgba(255,255,255,0.05)" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-[#060911]/60 border border-white/[0.08] p-3.5">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Zap className="h-3.5 w-3.5 text-[#ea4335]" />
+              <span className="text-xs font-semibold text-slate-200">{t("accounts.card.claudeGptModels")}</span>
+              <span className="ml-auto text-[10px] font-mono text-slate-500">
+                {claudeWeekly.percentRemaining < 100
+                  ? formatCountdownWithDays(claudeWeekly.refreshCountdown, language)
+                  : t("accounts.card.fullCapacity")}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: t("accounts.card.weeklyRemaining"), pct: claudeWeekly.percentRemaining, color: "#34a853" },
+                { label: t("accounts.card.fiveHourRemaining"), pct: claude5h.percentRemaining, color: "#ea4335" },
+              ].map(({ label, pct, color }) => (
+                <div key={label} className="flex items-center justify-between bg-[#0b0f1d] rounded-md px-2.5 py-2 border border-white/[0.05]">
+                  <span className="text-[11px] text-slate-400">{label}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black font-mono" style={{ color }}>{pct}%</span>
+                    <ProgressRing value={pct} size={20} thickness={2.5} color={color} trackColor="rgba(255,255,255,0.05)" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-2.5 border-t border-white/[0.06] bg-[#060911]/30">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
+            <Server className="h-3 w-3 text-[#4285f4]" />
+            <span>{account.containerName}</span>
+            <span
+              className={`ms-1 inline-flex items-center gap-1 font-semibold ${
+                account.containerStatus === "running" ? "text-[#34a853]" : "text-slate-600"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${account.containerStatus === "running" ? "bg-[#34a853]" : "bg-slate-600"}`} />
+              {account.containerStatus === "running" ? t("common.online") : t("common.offline")}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  className="h-7 w-7 flex items-center justify-center rounded-md border border-white/[0.06] bg-[#060911] text-slate-400 hover:text-white hover:border-white/20 hover:bg-white/5 transition-all"
                 >
-                  {account.alias}
-                </Typography>
-                <Chip
-                  label={account.plan}
-                  size="small"
-                  sx={{
-                    height: 20,
-                    fontSize: "0.65rem",
-                    fontWeight: 700,
-                    background: planStyle.bg,
-                    color: planStyle.color,
-                    border: "none",
-                  }}
-                />
-              </Box>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: "text.secondary",
-                  fontFamily: "monospace",
-                  display: "block",
-                  fontSize: { xs: "0.7rem", sm: "0.75rem" },
-                  mt: 0.2,
-                }}
-                noWrap
-              >
-                {account.email}
-              </Typography>
-            </Box>
-          </Box>
-
-          <Chip
-            label={t(`common.${account.status}`)}
-            size="small"
-            color={
-              account.status === "active"
-                ? "success"
-                : account.status === "warning"
-                ? "warning"
-                : account.status === "depleted"
-                ? "error"
-                : "default"
-            }
-            sx={{ height: 22, fontSize: "0.68rem", fontWeight: 800, flexShrink: 0, textTransform: "capitalize" }}
-          />
-        </Box>
-
-        {account.tags.length > 0 && (
-          <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", mb: 2 }}>
-            {account.tags.map((tag, idx) => (
-              <Chip
-                key={idx}
-                label={tag}
-                size="small"
-                variant="outlined"
-                sx={{
-                  height: 18,
-                  fontSize: "0.62rem",
-                  borderColor: "rgba(255, 255, 255, 0.1)",
-                  color: "text.secondary",
-                }}
-              />
-            ))}
-          </Box>
-        )}
-
-        <Box sx={{ mb: 1.75 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem" }}>
-              {t("accounts.card.geminiModels")}
-            </Typography>
-            <Tooltip title={t("accounts.card.geminiTooltip")}>
-              <InfoOutlinedIcon sx={{ fontSize: 13, color: "text.secondary", cursor: "pointer" }} />
+                  <RefreshCw className={`h-3.5 w-3.5 shrink-0 ${isSpinning ? "animate-spin text-[#34a853]" : ""}`} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t("accounts.card.tooltips.refresh")}</TooltipContent>
             </Tooltip>
-          </Box>
 
-          <Paper
-            elevation={0}
-            sx={{
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              backgroundColor: "rgba(18, 22, 34, 0.75)",
-              borderRadius: 2.5,
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              sx={{
-                p: 1.5,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 1.5,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: "#ffffff", display: "block", fontSize: "0.78rem" }}>
-                  {t("accounts.card.weeklyRemaining")}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
-                  {account.geminiQuota.weekly.percentRemaining < 100
-                    ? t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.geminiQuota.weekly.refreshCountdown, language) })
-                    : t("accounts.card.fullCapacity")}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, flexShrink: 0 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: "monospace", color: "#ffffff", fontSize: "0.82rem" }}>
-                  {account.geminiQuota.weekly.percentRemaining}%
-                </Typography>
-                <ProgressRing value={account.geminiQuota.weekly.percentRemaining} size={26} thickness={3.5} />
-              </Box>
-            </Box>
-
-            <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.06)" }} />
-
-            <Box
-              sx={{
-                p: 1.5,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 1.5,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: "#ffffff", display: "block", fontSize: "0.78rem" }}>
-                  {t("accounts.card.fiveHourRemaining")}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
-                  {account.geminiQuota.fiveHour.percentRemaining < 100
-                    ? t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.geminiQuota.fiveHour.refreshCountdown, language) })
-                    : t("accounts.card.fullCapacity")}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, flexShrink: 0 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: "monospace", color: "#ffffff", fontSize: "0.82rem" }}>
-                  {account.geminiQuota.fiveHour.percentRemaining}%
-                </Typography>
-                <ProgressRing value={account.geminiQuota.fiveHour.percentRemaining} size={26} thickness={3.5} />
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
-
-        <Box sx={{ mb: 1.75 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 0.75 }}>
-            <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", fontSize: "0.75rem" }}>
-              {t("accounts.card.claudeGptModels")}
-            </Typography>
-            <Tooltip title={t("accounts.card.claudeTooltip")}>
-              <InfoOutlinedIcon sx={{ fontSize: 13, color: "text.secondary", cursor: "pointer" }} />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => toggleAccountStatus(account.id)}
+                  className={`h-7 w-7 flex items-center justify-center rounded-md border border-white/[0.06] bg-[#060911] transition-all ${
+                    account.status === "paused"
+                      ? "text-slate-400 hover:text-[#34a853] hover:border-[#34a853]/30 hover:bg-[#34a853]/10"
+                      : "text-slate-400 hover:text-[#fbbc05] hover:border-[#fbbc05]/30 hover:bg-[#fbbc05]/10"
+                  }`}
+                >
+                  <Power className="h-3.5 w-3.5 shrink-0" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {account.status === "paused" ? t("accounts.card.tooltips.resume") : t("accounts.card.tooltips.pause")}
+              </TooltipContent>
             </Tooltip>
-          </Box>
 
-          <Paper
-            elevation={0}
-            sx={{
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              backgroundColor: "rgba(18, 22, 34, 0.75)",
-              borderRadius: 2.5,
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              sx={{
-                p: 1.5,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 1.5,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: "#ffffff", display: "block", fontSize: "0.78rem" }}>
-                  {t("accounts.card.weeklyRemaining")}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
-                  {account.claudeGptQuota.weekly.percentRemaining < 100
-                    ? t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.claudeGptQuota.weekly.refreshCountdown, language) })
-                    : t("accounts.card.fullCapacity")}
-                </Typography>
-              </Box>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onReauth(account)}
+                  className="h-7 w-7 flex items-center justify-center rounded-md border border-white/[0.06] bg-[#060911] text-slate-400 hover:text-[#4285f4] hover:border-[#4285f4]/30 hover:bg-[#4285f4]/10 transition-all"
+                >
+                  <KeyRound className="h-3.5 w-3.5 shrink-0" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t("accounts.card.tooltips.reauth")}</TooltipContent>
+            </Tooltip>
 
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, flexShrink: 0 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: "monospace", color: "#ffffff", fontSize: "0.82rem" }}>
-                  {account.claudeGptQuota.weekly.percentRemaining}%
-                </Typography>
-                <ProgressRing value={account.claudeGptQuota.weekly.percentRemaining} size={26} thickness={3.5} />
-              </Box>
-            </Box>
-
-            <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.06)" }} />
-
-            <Box
-              sx={{
-                p: 1.5,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 1.5,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, color: "#ffffff", display: "block", fontSize: "0.78rem" }}>
-                  {t("accounts.card.fiveHourRemaining")}
-                </Typography>
-                <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }} noWrap>
-                  {account.claudeGptQuota.fiveHour.percentRemaining < 100
-                    ? t("accounts.card.refreshesIn", { time: formatCountdownWithDays(account.claudeGptQuota.fiveHour.refreshCountdown, language) })
-                    : t("accounts.card.fullCapacity")}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, flexShrink: 0 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, fontFamily: "monospace", color: "#ffffff", fontSize: "0.82rem" }}>
-                  {account.claudeGptQuota.fiveHour.percentRemaining}%
-                </Typography>
-                <ProgressRing value={account.claudeGptQuota.fiveHour.percentRemaining} size={26} thickness={3.5} />
-              </Box>
-            </Box>
-          </Paper>
-        </Box>
-
-        <Paper
-          elevation={0}
-          sx={{
-            p: 1.25,
-            backgroundColor: "rgba(9, 13, 22, 0.5)",
-            border: "1px solid rgba(255, 255, 255, 0.06)",
-            borderRadius: 2,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 1,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <DnsIcon sx={{ fontSize: 15, color: "primary.main" }} />
-            <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary", fontSize: "0.72rem" }}>
-              {account.containerName} ({account.ramUsageMb}MB)
-            </Typography>
-          </Box>
-          <Chip
-            label={account.containerStatus === "running" ? t("common.online") : t("common.offline")}
-            size="small"
-            color={account.containerStatus === "running" ? "success" : "default"}
-            variant="outlined"
-            sx={{ height: 18, fontSize: "0.62rem", fontWeight: 700 }}
-          />
-        </Paper>
-      </CardContent>
-
-      <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.06)" }} />
-
-      <CardActions sx={{ px: 2, py: 1.25, justifyContent: "space-between" }}>
-        <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "monospace", fontSize: "0.7rem" }}>
-          {t("accounts.card.nodeId", { id: account.id })}
-        </Typography>
-
-        <Box sx={{ display: "flex", gap: 0.5 }}>
-          <Tooltip title={t("accounts.card.tooltips.refresh")}>
-            <IconButton size="small" onClick={handleRefresh} sx={{ color: "text.secondary", "&:hover": { color: "primary.main" } }}>
-              <RefreshIcon sx={{ fontSize: 16, animation: isSpinning ? "spin 1s linear infinite" : "none" }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title={account.status === "paused" ? t("accounts.card.tooltips.resume") : t("accounts.card.tooltips.pause")}>
-            <IconButton
-              size="small"
-              onClick={() => toggleAccountStatus(account.id)}
-              sx={{
-                color: "text.secondary",
-                "&:hover": { color: account.status === "paused" ? "success.main" : "warning.main" },
-              }}
-            >
-              <PowerSettingsNewIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title={t("accounts.card.tooltips.edit")}>
-            <IconButton size="small" onClick={() => onEdit(account)} sx={{ color: "text.secondary", "&:hover": { color: "secondary.main" } }}>
-              <EditIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title={t("accounts.card.tooltips.delete")}>
-            <IconButton size="small" onClick={() => onDelete(account)} sx={{ color: "text.secondary", "&:hover": { color: "error.main" } }}>
-              <DeleteIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </CardActions>
-    </Card>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onDelete(account)}
+                  className="h-7 w-7 flex items-center justify-center rounded-md border border-white/[0.06] bg-[#060911] text-slate-400 hover:text-[#ea4335] hover:border-[#ea4335]/30 hover:bg-[#ea4335]/10 transition-all"
+                >
+                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t("accounts.card.tooltips.delete")}</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
+      </div>
+    </TooltipProvider>
   );
 };
