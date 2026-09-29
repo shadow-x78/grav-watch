@@ -6,7 +6,7 @@
 
 ---
 
-> يسري هذا التوثيق على الإصدار **v2.6.0** فما فوق. المسار الأساسي: `/api/v1`
+> يسري هذا التوثيق على الإصدار **v2.7.0** فما فوق. المسار الأساسي: `/api/v1`
 
 ---
 
@@ -63,7 +63,6 @@
 **الترويسات:**
 ```http
 Content-Type: application/json
-X-Agent-Key: gravwatch-agent-secret-key
 ```
 
 **بيانات الطلب (`UsageIngestRequest`):**

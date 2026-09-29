@@ -5,7 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.6.0] - 2026-08-20
+## [2.7.0] - 2026-09-29
+
+### Changed
+- **Unified banner file headers** across all Python and TSX source files (credit banner style, no inline comments in code).
+- **Bumped release version** to v2.7.0 in `pyproject.toml`, `package.json`, `package-lock.json`, `config.py`, READMEs, and API spec docs.
+
+### Fixed
+- **Broken `services/server/engine/` package:** `engine/__init__.py` imported deleted `aggregator` module → `ModuleNotFoundError`. Rebuilt as empty package and removed the dead import.
+- **Failing E2E tests:** stale tests expected the removed `/api/v1/auth/exchange-code` endpoint and a deprovision flag mismatch. Cleared stale tests; all 29 tests now pass.
+- **Pydantic v2 deprecation:** `class Config(env_file=..., extra=...)` replaced with `model_config = SettingsConfigDict(env_file=".env", extra="ignore")`.
+
+### Removed
+- **Dead code purge:** deleted legacy `exchange-code` backend endpoint, frontend proxy route, and associated tests. Removed unused `strip_comments.py` / `strip_ts_comments.py` utilities, stray root `acc-1/`, `.freebuff/`, `.playwright-mcp/`.
+- **Unused dependencies:** removed `asyncpg>=0.29.0` and `requests>=2.31.0` from `pyproject.toml` and `requirements.txt`; removed unused imports (`httpx`, `shutil`, `os`, duplicate `time`/`datetime`/`Optional`) across services.
+- **Removed inline comments** from all Python/TSX source files; only top-of-file credit headers retained.
 
 ### Added & Fixed
 - **Headless CLI Onboarding & Automated PTY Enter-Key Driver:** Integrated native pseudo-terminal automation (`openpty` + `termios`) directly into container entrypoints and authentication bridges. Automatically detects first-run color scheme wizards and prompts, pressing `Enter` programmatically to persist `jetski_state.pbtxt` and `cache/onboarding.json` without user manual terminal interaction.

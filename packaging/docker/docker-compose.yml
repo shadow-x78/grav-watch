@@ -1,6 +1,10 @@
 # GravWatch Multi-Account Container Stack (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
 
+# IMPORTANT: Account containers are dynamically provisioned by the server on demand.
+# Do NOT add container services here — they are created automatically when you
+# pair a Google account from the Dashboard UI.
+
 services:
   server:
     build:
@@ -12,8 +16,6 @@ services:
       - "${SERVER_PORT:-8000}:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data/gravwatch.db}
-      - AGENT_API_KEY=${AGENT_API_KEY}
-      - MASTER_API_KEY=${MASTER_API_KEY}
       - DATA_DIR=/app/data
       - HOST_DATA_DIR=${HOST_DATA_DIR:-/home/shadow-x7/Projects/Tools/Python/GravWatch/data}
     volumes:
@@ -22,9 +24,9 @@ services:
     networks:
       - gravwatch-net
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
-      interval: 30s
-      timeout: 5s
+      test: ["CMD", "curl", "-sf", "http://localhost:8000/api/v1/health"]
+      interval: 15s
+      timeout: 3s
       retries: 3
 
   web:
@@ -37,7 +39,10 @@ services:
       - "${WEB_PORT:-3000}:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://server:8000
+      - NEXT_PUBLIC_BACKEND_URL=http://server:8000
+      - BACKEND_INTERNAL_URL=http://server:8000
       - NODE_ENV=production
+      - PORT=3000
     depends_on:
       server:
         condition: service_healthy
@@ -46,37 +51,6 @@ services:
         limits:
           cpus: '0.50'
           memory: 384M
-    networks:
-      - gravwatch-net
-
-  acc-1:
-    build:
-      context: ../..
-      dockerfile: packaging/docker/Dockerfile.agent
-    image: gravwatch-agent:latest
-    container_name: gravwatch-acc-1
-    restart: unless-stopped
-    depends_on:
-      server:
-        condition: service_healthy
-    environment:
-      - ACCOUNT_ID=acc-1
-      - ACCOUNT_LABEL=Account 1
-      - SERVER_URL=http://server:8000
-      - AGENT_API_KEY=${AGENT_API_KEY}
-      - POLL_INTERVAL_SECONDS=${POLL_INTERVAL_SECONDS:-20}
-      - USE_MOCK_FALLBACK=${USE_MOCK_FALLBACK:-true}
-    dns:
-      - 8.8.8.8
-      - 8.8.4.4
-    volumes:
-      - ../../data/acc-1:/root/.gemini
-      - /home/shadow-x7/.config/Antigravity IDE/User/globalStorage/state.vscdb:/root/.config/antigravity_seed/state.vscdb:ro
-    deploy:
-      resources:
-        limits:
-          cpus: '0.25'
-          memory: 256M
     networks:
       - gravwatch-net
 

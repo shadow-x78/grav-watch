@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - Localization Registry
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 import { ar } from "./ar";
 import { en } from "./en";
 import { Language, TranslationDictionary, TranslationParams } from "./types";

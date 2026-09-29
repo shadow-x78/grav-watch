@@ -148,10 +148,11 @@ docker stats
 <a id="server-401"></a>
 ## 🔒 الخادم: رفض البيانات بخطأ 401 Unauthorized
 
-تأكد من تطابق قيمة `AGENT_API_KEY` في ملف `.env` بين الخادم والحاويات:
+لم تعد عملية استقبال البيانات تتطلب مفتاح API. إذا استمر ظهور خطأ 401، فالسبب غالبًا حاوية وكيل قديمة تشغل كودًا سابقًا — أعد تشغيلها:
 
 ```bash
-grep AGENT_API_KEY .env
+docker restart gravwatch-server
+docker compose -f packaging/docker/docker-compose.yml up -d --force-recreate
 ```
 
 ---

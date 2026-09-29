@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - English Locale
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 import common from "./common/common.json";
 import layout from "./layout/layout.json";
 import overview from "./overview/overview.json";

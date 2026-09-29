@@ -1,11 +1,11 @@
 {
   "header": {
     "title": "GravWatch",
-    "allAccountsPooled": "كافة الحسابات",
+    "allAccountsPooled": "كل الحسابات",
     "allPooledShort": "الكل",
     "switchLangTooltip": "Switch to English",
     "refreshTooltip": "مزامنة المؤشرات",
-    "pairGoogleBtn": "ربط حساب Google",
+    "pairGoogleBtn": "ربط Google",
     "pairGoogleTooltip": "ربط حساب Google",
     "systemConfigTooltip": "الإعدادات",
     "mobileMenuAria": "فتح القائمة"
@@ -14,24 +14,16 @@
     "navTitle": "التنقل",
     "navOverview": "نظرة عامة",
     "navAccounts": "الحسابات",
-    "dockerCard": {
-      "title": "بيئات Docker",
-      "image": "الصورة:",
-      "memoryCap": "الذاكرة:",
-      "memoryValue": "256MB / عقدة",
-      "fastApiHub": "الواجهة:",
-      "fastApiLive": ":8000"
-    },
-    "subtitle": "لوحة متابعة Google Antigravity",
-    "issuesTooltip": "تنبيهات الحاويات",
+    "subtitle": "مراقب الحصص",
+    "issuesTooltip": "تنبيهات المجموعة",
     "allHealthy": "الكل نشط",
     "issuesDetected": "{count} بحاجة لمراجعة"
   },
   "footer": {
-    "statusOperational": "كافة الأنظمة تعمل بكفاءة",
-    "clusterActive": "{count} عقد معزولة متصلة",
-    "realtimeTelemetry": "مركز القياس والمتابعة المباشر",
-    "version": "v2.5.0",
+    "statusOperational": "جميع الأنظمة تعمل",
+    "clusterActive": "{count} عقدة متصلة",
+    "realtimeTelemetry": "مؤشرات فورية",
+    "version": "v2.6.0",
     "rights": "جميع الحقوق محفوظة."
   }
 }

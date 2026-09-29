@@ -46,10 +46,10 @@ graph TD
             Server --> Aggregator
         end
 
-        C1 -->|POST /api/v1/usage (X-Agent-Key)| Server
-        C2 -->|POST /api/v1/usage (X-Agent-Key)| Server
-        C3 -->|POST /api/v1/usage (X-Agent-Key)| Server
-        CN -->|POST /api/v1/usage (X-Agent-Key)| Server
+        C1 -->|POST /api/v1/usage| Server
+        C2 -->|POST /api/v1/usage| Server
+        C3 -->|POST /api/v1/usage| Server
+        CN -->|POST /api/v1/usage| Server
     end
 ```
 
@@ -82,8 +82,8 @@ graph TD
    - عند استقبال جدول نصوص ANSI، تقوم دالة `clean_ansi()` بإزالة أكواد الألوان واستخراج بيانات الاستهلاك، والحد الأقصى، ومؤقت التصفير لنماذج **Gemini Flash, Gemini Pro, Claude Sonnet, Claude Opus, GPT OSS**.
    - في حال غياب التوثيق أثناء الاختبار، تستخدم الخدمة بيانات محاكاة دقيقة إذا كان `USE_MOCK_FALLBACK=true`.
 3. **استقبال البيانات بالخادم:**
-   - يرسل الـ Agent طلب `POST` إلى `http://server:8000/api/v1/usage` مع الترويسة `X-Agent-Key`.
-   - يتحقق الخادم من صحة المفتاح، ويحدث بيانات الحساب `Account`، وينشئ لقطة كوتا جديدة `UsageSnapshot` مع أسطر النماذج `ModelQuota`.
+   - يرسل الـ Agent طلب `POST` إلى `http://server:8000/api/v1/usage` مع البيانات.
+   - يحدّث الخادم بيانات الحساب `Account`، وينشئ لقطة كوتا جديدة `UsageSnapshot` مع أسطر النماذج `ModelQuota`.
 4. **تجميع السعة الكلية (Pool Aggregation):**
    - عند طلب `/api/v1/usage/latest`، تقرأ دالة `compute_latest_pool_summary()` آخر لقطة لكل حساب مسجل.
    - تقوم بجمع إجمالي الطلبات المستخدمة والسعة القصوى وحساب نسبة الاستهلاك المجمعة لكل نموذج عبر الحسابات المتصلة.
@@ -95,7 +95,7 @@ graph TD
 | نقطة النهاية | الطريقة | التوثيق / Headers | ملخص البيانات | الاستجابة |
 |---|---|---|---|---|
 | `/api/v1/health` | GET | بدون | بدون | `{"status":"healthy","service":"gravwatch-server","version":"2.0.0"}` |
-| `/api/v1/usage` | POST | `X-Agent-Key: <key>` | `{account_id, timestamp, models: [...]}` | `201 Created {"success":true,"message":"..."}` |
+| `/api/v1/usage` | POST | بدون | `{account_id, timestamp, models: [...]}` | `201 Created {"success":true,"message":"..."}` |
 | `/api/v1/usage/latest` | GET | بدون | بدون | `200 OK LatestUsageResponse (pool_summary + accounts)` |
 | `/api/v1/usage/history` | GET | بدون | Query: `account_id`, `range=24h` | `200 OK HistoryResponse (series: [...])` |
 | `/api/v1/accounts` | GET | بدون | بدون | `200 OK List[AccountDetailResponse]` |

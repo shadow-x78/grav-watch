@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - Input UI Component
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
 

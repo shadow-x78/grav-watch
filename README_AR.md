@@ -5,7 +5,7 @@
 # GravWatch
 
 <p align="center">
-  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.6.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.6.0"></a>
+  <a href="https://github.com/shadow-x78/grav-watch/releases"><img src="https://img.shields.io/badge/version-2.7.0-blue.svg?style=for-the-badge&logo=git" alt="Version 2.7.0"></a>
 </p>
 
 <p align="center">

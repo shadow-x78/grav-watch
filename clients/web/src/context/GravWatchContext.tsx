@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - Core Application Context Provider
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from "react";
@@ -13,6 +18,8 @@ interface GravWatchContextType {
   selectedAccountId: string;
   activeTab: TabView;
   pooledTelemetry: PooledTelemetry;
+  isLoading: boolean;
+  isInitialLoad: boolean;
   setSelectedAccountId: (id: string) => void;
   setActiveTab: (tab: TabView) => void;
   addAccount: (account: Partial<GravAccount>) => void;
@@ -28,17 +35,23 @@ interface GravWatchContextType {
 const GravWatchContext = createContext<GravWatchContextType | undefined>(undefined);
 
 let memoryAccountsCache: GravAccount[] = [];
-let isFetchingInProgress = false;
 
 export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [accounts, setAccounts] = useState<GravAccount[]>(() => memoryAccountsCache);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<TabView>("overview");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isFetchingRef = useRef(false);
 
-  const fetchLiveAccounts = useCallback(async () => {
-    if (isFetchingInProgress) return;
-    isFetchingInProgress = true;
+  const fetchLiveAccounts = useCallback(async (isInitial = false): Promise<void> => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
+    if (isInitial) {
+      setIsLoading(true);
+    }
 
     try {
       if (abortControllerRef.current) {
@@ -185,7 +198,9 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 status: isAuth ? (c5hPct < 15 ? "depleted" : c5hPct < 40 ? "warning" : "healthy") : "warning",
               },
             },
-            lastScrapedAt: item.last_token_update || prev?.lastScrapedAt || new Date().toISOString(),
+            lastScrapedAt: usageAcc?.last_snapshot_at || item.last_token_update || prev?.lastScrapedAt || new Date().toISOString(),
+            lastSnapshotAt: usageAcc?.last_snapshot_at || prev?.lastSnapshotAt,
+            snapshotCount: typeof usageAcc?.snapshot_count === "number" ? usageAcc.snapshot_count : prev?.snapshotCount,
             tags: [isAuth ? "Online" : "Pending Pairing", "Google Antigravity"],
             createdAt: item.last_token_update || prev?.createdAt || new Date().toISOString(),
           };
@@ -208,7 +223,9 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               prev.claudeGptQuota.weekly.percentRemaining === next.claudeGptQuota.weekly.percentRemaining &&
               prev.claudeGptQuota.weekly.refreshCountdown === next.claudeGptQuota.weekly.refreshCountdown &&
               prev.claudeGptQuota.fiveHour.percentRemaining === next.claudeGptQuota.fiveHour.percentRemaining &&
-              prev.claudeGptQuota.fiveHour.refreshCountdown === next.claudeGptQuota.fiveHour.refreshCountdown
+              prev.claudeGptQuota.fiveHour.refreshCountdown === next.claudeGptQuota.fiveHour.refreshCountdown &&
+              prev.lastSnapshotAt === next.lastSnapshotAt &&
+              prev.snapshotCount === next.snapshotCount
             );
           });
 
@@ -224,16 +241,20 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         console.warn("Live sync error:", err);
       }
     } finally {
-      isFetchingInProgress = false;
+      isFetchingRef.current = false;
+      if (isInitial) {
+        setIsLoading(false);
+        setIsInitialLoad(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    fetchLiveAccounts();
+    fetchLiveAccounts(true);
 
     const interval = setInterval(() => {
-      fetchLiveAccounts();
-    }, 2500);
+      fetchLiveAccounts(false);
+    }, 30000);
 
     return () => {
       clearInterval(interval);
@@ -284,7 +305,7 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     };
   }, [accounts]);
 
-  const addAccount = (account: Partial<GravAccount>) => {
+  const addAccount = async (account: Partial<GravAccount>) => {
     const newId = `acc-${accounts.length + 1}`;
     const newAcc: GravAccount = {
       id: newId,
@@ -319,6 +340,22 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       memoryAccountsCache = next;
       return next;
     });
+
+    try {
+      await fetch(`/api/v1/auth/accounts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alias: account.alias || `Node [${newId}]`,
+          email: account.email || "pending@google.com",
+          plan: account.plan || "Google AI Pro",
+          access_token: account.sessionToken || undefined,
+          refresh_token: undefined,
+        }),
+      });
+    } catch (err) {
+      console.warn("Failed to create account on server:", err);
+    }
   };
 
   const pairGoogleAccount = (profile: { name: string; email: string; avatarUrl?: string; plan?: GravAccount["plan"] }) => {
@@ -350,9 +387,6 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     try {
       await fetch(`/api/v1/auth/token?account_id=${encodeURIComponent(id)}`, {
         method: "DELETE",
-        headers: {
-          "X-Master-Key": "default-master-key-change-in-production",
-        },
       });
     } catch (err) {
       console.warn("Failed to delete account on server:", err);
@@ -387,17 +421,14 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.warn("Failed to toggle container on server:", err);
     }
 
-    isFetchingInProgress = false;
     await fetchLiveAccounts();
   };
 
   const refreshAccount = async (_id: string) => {
-    isFetchingInProgress = false;
     await fetchLiveAccounts();
   };
 
   const refreshAllAccounts = async () => {
-    isFetchingInProgress = false;
     await fetchLiveAccounts();
   };
 
@@ -412,6 +443,8 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         selectedAccountId,
         activeTab,
         pooledTelemetry,
+        isLoading,
+        isInitialLoad,
         setSelectedAccountId,
         setActiveTab,
         addAccount,

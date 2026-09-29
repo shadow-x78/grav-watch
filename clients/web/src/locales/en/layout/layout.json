@@ -4,7 +4,7 @@
     "allAccountsPooled": "All Accounts",
     "allPooledShort": "All",
     "switchLangTooltip": "Switch to Arabic",
-    "refreshTooltip": "Sync Telemetry",
+    "refreshTooltip": "Sync telemetry",
     "pairGoogleBtn": "Pair Google",
     "pairGoogleTooltip": "Pair Google Account",
     "systemConfigTooltip": "Settings",
@@ -14,24 +14,16 @@
     "navTitle": "NAVIGATION",
     "navOverview": "Overview",
     "navAccounts": "Accounts",
-    "dockerCard": {
-      "title": "Docker Sandboxes",
-      "image": "Image:",
-      "memoryCap": "Memory Cap:",
-      "memoryValue": "256MB / Node",
-      "fastApiHub": "API Hub:",
-      "fastApiLive": ":8000"
-    },
-    "subtitle": "Google Antigravity Telemetry Hub",
+    "subtitle": "Quota Monitor",
     "issuesTooltip": "Cluster alerts",
     "allHealthy": "All Healthy",
     "issuesDetected": "{count} Attention"
   },
   "footer": {
     "statusOperational": "All Systems Operational",
-    "clusterActive": "{count} Sandbox Nodes Connected",
-    "realtimeTelemetry": "Real-time Telemetry Hub",
-    "version": "v2.5.0",
+    "clusterActive": "{count} Nodes Connected",
+    "realtimeTelemetry": "Real-time Telemetry",
+    "version": "v2.6.0",
     "rights": "All rights reserved."
   }
 }

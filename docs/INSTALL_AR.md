@@ -33,10 +33,8 @@ cd ~/GravWatch
 ```bash
 cp .env.example .env
 ```
-قم بتحرير ملف `.env` لضبط المفاتيح:
+قم بتحرير ملف `.env` لضبط المنافذ والإعدادات:
 ```env
-AGENT_API_KEY=your-secure-agent-key
-MASTER_API_KEY=your-secure-master-key
 SERVER_PORT=8000
 ```
 

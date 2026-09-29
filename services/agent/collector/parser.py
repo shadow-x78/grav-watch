@@ -1,6 +1,7 @@
+# ─────────────────────────────────────────────
 # GravWatch - Antigravity Telemetry Payload Parser (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 import re
 from typing import Dict, Any, List, Optional
 
@@ -58,3 +59,4 @@ def parse_telemetry_blob(data: Dict[str, Any]) -> List[Dict[str, Any]]:
                 }
             })
     return categories
+

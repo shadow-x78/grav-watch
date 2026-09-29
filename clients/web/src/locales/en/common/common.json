@@ -31,5 +31,9 @@
   "node": "Node",
   "nodes": "Nodes",
   "pool": "Quota Pool",
-  "cluster": "Container Cluster"
+  "cluster": "Container Cluster",
+  "copy": "Copy",
+  "copied": "Copied",
+  "minimize": "Minimize",
+  "maximize": "Maximize"
 }

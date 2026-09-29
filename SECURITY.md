@@ -57,7 +57,7 @@ If you discover a security vulnerability in GravWatch, please report it **respon
 ## 🔒 Security Considerations
 
 - **Container isolation:** Each account token directory (`./data/acc-X`) is mounted strictly into its dedicated container with `chmod 700` directory permissions.
-- **Ingestion authentication:** Central server endpoints reject any telemetry submissions lacking a valid `X-Agent-Key` header matching `AGENT_API_KEY`.
+- **Single-user trust model:** GravWatch is a personal dashboard — API endpoints intentionally accept local traffic without API keys. Do not expose the server port to untrusted networks.
 
 ---
 

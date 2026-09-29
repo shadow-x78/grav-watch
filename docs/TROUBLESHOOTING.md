@@ -148,10 +148,11 @@ If memory spikes, check if `POLL_INTERVAL_SECONDS` is set too low (recommended: 
 <a id="server-401"></a>
 ## 🔒 Server: Telemetry Returns 401 Unauthorized
 
-Ensure `AGENT_API_KEY` in `.env` matches across both server and agent container definitions:
+Telemetry ingestion no longer requires an API key. If you still see 401 responses, an old agent container is running stale code — restart it:
 
 ```bash
-grep AGENT_API_KEY .env
+docker restart gravwatch-server
+docker compose -f packaging/docker/docker-compose.yml up -d --force-recreate
 ```
 
 ---

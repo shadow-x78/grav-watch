@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - App Header Component
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 "use client";
 
 import React, { useState } from "react";
@@ -8,12 +13,10 @@ import {
   PlusCircle,
   LayoutGrid,
   Users,
-  Layers,
 } from "lucide-react";
-import { useGravWatch } from "@/context/GravWatchContext";
+import { useGravWatch, useUI } from "@/context";
 import { useLanguage } from "@/context/LanguageContext";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
@@ -29,20 +32,16 @@ import {
 } from "@/components/ui/select";
 
 interface HeaderProps {
-  onOpenGooglePairing: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  onOpenGooglePairing,
-}) => {
+export const Header: React.FC = () => {
+  const { accounts, refreshAllAccounts } = useGravWatch();
   const {
-    accounts,
     selectedAccountId,
     setSelectedAccountId,
-    refreshAllAccounts,
     activeTab,
     setActiveTab,
-  } = useGravWatch();
+  } = useUI();
   const { language, toggleLanguage, t } = useLanguage();
 
   const [isSpinning, setIsSpinning] = useState(false);
@@ -68,15 +67,9 @@ export const Header: React.FC<HeaderProps> = ({
                   priority
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-black tracking-tight text-white group-hover:text-[#4285f4] transition-colors">
-                  GravWatch
-                </span>
-                <span className="hidden sm:inline-block h-1.5 w-1.5 rounded-full bg-[#4285f4]" />
-                <span className="hidden sm:inline-block font-mono text-[10px] text-slate-400 bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
-                  v2.6.0
-                </span>
-              </div>
+              <span className="text-lg font-black tracking-tight text-white group-hover:text-[#4285f4] transition-colors">
+                GravWatch
+              </span>
             </div>
 
             <nav className="hidden sm:flex items-center gap-1 bg-[#0b0f1d] p-1 rounded-lg border border-white/5">
@@ -104,13 +97,7 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Users className="h-3.5 w-3.5" />
                 <span>{t("layout.sidebar.navAccounts")}</span>
-                <span
-                  className={`ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full ${
-                    activeTab === "accounts"
-                      ? "bg-white/20 text-white font-bold"
-                      : "bg-[#34a853]/20 text-[#34a853] font-semibold"
-                  }`}
-                >
+                <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-[#34a853]/20 text-[#34a853] font-semibold">
                   {accounts.length}
                 </span>
               </button>
@@ -165,17 +152,6 @@ export const Header: React.FC<HeaderProps> = ({
               </TooltipTrigger>
               <TooltipContent>{t("layout.header.refreshTooltip")}</TooltipContent>
             </Tooltip>
-
-            <Button
-              variant="default"
-              size="sm"
-              onClick={onOpenGooglePairing}
-              className="h-9 px-3.5 text-xs font-semibold bg-[#4285f4] hover:bg-[#3367d6] text-white gap-1.5"
-            >
-              <PlusCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("layout.header.pairGoogleBtn")}</span>
-              <span className="sm:hidden">Google</span>
-            </Button>
           </div>
         </div>
 

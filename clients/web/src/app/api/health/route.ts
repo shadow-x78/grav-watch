@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - Legacy Health API Proxy
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 import { NextResponse } from "next/server";
 
 export async function GET() {

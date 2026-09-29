@@ -1,78 +1,336 @@
-# GravWatch - Google Antigravity CLI PTY Automation Bridge (GPL-3.0-or-later)
+# ─────────────────────────────────────────────
+# GravWatch - Container-only agy PTY Bridge (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 import os
-import pty
+import json
 import re
 import time
-import fcntl
-import shutil
-import termios
-import struct
-import select
 import logging
 import subprocess
-from dataclasses import dataclass
 from typing import Optional, Dict, Any
 
-try:
-    from services.server.core.config import settings
-except ImportError:
-    from .config import settings
+from services.server.core.config import settings
 
 logger = logging.getLogger("gravwatch.agy_bridge")
 
-JETSKI_PRESET = """post_onboarding: {
-  completed_steps: POST_ONBOARDING_STEP_TYPE_COLOR_SCHEME
-  completed_steps: POST_ONBOARDING_STEP_TYPE_MANAGER_WELCOME
-  completed_steps: POST_ONBOARDING_STEP_TYPE_USAGE_MODE
-  completed_steps: POST_ONBOARDING_STEP_TYPE_AGENT_CONFIGURATION
-  completed_steps: POST_ONBOARDING_STEP_TYPE_ADD_WORKSPACE
-}
-installation_uuid: "afd4ccce-a399-4aa2-8ffc-7c468903a876"
-migrations: { key: 3 value: MIGRATION_STATUS_COMPLETED }
-migrations: { key: 4 value: MIGRATION_STATUS_COMPLETED }
-migrations: { key: 5 value: MIGRATION_STATUS_COMPLETED }
-"""
+AGENT_IMAGE_NAME = os.environ.get("GRAVWATCH_AGENT_IMAGE", "gravwatch-agent")
+
+# Environment agy needs inside the container. HOME points at the mounted
+# account volume so the OAuth token lands on the host, not in /root.
+AGY_HOME_BASE = "/app/data"
+
+# Path to the bridge daemon script (copied to container at runtime)
+BRIDGE_DAEMON_SCRIPT_PATH = "/app/services/server/core/_agy_bridge_daemon.py"
 
 
-@dataclass
-class ActiveAgyLoginSession:
-    account_id: str
-    proc: subprocess.Popen
-    master_fd: int
-    auth_url: str
-    acc_home: str
-    created_at: float
-    state: str = "waiting_for_code"
-
-
-_active_sessions: Dict[str, ActiveAgyLoginSession] = {}
-
-
-def _get_agy_command(account_id: str) -> list[str]:
-    if os.path.exists("/usr/local/bin/agy"):
-        return ["/usr/local/bin/agy"]
-    return ["docker", "exec", "-it", "-e", "TERM=xterm-256color", f"gravwatch-{account_id}", "agy"]
-
-
-def _extract_google_oauth_url(text: str) -> Optional[str]:
-    osc_matches = re.findall(r"\x1b\]8;[^;]*;(https://accounts\.google\.com/o/oauth2/auth\?[^\x07\r\n]+)\x07", text)
-    if osc_matches:
-        return osc_matches[0].strip()
-
-    state_match = re.search(r"(https://accounts\.google\.com/o/oauth2/auth\?[^\s\x1b\x07]+state=[a-zA-Z0-9_-]+)", text)
-    if state_match:
-        return state_match.group(1).strip()
-
-    urls = re.findall(r"https://accounts\.google\.com/o/oauth2/auth\?[a-zA-Z0-9_.~%&=-]+", text)
-    if urls:
-        return urls[0].strip()
-
+def _find_running_container(account_id: str) -> Optional[str]:
+    """Find running container for this account."""
+    for image_name in [AGENT_IMAGE_NAME, "gravwatch"]:
+        container_name = f"{image_name}-{account_id}"
+        try:
+            check = subprocess.run(
+                ["docker", "inspect", "-f", "{{.State.Running}}", container_name],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5
+            )
+            if check.returncode == 0 and check.stdout.strip().lower() == "true":
+                return container_name
+        except Exception:
+            pass
+    try:
+        res = subprocess.run(
+            ["docker", "ps", "--format", "{{.Names}}|{{.Status}}"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5
+        )
+        if res.returncode == 0:
+            for line in res.stdout.strip().split("\n"):
+                if not line.strip():
+                    continue
+                parts = line.strip().split("|")
+                if len(parts) >= 2 and account_id in parts[0] and "Up" in parts[1]:
+                    return parts[0]
+    except Exception:
+        pass
     return None
 
 
+def _acc_home_on_host(account_id: str) -> str:
+    return os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
+
+
+def _acc_home_in_container(account_id: str) -> str:
+    return os.path.join(AGY_HOME_BASE, account_id)
+
+
+def _read_token_data(account_id: str) -> Optional[Dict[str, Any]]:
+    """Read the agy OAuth token file from the mounted account volume.
+
+    Returns the parsed payload (access_token + optional refresh_token).
+    """
+    acc_dir = _acc_home_on_host(account_id)
+    nested_cli = os.path.join(acc_dir, ".gemini", "antigravity-cli")
+    flat_cli = os.path.join(acc_dir, "antigravity-cli")
+    for tp in [os.path.join(nested_cli, "antigravity-oauth-token"),
+               os.path.join(flat_cli, "antigravity-oauth-token")]:
+        if not os.path.exists(tp):
+            continue
+        try:
+            with open(tp, "r", encoding="utf-8") as tf:
+                raw = tf.read().strip()
+            if not raw:
+                continue
+            if raw.startswith("{"):
+                data = json.loads(raw)
+                tok = data.get("token", {}) or {}
+                access = tok.get("access_token") or data.get("access_token")
+                if access:
+                    return {
+                        "access_token": access,
+                        "refresh_token": tok.get("refresh_token") or data.get("refresh_token") or "",
+                    }
+            elif not raw.startswith(("4/0A", "4/0a")):
+                return {"access_token": raw, "refresh_token": ""}
+        except Exception:
+            continue
+    return None
+
+
+def _read_token_from_disk(account_id: str) -> Optional[str]:
+    data = _read_token_data(account_id)
+    return data["access_token"] if data else None
+
+
+def _harvest_token_from_container(account_id: str, container: str) -> bool:
+    """Fallback: agy may still write to /root/.gemini — pull the token out
+    of the container filesystem onto the mounted volume."""
+    try:
+        result = subprocess.run(
+            ["docker", "exec", container, "sh", "-c",
+             "cat /root/.gemini/antigravity-cli/antigravity-oauth-token 2>/dev/null || "
+             "cat /root/.config/gemini/antigravity-oauth-token 2>/dev/null || "
+             "cat /root/.antigravity/antigravity-oauth-token 2>/dev/null"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=10
+        )
+        raw = (result.stdout or "").strip()
+        if not raw or raw.startswith("4/0A"):
+            return False
+        if raw.startswith("{"):
+            json.loads(raw)  # validate
+        _write_token_to_volume(account_id, raw, "")
+        logger.info("Harvested token from container /root for %s", account_id)
+        return True
+    except Exception:
+        return False
+
+
+def _write_token_to_volume(account_id: str, access_token: str, refresh_token: str) -> None:
+    """Write token payload into agy's expected JSON format on the volume."""
+    acc_dir = _acc_home_on_host(account_id)
+    token_data = {
+        "token": {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "Bearer",
+            "expiry": time.strftime(
+                "%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() + 3600 - 60)
+            ),
+        },
+        "auth_method": "oauth2",
+    }
+    for cli_dir in [os.path.join(acc_dir, ".gemini", "antigravity-cli"),
+                    os.path.join(acc_dir, "antigravity-cli")]:
+        try:
+            os.makedirs(cli_dir, mode=0o777, exist_ok=True)
+            token_file = os.path.join(cli_dir, "antigravity-oauth-token")
+            tmp_file = token_file + ".tmp"
+            with open(tmp_file, "w", encoding="utf-8") as f:
+                json.dump(token_data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp_file, token_file)
+            os.chmod(token_file, 0o666)
+        except Exception as e:
+            logger.warning("Failed writing token file under %s: %s", cli_dir, e)
+
+
+def _extract_google_oauth_url(text: str) -> Optional[str]:
+    """Pull agy's own Google OAuth URL out of raw TUI output.
+
+    The URL is ~1KB long and bubbletea hard-wraps it across ~10 terminal
+    lines; scope values contain '+' separators that earlier regexes cut off
+    (producing tokens with lost scopes and Google 400 "missing response_type").
+    This harvests character-by-character, stitching wrapped fragments.
+    """
+    if not text:
+        return None
+
+    URLQ = r"A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%"
+
+    def _finalize(cand: str) -> Optional[str]:
+        # An OSC-8 target and its visible label can butt up against each
+        # other with no separator — cut at a second embedded https://.
+        idx = cand.find("https://", 8)
+        if idx > 0:
+            cand = cand[:idx]
+        cand = cand.rstrip(".,;:!?)]}'\"&=")
+        if "client_id=" in cand and "response_type=" in cand and "state=" in cand:
+            return cand
+        return None
+
+    # Fast path: agy emits the OAuth URL in full (unwrapped) inside OSC-8
+    # link targets, and also as wrapped visible text. Prefer a complete
+    # contiguous match so the two copies never get stitched together.
+    for cand in re.findall(r"https://(?:accounts\.google\.com/o/oauth2/auth|auth\.cloud\.google/authorize)\?[" + URLQ + r"]+", text):
+        done = _finalize(cand)
+        if done:
+            return done
+
+    # Drop OSC-8 hyperlink wrappers, keeping the inner URI (terminated by
+    # BEL or ST), then strip all remaining escape sequences so styled URLs
+    # become plain text.
+    t = re.sub(r"\x1b\]8;[^;]*;([^\x07\x1b]*)(?:\x07|\x1b\\)", r"\1", text)
+    t = re.sub(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)", "", t)
+    t = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z@^_{}|~]", "", t)
+    t = t.replace("\x1b", "").replace("\x07", "")
+
+    # Re-try the complete contiguous match after stripping (OSC target may
+    # still carry escape bytes).
+    for cand in re.findall(r"https://(?:accounts\.google\.com/o/oauth2/auth|auth\.cloud\.google/authorize)\?[" + URLQ + r"]+", t):
+        done = _finalize(cand)
+        if done:
+            return done
+
+    urlchars = set(
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+        "0123456789-._~:/?#[]@!$&'()*+,;=%"
+    )
+
+    best: Optional[str] = None
+    for m in re.finditer(
+        r"https://(?:accounts\.google\.com/o/oauth2/auth|auth\.cloud\.google/authorize)\?",
+        t,
+    ):
+        i = m.start()
+        out: list[str] = []
+        n = len(t)
+        while i < n and len(out) < 4000:
+            c = t[i]
+            if c in urlchars:
+                out.append(c)
+                i += 1
+            elif c in "\r\n":
+                # Continue across a line wrap only when the next non-space
+                # char is a URL char and there was no blank-line paragraph
+                # break between the fragments.
+                j = i
+                newlines = 0
+                while j < n and t[j] in " \t\r\n\x1b\x07":
+                    if t[j] in "\r\n":
+                        newlines += 1
+                    j += 1
+                if newlines < 2 and j < n and t[j] in urlchars:
+                    i = j
+                else:
+                    break
+            else:
+                break
+
+        done = _finalize("".join(out))
+        if done:
+            return done
+        url = "".join(out).rstrip(".,;:!?)]}'\"&=")
+        if "client_id=" in url and best is None:
+            best = url
+    return best
+
+
+def _strip_ansi(text: str) -> str:
+    """Remove ANSI escape sequences."""
+    text = re.sub(r'\x1b\[[^a-zA-Z]*[a-zA-Z]', '', text)
+    text = re.sub(r'\x1b\][^\x07\x1b]*[\x07\x1b]', '', text)
+    text = re.sub(r'\x1b[PX^_][^\x07\x1b]*[\x07\x1b]', '', text)
+    return text
+
+
+def _ensure_pty_bridge(container: str) -> bool:
+    """Return True if the bridge daemon is alive inside the container."""
+    try:
+        check = subprocess.run(
+            ["docker", "exec", container, "test", "-f", "/tmp/.agy_bridge_pid"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5
+        )
+        if check.returncode == 0:
+            pid = subprocess.run(
+                ["docker", "exec", container, "cat", "/tmp/.agy_bridge_pid"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5
+            ).stdout.strip()
+            if pid:
+                test = subprocess.run(
+                    ["docker", "exec", container, "sh", "-c", f"kill -0 {pid} 2>/dev/null"],
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5
+                )
+                return test.returncode == 0
+    except Exception:
+        pass
+    return False
+
+
+def _start_pty_bridge(container: str, acc_home: str) -> bool:
+    """Start the bridge daemon inside the container (docker cp + exec in background)."""
+    if _ensure_pty_bridge(container):
+        return True
+
+    try:
+        # Copy the bridge daemon script from the host
+        cp_result = subprocess.run(
+            ["docker", "cp", BRIDGE_DAEMON_SCRIPT_PATH, f"{container}:/tmp/_agy_bridge_daemon.py"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30
+        )
+        if cp_result.returncode != 0:
+            logger.warning("Failed to cp bridge script: %s", (cp_result.stderr or b"")[:200])
+            return False
+
+        # Start the bridge daemon in background without -d (which doesn't allocate TTY)
+        # Use shell wrapper to run in background with proper process group
+        start_cmd = f"nohup python3 /tmp/_agy_bridge_daemon.py {acc_home} > /dev/null 2>&1 &"
+        start_result = subprocess.run(
+            ["docker", "exec", container, "sh", "-c", start_cmd],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10
+        )
+        if start_result.returncode != 0:
+            logger.warning("Failed to start bridge daemon: %s", (start_result.stderr or b"")[:200])
+            return False
+
+        for _ in range(20):
+            time.sleep(0.5)
+            if _ensure_pty_bridge(container):
+                return True
+        logger.warning("Bridge daemon did not start within timeout")
+        return False
+    except Exception as e:
+        logger.warning("Error starting bridge: %s", e)
+        return False
+
+
+def _read_container_output(container: str) -> str:
+    try:
+        result = subprocess.run(
+            ["docker", "exec", container, "cat", "/tmp/agy_output"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5
+        )
+        if result.returncode == 0:
+            return result.stdout
+    except Exception:
+        pass
+    return ""
+
+
 def _seed_onboarding_state(acc_home: str):
+    """Seed onboarding files on the volume to skip initial setup menus.
+
+    Never overwrites agy's own jetski_state once agy has written it —
+    our preset is only a bootstrap for first launch.
+    """
     dirs = [
         os.path.join(acc_home, ".gemini", "antigravity-cli"),
         os.path.join(acc_home, "antigravity-cli"),
@@ -80,257 +338,290 @@ def _seed_onboarding_state(acc_home: str):
     for d in dirs:
         try:
             os.makedirs(d, mode=0o777, exist_ok=True)
-            settings_file = os.path.join(d, "settings.json")
-            tmp_settings = settings_file + ".tmp"
-            with open(tmp_settings, "w", encoding="utf-8") as f:
-                json.dump({
-                    "trustedWorkspaces": [
-                        "/app",
-                        "/root",
-                        "/",
-                        "/tmp"
-                    ]
-                }, f, indent=2)
+            sf = os.path.join(d, "settings.json")
+            tmp = sf + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump({"trustedWorkspaces": ["/app", "/root", "/", "/tmp"]}, f, indent=2)
                 f.flush()
                 os.fsync(f.fileno())
-            os.replace(tmp_settings, settings_file)
-            os.chmod(settings_file, 0o666)
+            os.replace(tmp, sf)
+            os.chmod(sf, 0o666)
 
-            pbtxt_file = os.path.join(d, "jetski_state.pbtxt")
-            tmp_pbtxt = pbtxt_file + ".tmp"
-            with open(tmp_pbtxt, "w", encoding="utf-8") as f:
-                f.write(JETSKI_PRESET)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp_pbtxt, pbtxt_file)
-            os.chmod(pbtxt_file, 0o666)
+            pbtxt = os.path.join(d, "jetski_state.pbtxt")
+            if not os.path.exists(pbtxt):
+                tmp2 = pbtxt + ".tmp"
+                with open(tmp2, "w", encoding="utf-8") as f:
+                    f.write(settings.JETSKI_PRESET)
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.replace(tmp2, pbtxt)
+                os.chmod(pbtxt, 0o666)
 
             cache_dir = os.path.join(d, "cache")
             os.makedirs(cache_dir, mode=0o777, exist_ok=True)
-            onboard_f = os.path.join(cache_dir, "onboarding.json")
-            with open(onboard_f, "w", encoding="utf-8") as f:
+            of = os.path.join(cache_dir, "onboarding.json")
+            with open(of, "w", encoding="utf-8") as f:
                 json.dump({
                     "consumerOnboardingComplete": True,
                     "enterpriseOnboardingComplete": True,
-                    "onboardingComplete": True
+                    "onboardingComplete": True,
                 }, f, indent=2)
-            os.chmod(onboard_f, 0o666)
+            os.chmod(of, 0o666)
         except Exception:
             pass
 
 
-def start_agy_login_flow(account_id: str, timeout_seconds: float = 25.0) -> str:
-    cancel_agy_login_flow(account_id)
+def _reset_bridge_files(container: str) -> None:
+    """Clear stale bridge state so a new session starts clean."""
+    try:
+        subprocess.run(
+            ["docker", "exec", container, "sh", "-c",
+             "rm -f /tmp/agy_output /tmp/agy_cmd /tmp/.agy_bridge_pid"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5
+        )
+    except Exception:
+        pass
 
-    acc_home = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
+
+def start_agy_login_flow(account_id: str, timeout_seconds: float = 90.0) -> str:
+    """Start agy inside the account container and capture its real OAuth URL.
+
+    Returns:
+        - agy's own Google OAuth URL (always requires explicit user login)
+
+    Raises:
+        RuntimeError: if no container runs or the URL cannot be captured.
+    """
+    from services.server.core.container_manager import provision_account_container
+
+    acc_home = _acc_home_on_host(account_id)
     os.makedirs(acc_home, exist_ok=True)
     _seed_onboarding_state(acc_home)
 
-    master_fd, slave_fd = pty.openpty()
-    fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+    container = _find_running_container(account_id)
+    if not container:
+        logger.info("No running container for %s — provisioning", account_id)
+        if not provision_account_container(account_id, f"Account {account_id}"):
+            raise RuntimeError(
+                f"No running container for {account_id} and provisioning failed. "
+                "Check Docker availability and server logs."
+            )
+        container = _find_running_container(account_id)
+        if not container:
+            raise RuntimeError(f"Container for {account_id} did not come up.")
 
-    cmd = _get_agy_command(account_id)
-    env = {**os.environ, "HOME": acc_home, "TERM": "xterm-256color"}
+    cancel_agy_login_flow(account_id, keep_container=container)
+    _wipe_auth_state(account_id, container)
+    _reset_bridge_files(container)
 
-    proc = subprocess.Popen(
-        cmd,
-        stdin=slave_fd,
-        stdout=slave_fd,
-        stderr=slave_fd,
-        close_fds=True,
-        env=env,
-    )
-    os.close(slave_fd)
+    if not _start_pty_bridge(container, _acc_home_in_container(account_id)):
+        raise RuntimeError(
+            "Failed to start the agy PTY bridge daemon inside the container."
+        )
 
-    output = b""
+    deadline = time.time() + timeout_seconds
+    started = time.time()
     auth_url: Optional[str] = None
-    start_time = time.time()
-    last_enter_time = 0.0
+    last_output = ""
+    while time.time() < deadline:
+        time.sleep(1.0)
+        last_output = _read_container_output(container)
+        if not last_output:
+            continue
+        auth_url = _extract_google_oauth_url(last_output)
+        if auth_url:
+            logger.info("Captured agy OAuth URL for %s", account_id)
+            break
 
-    while time.time() - start_time < timeout_seconds:
-        r, _, _ = select.select([master_fd], [], [], 0.3)
-        if r:
-            try:
-                chunk = os.read(master_fd, 2048)
-                if not chunk:
-                    break
-                output += chunk
-                text = output.decode("utf-8", errors="ignore")
-
-                now = time.time()
-                if ("Choose your color scheme" in text or "terminal" in text or "color scheme" in text or "[Next]" in text or "Welcome to" in text) and (now - last_enter_time > 0.8):
-                    time.sleep(0.2)
-                    os.write(master_fd, b"\r\n")
-                    last_enter_time = now
-                    logger.info("Auto-advanced onboarding screen for %s", account_id)
-
-                if ("Select login method" in text or "Google OAuth" in text) and (now - last_enter_time > 0.8):
-                    time.sleep(0.2)
-                    os.write(master_fd, b"\r\n")
-                    last_enter_time = now
-                    logger.info("Auto-selected Google OAuth menu for %s", account_id)
-
-                if "https://accounts.google.com" in text:
-                    found = _extract_google_oauth_url(text)
-                    if found:
-                        auth_url = found
-                        logger.info("Captured Google OAuth URL for %s", account_id)
-                        break
-            except Exception as e:
-                logger.warning("Error reading from agy PTY: %s", e)
-                break
-        else:
-            now = time.time()
-            if not auth_url and (now - start_time > 1.5) and (now - last_enter_time > 1.0):
-                os.write(master_fd, b"\r\n")
-                last_enter_time = now
+        # Fail fast: if agy reached the main CLI prompt (or hit its own
+        # eligibility error) without ever printing an auth URL, waiting the
+        # remaining seconds only produces a proxy timeout in the browser.
+        if time.time() - started > 20:
+            plain = _strip_ansi(last_output)[-800:].lower()
+            if "for shortcuts" in plain or "eligibility check failed" in plain:
+                tail = _strip_ansi(last_output)[-400:]
+                raise RuntimeError(
+                    "agy reached the main CLI without showing a login link. "
+                    "Start a new pairing attempt. TUI output:\n" + tail
+                )
 
     if not auth_url:
-        try:
-            proc.terminate()
-            os.close(master_fd)
-        except Exception:
-            pass
-        raise RuntimeError(f"Could not extract Google Auth URL from agy CLI: {output.decode('utf-8', errors='ignore')}")
-
-    session = ActiveAgyLoginSession(
-        account_id=account_id,
-        proc=proc,
-        master_fd=master_fd,
-        auth_url=auth_url,
-        acc_home=acc_home,
-        created_at=time.time(),
-    )
-    _active_sessions[account_id] = session
+        tail = _strip_ansi(last_output)[-400:]
+        raise RuntimeError(
+            f"Could not extract Google auth URL from agy CLI. "
+            f"Last TUI output:\n{tail or '(no output)'}"
+        )
     return auth_url
 
 
-def submit_code_to_agy(account_id: str, code: str, timeout_seconds: float = 20.0) -> Dict[str, Any]:
-    session = _active_sessions.get(account_id)
-    if not session or session.proc.poll() is not None:
-        logger.info("No active agy session for %s; starting new flow on demand", account_id)
-        start_agy_login_flow(account_id)
-        session = _active_sessions.get(account_id)
-        if not session:
-            raise RuntimeError("Failed to initialize agy CLI authentication session.")
+def submit_code_to_agy(account_id: str, code: str, timeout_seconds: float = 90.0) -> Dict[str, Any]:
+    """Submit the Google authorization code into the live agy session.
 
-    code_clean = code.strip()
+    Writes the code to the bridge command file; the daemon types it into agy's
+    TUI prompt. Monitors output until success/failure, then reads the token
+    agy persisted to the mounted volume.
+    """
+    container = _find_running_container(account_id)
+    if not container:
+        raise RuntimeError(f"No running container found for {account_id}")
+
+    if not _ensure_pty_bridge(container):
+        raise RuntimeError(
+            "agy auth session is not active. Start the flow again to get a fresh link."
+        )
+
+    with open("/tmp/agy_cmd", "w") as cf:
+        cf.write(code.strip())
     try:
-        time.sleep(0.5)
-        os.write(session.master_fd, (code_clean + "\r\n").encode("utf-8"))
-        logger.info("Sent authorization code to agy CLI for %s", account_id)
+        subprocess.run(
+            ["docker", "cp", "/tmp/agy_cmd", f"{container}:/tmp/agy_cmd"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10
+        )
     except Exception as e:
-        logger.error("Failed to write code to agy PTY for %s: %s", account_id, e)
-        raise RuntimeError(f"Failed to communicate with agy process: {e}")
-
-    start_time = time.time()
-    output = b""
-    while time.time() - start_time < timeout_seconds:
-        if session.proc.poll() is not None:
-            logger.info("agy process completed with exit code %s", session.proc.returncode)
-            break
-        r, _, _ = select.select([session.master_fd], [], [], 0.3)
-        if r:
-            try:
-                chunk = os.read(session.master_fd, 2048)
-                if not chunk:
-                    break
-                output += chunk
-                text = output.decode("utf-8", errors="ignore")
-
-                if ("Choose your color scheme" in text or "terminal" in text or "[Next]" in text or "color scheme" in text) and "[Next]" in text:
-                    logger.info("Detected onboarding prompt in agy output for %s; auto-sending Enter", account_id)
-                    try:
-                        os.write(session.master_fd, b"\r\n")
-                        time.sleep(0.5)
-                    except Exception:
-                        pass
-
-                if "Successfully" in text or "logged in" in text.lower() or "Hello!" in text or "available models" in text.lower():
-                    logger.info("Detected success in agy output for %s", account_id)
-                    break
-            except Exception:
-                break
-
-    try:
-        os.close(session.master_fd)
-    except Exception:
-        pass
-    _active_sessions.pop(account_id, None)
-
-    acc_dir = session.acc_home
-    nested_cli = os.path.join(acc_dir, ".gemini", "antigravity-cli")
-    target_cli = os.path.join(acc_dir, "antigravity-cli")
-    if os.path.exists(nested_cli):
-        os.makedirs(target_cli, exist_ok=True)
-        for item in os.listdir(nested_cli):
-            s = os.path.join(nested_cli, item)
-            d = os.path.join(target_cli, item)
-            try:
-                if os.path.isfile(s):
-                    shutil.copy2(s, d)
-            except Exception:
-                pass
-
-    email = None
-    user_name = None
-    picture = None
-    access_token = None
-
-    token_candidates = [
-        os.path.join(nested_cli, "antigravity-oauth-token"),
-        os.path.join(target_cli, "antigravity-oauth-token"),
-    ]
-    for tp in token_candidates:
-        if os.path.exists(tp):
-            try:
-                with open(tp, "r", encoding="utf-8") as tf:
-                    raw = tf.read().strip()
-                    if raw.startswith("{"):
-                        t_data = json.loads(raw)
-                        access_token = t_data.get("token", {}).get("access_token") or t_data.get("access_token")
-                    elif not raw.startswith("4/0A"):
-                        access_token = raw
-                if access_token:
-                    break
-            except Exception:
-                pass
-
-    if access_token:
+        raise RuntimeError(f"Failed to send code to container: {e}")
+    finally:
         try:
-            with httpx.Client(timeout=8.0) as client:
-                u_res = client.get(
-                    "https://www.googleapis.com/oauth2/v2/userinfo",
-                    headers={"Authorization": f"Bearer {access_token}"}
-                )
-                if u_res.status_code == 200:
-                    u_data = u_res.json()
-                    email = u_data.get("email")
-                    user_name = u_data.get("name")
-                    picture = u_data.get("picture")
-                    logger.info("Extracted live Google userinfo for %s: email=%s name=%s", account_id, email, user_name)
-        except Exception as e:
-            logger.debug("Failed querying Google userinfo: %s", e)
-
-    return {
-        "account_id": account_id,
-        "email": email,
-        "name": user_name,
-        "picture": picture,
-        "access_token": access_token,
-        "status": "authenticated",
-        "output": output.decode("utf-8", errors="ignore"),
-    }
-
-
-def cancel_agy_login_flow(account_id: str) -> None:
-    session = _active_sessions.pop(account_id, None)
-    if session:
-        try:
-            session.proc.terminate()
-            time.sleep(0.2)
-            if session.proc.poll() is None:
-                session.proc.kill()
-            os.close(session.master_fd)
+            os.unlink("/tmp/agy_cmd")
         except Exception:
             pass
+
+    # The onboarding demo carousel contains fake log lines like "✗ error:
+    # compilation failed", so failure detection must be strict — anything
+    # mentioning an error generically would misread the post-login demo.
+    success_markers = (
+        "welcome to antigravity", "welcome back", "logged in",
+        "successfully authenticated", "you are signed in",
+        "available models", "hello!",
+    )
+    failure_markers = (
+        "invalid code", "code expired", "code is invalid", "denied",
+        "invalid_grant", "malformed auth code", "token exchange failed",
+        "failed to exchange", "could not sign in", "sign in failed",
+    )
+
+    deadline = time.time() + timeout_seconds
+    output = ""
+    verdict = "unclear"
+    success_marker_seen = False
+    token_data = None
+    while time.time() < deadline:
+        time.sleep(1.5)
+        output = _read_container_output(container)
+        tail = _strip_ansi(output)[-600:].lower()
+        if any(m in tail for m in failure_markers):
+            verdict = "failed"
+            break
+
+        # Check for success markers but don't break immediately —
+        # the token may not be written until after the onboarding flow completes.
+        if any(m in tail for m in success_markers):
+            success_marker_seen = True
+
+        # The token file is the real ground truth: agy writes it right
+        # after a successful exchange, sometimes before the TUI prints a
+        # recognizable success line (it may already be on a next screen).
+        token_data = _read_token_data(account_id)
+        if not token_data:
+            _harvest_token_from_container(account_id, container)
+            token_data = _read_token_data(account_id)
+        if token_data:
+            verdict = "authenticated"
+            break
+
+    # If we saw a success marker but didn't get the token yet, wait longer for the token file.
+    if success_marker_seen and not token_data:
+        token_wait_deadline = time.time() + min(60, deadline - time.time())
+        while time.time() < token_wait_deadline:
+            time.sleep(1.5)
+            token_data = _read_token_data(account_id)
+            if not token_data:
+                _harvest_token_from_container(account_id, container)
+                token_data = _read_token_data(account_id)
+            if token_data:
+                verdict = "authenticated"
+                break
+
+    if not token_data:
+        _harvest_token_from_container(account_id, container)
+        token_data = _read_token_data(account_id)
+
+    if token_data:
+        return {
+            "account_id": account_id,
+            "access_token": token_data["access_token"],
+            "refresh_token": token_data.get("refresh_token", ""),
+            "status": "authenticated",
+            "output": _strip_ansi(output)[-400:],
+        }
+
+    tail = _strip_ansi(output)[-400:]
+    if verdict == "failed":
+        raise RuntimeError(f"agy rejected the code. TUI output:\n{tail or '(no output)'}")
+    raise RuntimeError(
+        f"Auth result unclear — no token found on disk. TUI output:\n{tail or '(no output)'}"
+    )
+
+
+def get_agy_output(account_id: str) -> str:
+    """Get current agy output from the bridge."""
+    container = _find_running_container(account_id)
+    if not container:
+        return ""
+    return _strip_ansi(_read_container_output(container))
+
+
+def cancel_agy_login_flow(account_id: str, keep_container: Optional[str] = None) -> None:
+    """Stop agy and the PTY bridge daemon for this account."""
+    container = keep_container or _find_running_container(account_id)
+    if not container:
+        return
+    try:
+        subprocess.run(
+            ["docker", "exec", container, "sh", "-c", "echo QUIT > /tmp/agy_cmd"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5
+        )
+    except Exception:
+        pass
+    time.sleep(1)
+    try:
+        subprocess.run(
+            ["docker", "exec", container, "sh", "-c",
+             "pkill -x agy 2>/dev/null; "
+             "pkill -f _agy_bridge_daemon 2>/dev/null; "
+             "if [ -f /tmp/.agy_bridge_pid ]; then "
+             "kill -9 $(cat /tmp/.agy_bridge_pid) 2>/dev/null; fi; "
+             "rm -f /tmp/.agy_bridge_pid /tmp/agy_cmd /tmp/agy_output /tmp/bridge_debug.log"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5
+        )
+    except Exception:
+        pass
+
+
+def _wipe_auth_state(account_id: str, container: Optional[str] = None) -> None:
+    """Remove every trace of a previous login so agy starts unauthenticated
+    and prints a fresh OAuth URL. Without this, a valid token on the volume
+    makes agy skip straight to the main CLI and the login flow hangs."""
+    if container:
+        try:
+            subprocess.run(
+                ["docker", "exec", container, "sh", "-c",
+                 "agy logout >/dev/null 2>&1 || true"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=8
+            )
+        except Exception:
+            pass
+
+    acc_dir = _acc_home_on_host(account_id)
+    targets = [
+        os.path.join(acc_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
+        os.path.join(acc_dir, "antigravity-cli", "antigravity-oauth-token"),
+        os.path.join(acc_dir, ".gemini", "antigravity-cli", "refresh_token"),
+        os.path.join(acc_dir, "antigravity-cli", "refresh_token"),
+        os.path.join(acc_dir, "credentials.json"),
+    ]
+    for path in targets:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception as e:
+            logger.warning("Could not wipe %s: %s", path, e)

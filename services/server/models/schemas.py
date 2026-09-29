@@ -1,6 +1,7 @@
+# ─────────────────────────────────────────────
 # GravWatch - Pydantic Request & Response Schemas (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -47,6 +48,8 @@ class AccountQuotaSummary(BaseModel):
     tier: str
     status: str
     last_seen_at: datetime
+    last_snapshot_at: Optional[datetime] = None
+    snapshot_count: int = 0
     categories: List[CategoryQuotaSummary] = Field(default_factory=list)
 
 class UsageLatestResponse(BaseModel):
@@ -90,9 +93,8 @@ class AuthTokenPayload(BaseModel):
 
 class AccountModelInfo(BaseModel):
     model_id: str
-    percentage_remaining: Optional[float] = None
-    five_hour_remaining: Optional[float] = None
-    is_exhausted: bool = False
+    name: Optional[str] = None
+    usage_today: Optional[int] = None
 
 class AccountDetailResponse(BaseModel):
     id: str
@@ -102,3 +104,4 @@ class AccountDetailResponse(BaseModel):
     status: str
     last_seen_at: datetime
     models: List[AccountModelInfo] = Field(default_factory=list)
+

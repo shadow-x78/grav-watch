@@ -1,93 +1,109 @@
+# ─────────────────────────────────────────────
 # GravWatch - Official Google Antigravity Authentication API (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 import os
 import json
 import logging
+import time
+import urllib.parse
+import hashlib
+import base64
+import secrets
+import subprocess
 from datetime import datetime, timezone
+from typing import Optional
 
+import httpx
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
+from pydantic import BaseModel
 
-try:
-    from services.server.core.database import get_db
-    from services.server.core.config import settings
-    from services.server.core.security import (
-        get_current_agent,
-        require_master_key,
-        validate_account_id,
-    )
-    from services.server.core.google_oauth import (
-        delete_account_credentials,
-        get_user_info,
-        load_account_credentials,
-        safe_write_credentials,
-        generate_pkce_auth_url,
-        exchange_pkce_code,
-    )
-    from services.server.core.agy_bridge import (
-        start_agy_login_flow,
-        submit_code_to_agy,
-    )
-    from services.server.core.container_manager import (
-        provision_account_container,
-        deprovision_account_container,
-        toggle_account_container,
-        list_active_account_containers,
-    )
-    from services.server.models.db import Account, UsageSnapshot
-    from services.server.models.schemas import AuthTokenPayload, AuthStatusResponse
-except ImportError:
-    from ..core.database import get_db
-    from ..core.config import settings
-    from ..core.security import (
-        get_current_agent,
-        require_master_key,
-        validate_account_id,
-    )
-    from ..core.google_oauth import (
-        delete_account_credentials,
-        get_user_info,
-        load_account_credentials,
-        safe_write_credentials,
-        generate_pkce_auth_url,
-        exchange_pkce_code,
-    )
-    from ..core.agy_bridge import (
-        start_agy_login_flow,
-        submit_code_to_agy,
-    )
-    from ..core.container_manager import (
-        provision_account_container,
-        deprovision_account_container,
-        toggle_account_container,
-        list_active_account_containers,
-    )
-    from ..models.db import Account, UsageSnapshot
-    from ..models.schemas import AuthTokenPayload, AuthStatusResponse
+from services.server.core.database import get_db
+from services.server.core.config import settings
+from services.server.core.security import validate_account_id
+from services.server.core.google_oauth import (
+    delete_account_credentials,
+    get_user_info,
+    load_account_credentials,
+    safe_write_credentials,
+    refresh_oauth_token,
+)
+from services.server.core.container_manager import (
+    provision_account_container,
+    deprovision_account_container,
+    toggle_account_container,
+    list_active_account_containers,
+)
+from services.server.core.agy_bridge import (
+    start_agy_login_flow,
+    submit_code_to_agy,
+    cancel_agy_login_flow,
+    get_agy_output,
+)
+from services.server.models.db import Account, UsageSnapshot
+from services.server.models.schemas import AuthTokenPayload, AuthStatusResponse
 
 logger = logging.getLogger("gravwatch.api.auth")
+
+
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+# Simple in-memory cache for auth URLs (account_id -> (auth_url, timestamp))
+_auth_url_cache: dict[str, tuple[str, float]] = {}
+_AUTH_URL_CACHE_TTL = 300
 
-@router.get("/url")
-async def get_auth_url(account_id: str = Query("acc-1")):
+GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
+GOOGLE_TOKEN_URL = settings.GOOGLE_TOKEN_URL
+GOOGLE_CLIENT_SECRET = settings.GOOGLE_CLIENT_SECRET
+GOOGLE_REDIRECT_URI = settings.GOOGLE_REDIRECT_URI
+GOOGLE_AUTH_BASE = settings.GOOGLE_AUTH_BASE
+
+GOOGLE_SCOPES = settings.GOOGLE_SCOPES
+
+
+def _encode_base64url(data: bytes) -> str:
+    """Base64url-encode without padding."""
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def build_auth_url(account_id: Optional[str] = None) -> str:
+    """Build a complete Google OAuth 2.0 auth URL with PKCE."""
+    code_verifier = _encode_base64url(os.urandom(32))
+    code_challenge = _encode_base64url(
+        hashlib.sha256(code_verifier.encode("ascii")).digest()
+    )
+    state = secrets.token_urlsafe(32)
+
+    params = {
+        "access_type": "offline",
+        "client_id": GOOGLE_CLIENT_ID,
+        "code_challenge": code_challenge,
+        "code_challenge_method": "S256",
+        "prompt": "consent",
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": GOOGLE_SCOPES.strip(),
+        "state": state,
+    }
+    return GOOGLE_AUTH_BASE + "?" + urllib.parse.urlencode(params)
+
+
+@router.post("/start")
+async def start_auth_flow(account_id: str = Query("acc-1")):
+    """Generate OAuth URL. Always requires explicit user login."""
     account_id = validate_account_id(account_id)
-    url = generate_pkce_auth_url(account_id)
+
+    # Always require explicit login - do NOT auto-authenticate from stored tokens
+    auth_url = build_auth_url(account_id)
     return {
         "account_id": account_id,
-        "auth_url": url,
-        "message": f"Direct Google OAuth URL for account node [{account_id}].",
+        "auth_url": auth_url,
+        "message": "Open this URL in your browser, sign in with Google, paste the code back here.",
     }
-
-
-@router.get("/start")
-async def start_oauth(account_id: str = Query("acc-1")):
-    account_id = validate_account_id(account_id)
-    url = generate_pkce_auth_url(account_id)
-    return RedirectResponse(url=url, status_code=status.HTTP_302_FOUND)
 
 
 @router.get("/login")
@@ -96,82 +112,229 @@ async def login_info(account_id: str = Query("acc-1")):
     return {
         "account_id": account_id,
         "action": "pair_google_account",
-        "start_url": f"/api/v1/auth/start?account_id={account_id}",
-        "exchange_url": "/api/v1/auth/exchange-code",
-        "message": "Use the GravWatch web dashboard modal at http://localhost:3000 to pair Google accounts.",
+        "start_url": f"/api/v1/auth/start-pty?account_id={account_id}",
+        "exchange_url": "/api/v1/auth/submit-code-pty",
+        "message": "Use the GravWatch web dashboard modal to pair Google accounts.",
     }
 
 
-@router.post("/exchange-code")
-async def exchange_code_endpoint(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-):
+async def exchange_google_code(code: str) -> dict:
+    """Exchange authorization code for access_token + refresh_token."""
     try:
-        if "application/json" in request.headers.get("content-type", ""):
-            body = await request.json()
-            account_id = validate_account_id(body.get("account_id", "acc-1"))
-            code_or_token = str(body.get("code", "")).strip()
-        else:
-            form_data = await request.form()
-            account_id = validate_account_id(form_data.get("account_id", "acc-1"))
-            code_or_token = str(form_data.get("code", "")).strip()
-    except Exception as e:
-        return JSONResponse({"success": False, "error": f"Invalid payload: {e}"}, status_code=400)
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                GOOGLE_TOKEN_URL,
+                data={
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "code": code,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": GOOGLE_REDIRECT_URI,
+                },
+            )
+        if resp.status_code != 200:
+            logger.error("Code exchange failed: HTTP %d", resp.status_code)
+            return {"error": f"Code exchange failed: HTTP {resp.status_code}"}
 
+        token_data = resp.json()
+        access_token = token_data.get("access_token")
+        refresh_token = token_data.get("refresh_token", "")
+        expires_in = token_data.get("expires_in", 3600)
+
+        if not access_token:
+            return {"error": "No access_token from Google"}
+
+        logger.info("Google OAuth code exchanged (access=%s chars, refresh=%s)",
+                     len(access_token), "yes" if refresh_token else "no")
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "expires_in": expires_in,
+        }
+    except Exception as e:
+        logger.error("Code exchange error: %s", e)
+        return {"error": str(e)}
+
+
+# ── PTY AGY Auth Endpoints ────────────────────────────────────────────
+
+@router.get("/agy-output")
+async def get_agy_output_endpoint(account_id: str = Query("acc-1")):
+    """Stream the live agy TUI output from the account container.
+
+    Used by the dashboard diagnostics panel during Google pairing.
+    """
+    account_id = validate_account_id(account_id)
+    try:
+        output = await asyncio.to_thread(get_agy_output, account_id)
+        return {
+            "success": True,
+            "account_id": account_id,
+            "output": output,
+            "empty": not output.strip(),
+            "captured_at": datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        logger.error("Failed reading agy output for %s: %s", account_id, e)
+        return {
+            "success": False,
+            "account_id": account_id,
+            "output": "",
+            "empty": True,
+            "error": str(e),
+        }
+
+
+@router.get("/agy-output/stream")
+async def stream_agy_output(account_id: str = Query("acc-1")):
+    """Server-Sent Events stream of the live agy TUI output.
+
+    Pushes a full snapshot whenever the container output changes and a
+    keep-alive comment otherwise, so the dashboard console renders agy in
+    real time without polling. Snapshots (not deltas) make reconnects
+    stateless and safe.
+    """
+    account_id = validate_account_id(account_id)
+
+    async def event_stream():
+        last_output: Optional[str] = None
+        deadline = time.time() + 600.0
+        try:
+            while time.time() < deadline:
+                try:
+                    output = await asyncio.to_thread(get_agy_output, account_id)
+                except Exception as e:
+                    logger.error("SSE read failed for %s: %s", account_id, e)
+                    payload = json.dumps({
+                        "success": False,
+                        "account_id": account_id,
+                        "output": "",
+                        "empty": True,
+                        "error": str(e),
+                    })
+                    yield f"data: {payload}\n\n"
+                    await asyncio.sleep(3.0)
+                    continue
+
+                if output != last_output:
+                    last_output = output
+                    payload = json.dumps({
+                        "success": True,
+                        "account_id": account_id,
+                        "output": output,
+                        "empty": not output.strip(),
+                        "captured_at": datetime.now(timezone.utc).isoformat(),
+                    })
+                    yield f"data: {payload}\n\n"
+                else:
+                    yield ": keep-alive\n\n"
+                await asyncio.sleep(1.0)
+        except asyncio.CancelledError:
+            raise
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.post("/start-pty")
+async def start_pyt_auth(account_id: str = Query("acc-1")):
+    """Start AGY PTY auth flow in container - returns auth URL."""
+    account_id = validate_account_id(account_id)
+    
+    # Check cache first
+    now = time.time()
+    cached = _auth_url_cache.get(account_id)
+    if cached:
+        auth_url, cached_time = cached
+        if time.time() - cached_time < 300:  # 5 minutes
+            logger.info("Returning cached auth URL for %s", account_id)
+            return {
+                "account_id": account_id,
+                "auth_url": auth_url,
+                "message": "Open the URL in your browser, sign in with Google, and return to paste the authorization code.",
+                "cached": True,
+            }
+        else:
+            # Expired, remove from cache
+            _auth_url_cache.pop(account_id, None)
+    
+    try:
+        cancel_agy_login_flow(account_id)
+        auth_url = await asyncio.to_thread(start_agy_login_flow, account_id)
+
+        if auth_url == "ALREADY_AUTHENTICATED":
+            creds = await asyncio.to_thread(load_account_credentials, account_id)
+            return {
+                "account_id": account_id,
+                "auth_url": None,
+                "already_authenticated": True,
+                "email": creds.get("email") if creds else None,
+            }
+
+        # Cache the auth URL
+        _auth_url_cache[account_id] = (auth_url, time.time())
+
+        return {
+            "account_id": account_id,
+            "auth_url": auth_url,
+            "message": "Open the URL in your browser, sign in with Google, and return to paste the authorization code.",
+        }
+    except TimeoutError:
+        return {"success": False, "error": "Could not extract auth URL from agy CLI after timeout", "account_id": account_id}
+    except RuntimeError as e:
+        return {"success": False, "error": str(e), "account_id": account_id}
+    except Exception as e:
+        logger.error("start-pty failed for %s: %s", account_id, e)
+        return {"success": False, "error": f"start-pty error: {str(e)}", "account_id": account_id}
+
+
+@router.post("/submit-code-pty", dependencies=[])
+async def submit_code_pyt(request: Request, db: AsyncSession = Depends(get_db)):
+    """Submit the Google auth code back to AGY CLI PTY."""
+    try:
+        body = await request.json()
+        account_id = validate_account_id(body.get("account_id", "acc-1"))
+        code = str(body.get("code", "")).strip()
+    except:
+        return JSONResponse({"success": False, "error": "Invalid payload"}, status_code=400)
+
+    if not code:
+        return JSONResponse({"success": False, "error": "Code is required"}, status_code=400)
+
+    now_utc = datetime.now(timezone.utc)
+
+    # Send code to AGY PTY (non-blocking via thread pool)
+    try:
+        result = await asyncio.to_thread(submit_code_to_agy, account_id, code)
+        access_token = result["access_token"]
+        refresh_token = result.get("refresh_token", "")
+        logger.info("PTY auth successful for %s", account_id)
+    except Exception as e:
+        logger.error("PTY auth code submission failed: %s", e)
+        return JSONResponse({
+            "success": False,
+            "error": f"Failed to submit code to agy CLI: {str(e)}"
+        }, status_code=400)
+
+    # ── Fetch Google user info with the fresh token ──────────────
     email = None
     name = None
     picture = None
-    now_utc = datetime.now(timezone.utc)
+    try:
+        user_info = await get_user_info(access_token)
+        email = user_info.get("email")
+        name = user_info.get("name")
+        picture = user_info.get("picture")
+    except Exception:
+        logger.warning("Userinfo lookup failed after PTY auth for %s", account_id)
 
-    real_access_token = None
-    real_refresh_token = None
-
-    if code_or_token.startswith("ya29."):
-        real_access_token = code_or_token
-        try:
-            user_info = await get_user_info(code_or_token)
-            email = user_info.get("email")
-            name = user_info.get("name")
-            picture = user_info.get("picture")
-        except Exception:
-            pass
-    else:
-        try:
-            token_data = await exchange_pkce_code(account_id, code_or_token)
-            if token_data and "access_token" in token_data:
-                real_access_token = token_data.get("access_token")
-                real_refresh_token = token_data.get("refresh_token")
-                user_info = await get_user_info(real_access_token)
-                email = user_info.get("email") or email
-                name = user_info.get("name") or name
-                picture = user_info.get("picture") or picture
-        except Exception as e:
-            logger.debug("exchange_pkce_code: %s", e)
-
-        if not real_access_token:
-            try:
-                agy_res = submit_code_to_agy(account_id, code_or_token)
-                if isinstance(agy_res, dict):
-                    email = agy_res.get("email") or email
-                    name = agy_res.get("name") or name
-                    picture = agy_res.get("picture") or picture
-                    real_access_token = agy_res.get("access_token") or real_access_token
-            except Exception as e:
-                logger.warning("submit_code_to_agy fallback: %s", e)
-
-        token_file = os.path.join(settings.DATA_DIR, account_id, "antigravity-cli", "antigravity-oauth-token")
-        if not real_access_token and os.path.exists(token_file):
-            try:
-                with open(token_file, "r", encoding="utf-8") as f:
-                    content = f.read().strip()
-                    if content and not content.startswith("4/0A"):
-                        real_access_token = content
-            except Exception:
-                pass
-
-    final_token = real_access_token or code_or_token
-
+    # ── Save credentials (same as exchange-code) ────────────────────
     payload = {
         "account_id": account_id,
         "account_label": f"Account {account_id}",
@@ -181,42 +344,45 @@ async def exchange_code_endpoint(
         "picture": picture,
         "tier": "Google AI Pro",
         "status": "authenticated",
-        "access_token": final_token,
-        "refresh_token": real_refresh_token,
+        "access_token": access_token,
+        "refresh_token": refresh_token,
         "expires_at": now_utc.timestamp() + 86400 * 30,
         "expires_in": 86400 * 30,
         "authenticated_at": now_utc.isoformat(),
     }
     safe_write_credentials(account_id, payload)
 
-    stmt = select(Account).where(Account.id == account_id)
-    res = await db.execute(stmt)
-    account = res.scalar_one_or_none()
-    if not account:
-        account = Account(
-            id=account_id,
-            label=f"Account {account_id}",
-            email=email,
-            name=name,
-            picture=picture,
-            tier="Google AI Pro",
-            status="healthy",
-            last_seen_at=now_utc,
-        )
-        db.add(account)
-    else:
-        account.email = email
-        account.tier = "Google AI Pro"
-        if name:
-            account.name = name
-        if picture:
-            account.picture = picture
-        account.status = "healthy"
-        account.last_seen_at = now_utc
+    # Update DB
+    try:
+        stmt = select(Account).where(Account.id == account_id)
+        res = await db.execute(stmt)
+        account = res.scalar_one_or_none()
+        if not account:
+            account = Account(
+                id=account_id,
+                label=payload.get("account_label", f"Account {account_id}"),
+                email=email,
+                name=name,
+                picture=picture,
+                tier="Google AI Pro",
+                status="healthy",
+                last_seen_at=now_utc,
+            )
+            db.add(account)
+        else:
+            account.email = email
+            account.tier = "Google AI Pro"
+            if name: account.name = name
+            if picture: account.picture = picture
+            account.status = "healthy"
+            account.last_seen_at = now_utc
+        await db.commit()
+    except Exception as e:
+        logger.warning("Failed to update DB for %s: %s", account_id, e)
 
-    await db.commit()
-
-    provision_account_container(account_id, f"Account {account_id}")
+    provisioned = provision_account_container(account_id, payload.get("account_label", f"Account {account_id}"))
+    if provisioned:
+        logger.info("Container provisioned for %s after PTY auth", account_id)
 
     return JSONResponse({
         "success": True,
@@ -224,8 +390,8 @@ async def exchange_code_endpoint(
         "email": email,
         "name": name,
         "picture": picture,
-        "tier": "Google AI Pro",
-        "message": f"Successfully authenticated as {email} for node {account_id}.",
+        "provisioned": provisioned,
+        "message": f"Authenticated as {email}."
     }, status_code=200)
 
 
@@ -233,7 +399,6 @@ async def exchange_code_endpoint(
 async def upload_token(
     payload: AuthTokenPayload,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_agent),
 ):
     account_id = validate_account_id(payload.account_id or "acc-1")
     email = payload.email
@@ -274,7 +439,6 @@ async def upload_token(
         account.status = "healthy"
         account.last_seen_at = now_utc
     await db.commit()
-
     provision_account_container(account_id, payload.account_label or f"Account {account_id}")
 
     return {
@@ -286,15 +450,118 @@ async def upload_token(
     }
 
 
+class AccountCreatePayload(BaseModel):
+    alias: str
+    email: str
+    plan: str = "Google AI Pro"
+    access_token: Optional[str] = None
+    refresh_token: Optional[str] = None
+
+
+@router.post("/accounts", status_code=status.HTTP_201_CREATED)
+async def create_account(
+    payload: AccountCreatePayload,
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new account and provision container dynamically."""
+    stmt = select(Account).order_by(Account.id)
+    res = await db.execute(stmt)
+    existing = res.scalars().all()
+    next_num = 1
+    for a in existing:
+        if a.id.startswith("acc-"):
+            try:
+                num = int(a.id.split("-")[1])
+                if num >= next_num:
+                    next_num = num + 1
+            except (ValueError, IndexError):
+                pass
+    account_id = f"acc-{next_num}"
+
+    now_utc = datetime.now(timezone.utc)
+    stored = {
+        "account_id": account_id,
+        "account_label": payload.alias,
+        "email": payload.email,
+        "email_verified": True,
+        "tier": payload.plan,
+        "status": "authenticated",
+        "access_token": payload.access_token or "manual",
+        "refresh_token": payload.refresh_token,
+        "expires_at": now_utc.timestamp() + 86400 * 30,
+        "authenticated_at": now_utc.isoformat(),
+    }
+    safe_write_credentials(account_id, stored)
+
+    account = Account(
+        id=account_id,
+        label=payload.alias,
+        email=payload.email,
+        tier=payload.plan,
+        status="healthy",
+        last_seen_at=now_utc,
+    )
+    db.add(account)
+    await db.commit()
+    provision_account_container(account_id, payload.alias)
+
+    return {
+        "success": True,
+        "account_id": account_id,
+        "email": payload.email,
+        "name": payload.alias,
+        "message": f"Created account {account_id} ({payload.alias}).",
+    }
+
+
+@router.post("/refresh-token")
+async def refresh_token_endpoint(
+    account_id: str = Query("acc-1"),
+):
+    """Refresh OAuth token for an account."""
+    account_id = validate_account_id(account_id)
+    result = refresh_oauth_token(account_id)
+    if result:
+        return JSONResponse({
+            "success": True,
+            "access_token": result["access_token"],
+            "refresh_token": result.get("refresh_token", ""),
+            "expires_in": result.get("expires_in", 3600),
+        }, status_code=200)
+    return JSONResponse({
+        "success": False,
+        "error": "Token refresh failed — no refresh_token stored"
+    }, status_code=400)
+
+
 @router.delete("/token", status_code=status.HTTP_200_OK)
 async def revoke_auth_token(
     account_id: str = Query("acc-1"),
+    deprovision: bool = Query(False),
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(require_master_key),
 ):
+    """Revoke auth. If deprovision=true, also remove container and data.
+    If deprovision=false (re-auth), only logout from agy and clear credentials."""
     account_id = validate_account_id(account_id)
+    
+    # Execute agy logout inside container
+    container_name = f"gravwatch-agent-{account_id}"
+    try:
+        subprocess.run(
+            ["docker", "exec", container_name, "agy", "logout"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10
+        )
+        logger.info("Executed agy logout in container %s", container_name)
+    except Exception as e:
+        logger.warning("Could not execute agy logout in %s: %s", container_name, e)
+    
+    # Delete local credentials
     delete_account_credentials(account_id)
-    deprovision_account_container(account_id)
+    
+    if deprovision:
+        # Full deprovision - remove container and data
+        deprovision_account_container(account_id)
+    
     stmt = select(Account).where(Account.id == account_id)
     res = await db.execute(stmt)
     account = res.scalar_one_or_none()
@@ -305,12 +572,20 @@ async def revoke_auth_token(
             account.name = None
             account.picture = None
         else:
-            await db.delete(account)
+            if deprovision:
+                await db.delete(account)
+            else:
+                # For re-auth, just clear auth fields but keep the account
+                account.email = None
+                account.name = None
+                account.picture = None
+                account.status = "unauthenticated"
         await db.execute(delete(UsageSnapshot).where(UsageSnapshot.account_id == account_id))
         await db.commit()
+    
     return {
         "success": True,
-        "message": f"Revoked credentials, stopped container, and reset session for {account_id}.",
+        "message": f"Revoked credentials{' and deprovisioned container' if deprovision else ''} for {account_id}.",
     }
 
 
@@ -324,18 +599,20 @@ async def toggle_container_endpoint(
     return res
 
 
-@router.get("/status", response_model=list[AuthStatusResponse])
-async def get_auth_status(db: AsyncSession = Depends(get_db)):
+@router.get("/status")
+@router.post("/status")
+async def get_auth_status_endpoint(db: AsyncSession = Depends(get_db)):
+    """Get auth status for all known accounts."""
     stmt = select(Account).order_by(Account.id)
     res = await db.execute(stmt)
     accounts = {a.id: a for a in res.scalars().all()}
 
+
     active_containers = {c["account_id"]: c["status"] for c in list_active_account_containers()}
 
+    # Ground truth is the credentials file on the volume — stale DB rows
+    # must never surface as ghost nodes.
     known_ids = set()
-    for acc_id, a in accounts.items():
-        if a.email or a.status == "healthy":
-            known_ids.add(acc_id)
 
     if os.path.exists(settings.DATA_DIR):
         for entry in os.listdir(settings.DATA_DIR):
@@ -344,23 +621,27 @@ async def get_auth_status(db: AsyncSession = Depends(get_db)):
                     creds = load_account_credentials(entry)
                     if creds and creds.get("status") == "authenticated":
                         known_ids.add(entry)
-                    elif entry == "acc-1":
-                        known_ids.add("acc-1")
 
-    if not known_ids:
-        known_ids.add("acc-1")
+    # Do NOT add acc-1 as fallback - only show accounts with valid auth
 
     result: list[AuthStatusResponse] = []
     for acc_id in sorted(known_ids):
         a = accounts.get(acc_id)
         creds = load_account_credentials(acc_id)
-        has_creds = creds is not None and creds.get("status") == "authenticated"
-        is_healthy = a is not None and a.status == "healthy"
-        authenticated = has_creds or is_healthy
-        email = (a.email if a else None) or (creds.get("email") if creds else None)
-        name = (getattr(a, "name", None) if a else None) or (creds.get("name") or creds.get("account_label") if creds else None)
-        picture = (getattr(a, "picture", None) if a else None) or (creds.get("picture") if creds else None)
-        last_update = a.last_seen_at if a else (creds.get("authenticated_at") if creds else None)
+        has_creds = creds is not None
+        # Only authenticated if we have valid credentials with real user info
+        authenticated = has_creds
+        email = creds.get("email") if creds else None
+        # Prefer the real Google account name from userinfo; the local label
+        # ("Account acc-N") is only a fallback for manual-token accounts.
+        name = (
+            (creds.get("name") if creds else None)
+            or (getattr(a, "name", None) if a else None)
+            or (creds.get("account_label") if creds else None)
+            or (getattr(a, "label", None) if a else None)
+        )
+        picture = creds.get("picture") if creds else None
+        last_update = creds.get("authenticated_at") if creds else (a.last_seen_at if a else None)
         c_status = active_containers.get(acc_id, "running" if authenticated else "stopped")
         result.append(
             AuthStatusResponse(

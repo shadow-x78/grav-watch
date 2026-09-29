@@ -1,4 +1,8 @@
-# GravWatch Agent Core Package
-from .config import config, AgentConfig
+# ─────────────────────────────────────────────
+# GravWatch - Agent Core Package
+# https://github.com/shadow-x78/grav-watch
+# ─────────────────────────────────────────────
+from .config import settings, AgentSettings
 
-__all__ = ["config", "AgentConfig"]
+__all__ = ["settings", "AgentSettings"]
+

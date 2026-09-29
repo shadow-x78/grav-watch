@@ -1,6 +1,7 @@
+# ─────────────────────────────────────────────
 # GravWatch - Database Models & Declarative Base (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 from datetime import datetime, timezone
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import String, DateTime, Text
@@ -27,3 +28,4 @@ class UsageSnapshot(Base):
     account_id: Mapped[str] = mapped_column(String(64), index=True)
     raw_payload: Mapped[str] = mapped_column(Text)
     recorded_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+

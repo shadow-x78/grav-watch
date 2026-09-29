@@ -1,19 +1,53 @@
+// ─────────────────────────────────────────────
+// GravWatch - Model Quota Matrix Component
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 "use client";
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Zap, RefreshCw, Info, ShieldCheck, Clock } from "lucide-react";
-import { useGravWatch } from "@/context/GravWatchContext";
+import { RefreshCw, Clock } from "lucide-react";
+import Image from "next/image";
+import { useGravWatch } from "@/context";
 import { useLanguage } from "@/context/LanguageContext";
 import { ProgressRing } from "@/components/ui/progress-ring";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCountdownWithDays } from "@/lib/utils";
 
+const GEMINI_LOGO = "/logos/gemini-logo.svg";
+const CLAUDE_LOGO = "/logos/claude-logo.svg";
+
 export const ModelQuotaMatrix: React.FC = () => {
-  const { accounts, selectedAccountId, refreshAllAccounts, pooledTelemetry } = useGravWatch();
+  const { accounts, selectedAccountId, refreshAllAccounts, pooledTelemetry, isLoading } = useGravWatch();
   const { t, language } = useLanguage();
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  if (isLoading) {
+    return (
+      <TooltipProvider delayDuration={200}>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut", delay: 0.15 }}
+          className="rounded-xl border border-white/10 bg-[#0b0f1d] overflow-hidden animate-pulse"
+        >
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x rtl:lg:divide-x-reverse divide-white/[0.06]">
+            <div className="p-5 space-y-3">
+              <div className="flex items-center justify-between mb-1 h-8 w-1/2 bg-white/5 rounded" />
+              <div className="h-12 w-full bg-white/5 rounded" />
+            </div>
+            <div className="p-5 space-y-3">
+              <div className="flex items-center justify-between mb-1 h-8 w-1/2 bg-white/5 rounded" />
+              <div className="h-12 w-full bg-white/5 rounded" />
+            </div>
+          </div>
+        </motion.div>
+      </TooltipProvider>
+    );
+  }
 
   const selectedAccount =
     selectedAccountId === "all"
@@ -89,7 +123,7 @@ export const ModelQuotaMatrix: React.FC = () => {
     color: string;
     fullLabel: string;
   }) => (
-    <div className="flex items-center justify-between py-3.5 px-4 rounded-lg bg-[#060911]/60 border border-white/[0.06] hover:border-white/10 transition-colors">
+    <div className="flex items-center justify-between py-3 px-4 rounded-lg bg-[#060911]/60 border border-white/[0.06] hover:border-white/10 transition-colors">
       <div className="flex-1 min-w-0">
         <span className="text-xs font-semibold text-slate-200 block">{label}</span>
         <span className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
@@ -137,27 +171,27 @@ export const ModelQuotaMatrix: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border bg-[#4285f4]/15 text-[#4285f4] border-[#4285f4]/25">
-            <ShieldCheck className="h-3 w-3" />
-            {displayPlan}
+            <span>{displayPlan}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 divide-y lg:divide-y-0 lg:divide-x rtl:lg:divide-x-reverse divide-white/[0.06]">
-          <div className="p-5 space-y-3">
+          <div className="p-5 space-y-2">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#4285f4]/15 text-[#4285f4]">
-                  <Sparkles className="h-3.5 w-3.5" />
+                  <Image
+                    src={GEMINI_LOGO}
+                    alt="Gemini"
+                    width={20}
+                    height={20}
+                    className="h-4 w-4"
+                    unoptimized
+                  />
                 </div>
                 <span className="text-sm font-bold text-white">
                   {t("overview.matrix.geminiModels")}
                 </span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 text-slate-600 cursor-pointer hover:text-slate-400 transition-colors" />
-                  </TooltipTrigger>
-                  <TooltipContent>{t("overview.matrix.geminiTooltip")}</TooltipContent>
-                </Tooltip>
               </div>
               <span className="text-[10px] font-mono text-[#4285f4] bg-[#4285f4]/10 px-2 py-0.5 rounded border border-[#4285f4]/20">
                 Flash & Pro
@@ -165,36 +199,37 @@ export const ModelQuotaMatrix: React.FC = () => {
             </div>
 
             <QuotaRow
-              label={t("overview.matrix.weeklyLimitRemaining")}
+              label={t("overview.matrix.weeklyLimit")}
               pct={geminiWeeklyPct}
               countdown={geminiWeeklyCountdown}
               color="#34a853"
-              fullLabel={t("overview.matrix.fullWeeklyCapacity")}
+              fullLabel={t("overview.matrix.fullCapacity")}
             />
             <QuotaRow
-              label={t("overview.matrix.fiveHourLimitRemaining")}
+              label={t("overview.matrix.fiveHourLimit")}
               pct={gemini5hPct}
               countdown={gemini5hCountdown}
               color="#4285f4"
-              fullLabel={t("overview.matrix.fullFiveHourCapacity")}
+              fullLabel={t("overview.matrix.fullCapacity")}
             />
           </div>
 
-          <div className="p-5 space-y-3">
+          <div className="p-5 space-y-2">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#ea4335]/15 text-[#ea4335]">
-                  <Zap className="h-3.5 w-3.5" />
+                  <Image
+                    src={CLAUDE_LOGO}
+                    alt="Claude"
+                    width={20}
+                    height={20}
+                    className="h-4 w-4"
+                    unoptimized
+                  />
                 </div>
                 <span className="text-sm font-bold text-white">
                   {t("overview.matrix.claudeGptModels")}
                 </span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3.5 w-3.5 text-slate-600 cursor-pointer hover:text-slate-400 transition-colors" />
-                  </TooltipTrigger>
-                  <TooltipContent>{t("overview.matrix.claudeTooltip")}</TooltipContent>
-                </Tooltip>
               </div>
               <span className="text-[10px] font-mono text-[#ea4335] bg-[#ea4335]/10 px-2 py-0.5 rounded border border-[#ea4335]/20">
                 Sonnet, Opus & GPT
@@ -202,18 +237,18 @@ export const ModelQuotaMatrix: React.FC = () => {
             </div>
 
             <QuotaRow
-              label={t("overview.matrix.weeklyLimitRemaining")}
+              label={t("overview.matrix.weeklyLimit")}
               pct={claudeWeeklyPct}
               countdown={claudeWeeklyCountdown}
               color="#34a853"
-              fullLabel={t("overview.matrix.fullWeeklyCapacity")}
+              fullLabel={t("overview.matrix.fullCapacity")}
             />
             <QuotaRow
-              label={t("overview.matrix.fiveHourLimitRemaining")}
+              label={t("overview.matrix.fiveHourLimit")}
               pct={claude5hPct}
               countdown={claude5hCountdown}
               color="#ea4335"
-              fullLabel={t("overview.matrix.fullFiveHourCapacity")}
+              fullLabel={t("overview.matrix.fullCapacity")}
             />
           </div>
         </div>

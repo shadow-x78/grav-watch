@@ -1,13 +1,17 @@
+// ─────────────────────────────────────────────
+// GravWatch - Root Application Layout
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 import type { Metadata } from "next";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { GravWatchProvider } from "@/context/GravWatchContext";
+import { GravWatchProviders } from "@/context";
 
 export const metadata: Metadata = {
-  title: "GravWatch - Google Antigravity Telemetry Hub",
-  description:
-    "Real-time multi-account Google Antigravity CLI quota monitoring & telemetry aggregation engine.",
+  title: "GravWatch",
+  description: "Multi-account Google Antigravity CLI quota monitor.",
   icons: {
     icon: [
       { url: "/gravwatch.svg", type: "image/svg+xml" },
@@ -29,9 +33,9 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#060911] font-sans antialiased text-slate-100 selection:bg-[#4285f4]/30 selection:text-white">
         <LanguageProvider>
           <ThemeProvider>
-            <GravWatchProvider>
+            <GravWatchProviders>
               {children}
-            </GravWatchProvider>
+            </GravWatchProviders>
           </ThemeProvider>
         </LanguageProvider>
       </body>

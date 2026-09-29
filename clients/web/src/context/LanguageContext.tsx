@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - i18n Language Context Provider
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";

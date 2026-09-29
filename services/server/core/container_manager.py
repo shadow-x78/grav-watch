@@ -1,23 +1,32 @@
+# ─────────────────────────────────────────────
 # GravWatch - Dynamic Account Container Lifecycle Manager (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 import os
+import json
 import shutil
 import logging
 import subprocess
 from typing import Dict, Any, List
 
-try:
-    from services.server.core.config import settings
-except ImportError:
-    from .config import settings
+from services.server.core.config import settings, JETSKI_PRESET
 
 logger = logging.getLogger("gravwatch.container_manager")
+
+PROJECT_ROOT = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.dirname(__file__))))),
+)
+AGENT_IMAGE_NAME = os.environ.get("GRAVWATCH_AGENT_IMAGE", "gravwatch-agent")
+DOCKERFILE_AGENT = os.path.join(PROJECT_ROOT, "packaging", "docker", "Dockerfile.agent")
 
 
 def _get_docker_network() -> str:
     try:
-        res = subprocess.run(["docker", "network", "ls", "--format", "{{.Name}}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        res = subprocess.run(
+            ["docker", "network", "ls", "--format", "{{.Name}}"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
         if res.returncode == 0:
             for net in res.stdout.strip().split("\n"):
                 if "gravwatch-net" in net:
@@ -25,20 +34,6 @@ def _get_docker_network() -> str:
     except Exception:
         pass
     return "gravwatch-net"
-
-
-JETSKI_PRESET = """post_onboarding:  {
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_COLOR_SCHEME
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_MANAGER_WELCOME
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_USAGE_MODE
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_AGENT_CONFIGURATION
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_ADD_WORKSPACE
-}
-installation_uuid:  "98d027cc-5310-4b0e-a832-fab3183df8b7"
-migrations:  { key:  3 value:  MIGRATION_STATUS_COMPLETED }
-migrations:  { key:  4 value:  MIGRATION_STATUS_COMPLETED }
-migrations:  { key:  5 value:  MIGRATION_STATUS_COMPLETED }
-"""
 
 
 def _seed_account_dir(local_acc_dir: str):
@@ -74,22 +69,45 @@ def _seed_account_dir(local_acc_dir: str):
 
 
 def provision_account_container(account_id: str, label: str = "Account") -> bool:
-    container_name = f"gravwatch-{account_id}"
-    local_acc_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
-    host_mount_dir = os.path.join(settings.HOST_DATA_DIR, account_id)
+    """Dynamically create and start a container for the given account.
+    Called from auth exchange-code after user authenticates with Google."""
+    container_name = f"{AGENT_IMAGE_NAME}-{account_id}"
+    # Bind the HOST path (from the server's perspective the server itself
+    # runs inside a container, so DATA_DIR points at its own /app/data).
+    local_acc_dir = os.path.abspath(
+        os.path.join(settings.HOST_DATA_DIR or settings.DATA_DIR, account_id)
+    )
     os.makedirs(local_acc_dir, exist_ok=True)
     _seed_account_dir(local_acc_dir)
 
     try:
+        net_name = _get_docker_network()
+
+        # Build agent image if it doesn't exist
+        res = subprocess.run(
+            ["docker", "images", "-q", AGENT_IMAGE_NAME],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+        )
+        if not res.stdout.strip():
+            logger.info("First provisioning — building agent image %s from Dockerfile.agent", AGENT_IMAGE_NAME)
+            build_cmd = [
+                "docker", "build", "-t", AGENT_IMAGE_NAME,
+                "-f", DOCKERFILE_AGENT,
+                PROJECT_ROOT,
+            ]
+            res = subprocess.run(build_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            if res.returncode != 0:
+                logger.error("Failed to build agent image: %s", res.stderr[:500])
+                return False
+            logger.info("Agent image %s built OK", AGENT_IMAGE_NAME)
+
+        # Check if container already exists
         check_cmd = ["docker", "inspect", container_name]
         check = subprocess.run(check_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if check.returncode == 0:
             subprocess.run(["docker", "start", container_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             logger.info("Started existing dynamic container %s", container_name)
             return True
-
-        image_name = "gravwatch-agent:latest"
-        net_name = _get_docker_network()
 
         cmd = [
             "docker", "run", "-d",
@@ -99,22 +117,21 @@ def provision_account_container(account_id: str, label: str = "Account") -> bool
             "-e", f"ACCOUNT_ID={account_id}",
             "-e", f"ACCOUNT_LABEL={label}",
             "-e", "SERVER_URL=http://server:8000",
-            "-e", f"AGENT_API_KEY={settings.AGENT_API_KEY}",
             "-e", "POLL_INTERVAL_SECONDS=20",
-            "-e", "GEMINI_DIR=/root/.gemini",
+            "-e", f"GEMINI_DIR=/app/data/{account_id}",
             "--dns", "8.8.8.8",
             "--dns", "8.8.4.4",
-            "-v", f"{host_mount_dir}:/root/.gemini",
+            "-v", f"{local_acc_dir}:/app/data/{account_id}",
             "--memory", "256M",
             "--cpus", "0.25",
-            image_name,
+            AGENT_IMAGE_NAME,
         ]
 
         res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if res.returncode == 0:
-            logger.info("Provisioned dynamic container %s", container_name)
+            logger.info("Provisioned dynamic container %s (image=%s)", container_name, AGENT_IMAGE_NAME)
             return True
-        logger.warning("Failed to provision %s: %s", container_name, res.stderr)
+        logger.warning("Failed to provision %s: %s", container_name, res.stderr[:500])
         return False
     except Exception as e:
         logger.warning("Docker provision note for %s: %s", container_name, e)
@@ -122,14 +139,24 @@ def provision_account_container(account_id: str, label: str = "Account") -> bool
 
 
 def deprovision_account_container(account_id: str) -> bool:
-    container_name = f"gravwatch-{account_id}"
+    container_name = f"{AGENT_IMAGE_NAME}-{account_id}"
+    try:
+        # Try to logout from agy inside the container before removing it
+        subprocess.run(
+            ["docker", "exec", container_name, "agy", "logout"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10
+        )
+    except Exception:
+        pass  # Container might not be running or agy not available
     try:
         subprocess.run(["docker", "rm", "-f", container_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        logger.info("Instantly deprovisioned container %s", container_name)
+        logger.info("Deprovisioned container %s", container_name)
     except Exception as e:
-        logger.warning("Error removing container %s: %s", container_name, e)
+        logger.warning("Error removing container %s: %s", e)
 
-    acc_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
+    acc_dir = os.path.abspath(
+        os.path.join(settings.HOST_DATA_DIR or settings.DATA_DIR, account_id)
+    )
     if os.path.exists(acc_dir):
         try:
             shutil.rmtree(acc_dir, ignore_errors=True)
@@ -142,7 +169,7 @@ def deprovision_account_container(account_id: str) -> bool:
 def list_active_account_containers() -> List[Dict[str, Any]]:
     cmd = [
         "docker", "ps", "-a",
-        "--filter", "name=gravwatch-acc-",
+        "--filter", f"name={AGENT_IMAGE_NAME}-acc-",
         "--format", "{{.Names}}|{{.Status}}|{{.Image}}"
     ]
     try:
@@ -157,7 +184,7 @@ def list_active_account_containers() -> List[Dict[str, Any]]:
             if len(parts) >= 2:
                 name = parts[0]
                 status = parts[1]
-                acc_id = name.replace("gravwatch-", "")
+                acc_id = name.replace(f"{AGENT_IMAGE_NAME}-", "")
                 results.append({
                     "account_id": acc_id,
                     "container_name": name,
@@ -170,11 +197,17 @@ def list_active_account_containers() -> List[Dict[str, Any]]:
 
 
 def toggle_account_container(account_id: str) -> Dict[str, Any]:
-    container_name = f"gravwatch-{account_id}"
+    container_name = f"{AGENT_IMAGE_NAME}-{account_id}"
     try:
         check_cmd = ["docker", "inspect", "-f", "{{.State.Running}}", container_name]
         check = subprocess.run(check_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        is_running = check.returncode == 0 and "true" in check.stdout.strip().lower()
+        container_exists = check.returncode == 0
+        is_running = container_exists and "true" in check.stdout.strip().lower()
+        
+        if not container_exists:
+            logger.info("Container %s does not exist, provisioning...", container_name)
+            provision_account_container(account_id, f"Account {account_id}")
+            return {"account_id": account_id, "container_status": "running", "status": "active"}
         
         if is_running:
             subprocess.run(["docker", "stop", container_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)

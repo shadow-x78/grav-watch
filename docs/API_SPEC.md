@@ -6,7 +6,7 @@
 
 ---
 
-> Applies to **v2.6.0** and later. Base path: `/api/v1`
+> Applies to **v2.7.0** and later. Base path: `/api/v1`
 
 ---
 
@@ -76,7 +76,6 @@ Receives a point-in-time quota telemetry snapshot matching official Google Antig
 **Headers:**
 ```http
 Content-Type: application/json
-X-Agent-Key: gravwatch-agent-secret-key
 ```
 
 **Payload (`UsageIngestRequest`):**

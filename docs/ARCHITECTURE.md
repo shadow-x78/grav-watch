@@ -46,10 +46,10 @@ graph TD
             Server --> Aggregator
         end
 
-        C1 -->|POST /api/v1/usage (X-Agent-Key)| Server
-        C2 -->|POST /api/v1/usage (X-Agent-Key)| Server
-        C3 -->|POST /api/v1/usage (X-Agent-Key)| Server
-        CN -->|POST /api/v1/usage (X-Agent-Key)| Server
+        C1 -->|POST /api/v1/usage| Server
+        C2 -->|POST /api/v1/usage| Server
+        C3 -->|POST /api/v1/usage| Server
+        CN -->|POST /api/v1/usage| Server
     end
 ```
 
@@ -82,8 +82,8 @@ graph TD
    - If the CLI returns an ANSI-formatted terminal table, `clean_ansi()` strips color escape codes and regex patterns extract RPM, daily limits, used counts, and reset timers for **Gemini Flash, Gemini Pro, Claude Sonnet, Claude Opus, and GPT OSS**.
    - If the CLI is unauthenticated or missing during testing, the parser falls back to realistic deterministic mock telemetry if `USE_MOCK_FALLBACK=true`.
 3. **Telemetry Ingestion:**
-   - The agent sends an HTTP `POST` request to `http://server:8000/api/v1/usage` with the payload and `X-Agent-Key` header.
-   - The server validates authentication, creates or updates the `Account` record, commits the `UsageSnapshot`, and inserts individual `ModelQuota` rows asynchronously.
+   - The agent sends an HTTP `POST` request to `http://server:8000/api/v1/usage` with the payload.
+   - The server creates or updates the `Account` record, commits the `UsageSnapshot`, and inserts individual `ModelQuota` rows asynchronously.
 4. **Pool Aggregation:**
    - When `/api/v1/usage/latest` is requested, `compute_latest_pool_summary()` reads the latest snapshot for every registered account.
    - It aggregates total requests used, total capacity limit, and calculates pooled utilization percentages per model across all online accounts.
@@ -95,7 +95,7 @@ graph TD
 | Endpoint | Method | Headers / Auth | Payload Summary | Response |
 |---|---|---|---|---|
 | `/api/v1/health` | GET | None | None | `{"status":"healthy","service":"gravwatch-server","version":"2.0.0"}` |
-| `/api/v1/usage` | POST | `X-Agent-Key: <key>` | `{account_id, timestamp, models: [...]}` | `201 Created {"success":true,"message":"..."}` |
+| `/api/v1/usage` | POST | None | `{account_id, timestamp, models: [...]}` | `201 Created {"success":true,"message":"..."}` |
 | `/api/v1/usage/latest` | GET | None | None | `200 OK LatestUsageResponse (pool_summary + accounts)` |
 | `/api/v1/usage/history` | GET | None | Query: `account_id`, `range=24h` | `200 OK HistoryResponse (series: [...])` |
 | `/api/v1/accounts` | GET | None | None | `200 OK List[AccountDetailResponse]` |

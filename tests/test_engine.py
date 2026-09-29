@@ -1,6 +1,7 @@
+# ─────────────────────────────────────────────
 # GravWatch - Engine & Security Test Suite (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 import os
 import sys
 import json
@@ -117,3 +118,4 @@ class TestContainerManager(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

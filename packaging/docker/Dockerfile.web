@@ -19,6 +19,7 @@ COPY clients/web ./
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://server:8000}
 RUN npm run build
 
 # 3. Production image, copy all the files and run next

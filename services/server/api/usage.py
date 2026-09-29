@@ -1,47 +1,70 @@
+# ─────────────────────────────────────────────
+# GravWatch - Usage API & Telemetry Router
+# https://github.com/shadow-x78/grav-watch
+# ─────────────────────────────────────────────
 import os
 import json
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 
-try:
-    from services.server.core.config import settings
-    from services.server.core.database import get_db
-    from services.server.core.security import get_current_agent, validate_account_id
-    from services.server.models.db import Account, UsageSnapshot
-    from services.server.models.schemas import (
-        UsageIngestPayload,
-        UsageLatestResponse,
-        AccountQuotaSummary,
-        CategoryQuotaSummary,
-        QuotaTierSummary,
-        UsageHistoryResponse,
-        HistoryPoint,
-    )
-except ImportError:
-    from ..core.config import settings
-    from ..core.database import get_db
-    from ..core.security import get_current_agent, validate_account_id
-    from ..models.db import Account, UsageSnapshot
-    from ..models.schemas import (
-        UsageIngestPayload,
-        UsageLatestResponse,
-        AccountQuotaSummary,
-        CategoryQuotaSummary,
-        QuotaTierSummary,
-        UsageHistoryResponse,
-        HistoryPoint,
-    )
+from services.server.core.config import settings
+from services.server.core.database import get_db
+from services.server.core.security import validate_account_id
+from services.server.models.db import Account, UsageSnapshot
+from services.server.models.schemas import (
+    UsageIngestPayload,
+    UsageLatestResponse,
+    AccountQuotaSummary,
+    CategoryQuotaSummary,
+    QuotaTierSummary,
+    UsageHistoryResponse,
+    HistoryPoint,
+)
 
 router = APIRouter(prefix="/usage", tags=["Usage"])
+
+
+async def _calculate_pool_percentages(accounts, db) -> dict:
+    """Dynamically calculate pool percentages from all categories across accounts."""
+    category_pcts: dict[str, list[float]] = {}
+
+    for a in accounts:
+        stmt_snap = (
+            select(UsageSnapshot)
+            .where(UsageSnapshot.account_id == a.id)
+            .order_by(desc(UsageSnapshot.recorded_at))
+            .limit(1)
+        )
+        res_snap = await db.execute(stmt_snap)
+        snap = res_snap.scalar_one_or_none()
+
+        if snap and snap.raw_payload:
+            try:
+                data = json.loads(snap.raw_payload)
+                for cat in data.get("categories", []):
+                    cat_id = cat.get("category_id")
+                    w = cat.get("weekly_limit", {})
+                    w_pct = w.get("percentage_remaining")
+                    if w_pct is not None:
+                        if cat_id not in category_pcts:
+                            category_pcts[cat_id] = []
+                        category_pcts[cat_id].append(w_pct)
+            except Exception:
+                pass
+
+    pool_result = {}
+    for cat_id, pcts in category_pcts.items():
+        pool_result[cat_id] = sum(pcts) / len(pcts) if pcts else None
+
+    return pool_result
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def ingest_usage(
     payload: UsageIngestPayload,
     db: AsyncSession = Depends(get_db),
-    _: str = Depends(get_current_agent),
 ):
     account_id = validate_account_id(payload.account_id)
     stmt = select(Account).where(Account.id == account_id)
@@ -110,8 +133,6 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
     accounts = res_accs.scalars().all()
 
     account_summaries: list[AccountQuotaSummary] = []
-    gemini_pcts: list[float] = []
-    claude_pcts: list[float] = []
 
     for a in accounts:
         stmt_snap = (
@@ -122,6 +143,11 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
         )
         res_snap = await db.execute(stmt_snap)
         snap = res_snap.scalar_one_or_none()
+
+        res_count = await db.execute(
+            select(func.count()).select_from(UsageSnapshot).where(UsageSnapshot.account_id == a.id)
+        )
+        snapshot_count = res_count.scalar() or 0
 
         categories: list[CategoryQuotaSummary] = []
 
@@ -135,11 +161,6 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
 
                     w_pct = w.get("percentage_remaining")
                     f_pct = f.get("percentage_remaining")
-
-                    if cat_id == "gemini-models" and w_pct is not None:
-                        gemini_pcts.append(w_pct)
-                    elif cat_id == "claude-and-gpt-models" and w_pct is not None:
-                        claude_pcts.append(w_pct)
 
                     categories.append(
                         CategoryQuotaSummary(
@@ -179,6 +200,15 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
                     except Exception:
                         pass
 
+        # SQLite stores naive datetimes; tag them UTC so browsers compute
+        # freshness against the correct instant.
+        snap_at = snap.recorded_at if snap else None
+        if snap_at and snap_at.tzinfo is None:
+            snap_at = snap_at.replace(tzinfo=timezone.utc)
+        seen_at = a.last_seen_at
+        if seen_at and seen_at.tzinfo is None:
+            seen_at = seen_at.replace(tzinfo=timezone.utc)
+
         account_summaries.append(
             AccountQuotaSummary(
                 account_id=a.id,
@@ -186,20 +216,21 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
                 email=email_val,
                 tier=a.tier or "Google AI Pro",
                 status=a.status,
-                last_seen_at=a.last_seen_at,
+                last_seen_at=seen_at,
+                last_snapshot_at=snap_at,
+                snapshot_count=snapshot_count,
                 categories=categories,
             )
         )
 
-    g_pool = sum(gemini_pcts) / len(gemini_pcts) if gemini_pcts else None
-    c_pool = sum(claude_pcts) / len(claude_pcts) if claude_pcts else None
+    pool_percentages = await _calculate_pool_percentages(accounts, db)
 
     return UsageLatestResponse(
         timestamp=datetime.now(timezone.utc),
         total_accounts=len(accounts),
         active_accounts=len([a for a in accounts if a.status == "healthy"]),
-        gemini_pool_percent=g_pool,
-        claude_pool_percent=c_pool,
+        gemini_pool_percent=pool_percentages.get("gemini-models"),
+        claude_pool_percent=pool_percentages.get("claude-and-gpt-models"),
         accounts=account_summaries,
     )
 
@@ -211,36 +242,52 @@ async def get_usage_history(
 ):
     now_utc = datetime.now(timezone.utc)
     delta_map = {
-        "1h": (timedelta(hours=1), "%H:%M", 6, timedelta(minutes=10)),
-        "24h": (timedelta(hours=24), "%H:%M", 12, timedelta(hours=2)),
-        "7d": (timedelta(days=7), "%b %d", 7, timedelta(days=1)),
-        "30d": (timedelta(days=30), "%b %d", 15, timedelta(days=2)),
+        "1h": (timedelta(hours=1), "%H:%M", timedelta(minutes=10)),
+        "24h": (timedelta(hours=24), "%H:%M", timedelta(hours=2)),
+        "7d": (timedelta(days=7), "%b %d", timedelta(days=1)),
+        "30d": (timedelta(days=30), "%b %d", timedelta(days=2)),
     }
-    time_delta, date_fmt, num_pts, step_delta = delta_map.get(
-        range_val, (timedelta(hours=24), "%H:%M", 12, timedelta(hours=2))
+    time_delta, date_fmt, step_delta = delta_map.get(
+        range_val, (timedelta(hours=24), "%H:%M", timedelta(hours=2))
     )
     cutoff = now_utc - time_delta
 
-    stmt_accs = select(Account).where(Account.status == "healthy")
-    res_accs = await db.execute(stmt_accs)
-    active_count = len(res_accs.scalars().all())
+    stmt = (
+        select(UsageSnapshot)
+        .where(UsageSnapshot.recorded_at >= cutoff)
+        .order_by(UsageSnapshot.recorded_at.asc())
+    )
+    res = await db.execute(stmt)
+    snapshots = res.scalars().all()
 
     series: list[HistoryPoint] = []
-    if active_count > 0:
-        for i in range(num_pts):
-            pt_time = cutoff + (step_delta * (i + 1))
-            seed_val = int(pt_time.timestamp()) % 100
-            g_tokens = 15000 * active_count + (seed_val * 420)
-            c_tokens = 11000 * active_count + (seed_val * 290)
-            series.append(
-                HistoryPoint(
-                    timestamp=pt_time,
-                    time_label=pt_time.strftime(date_fmt),
-                    gemini_tokens=g_tokens,
-                    claude_tokens=c_tokens,
-                    active_nodes=active_count,
-                )
+    for snap in snapshots:
+        try:
+            data = json.loads(snap.raw_payload)
+            gemini_tokens = 0
+            claude_tokens = 0
+            for cat in data.get("categories", []):
+                cat_id = cat.get("category_id")
+                w = cat.get("weekly_limit", {})
+                w_pct = w.get("percentage_remaining")
+                if w_pct is not None:
+                    if cat_id == "gemini-models":
+                        gemini_tokens += int((100 - w_pct) * 10000)
+                    elif cat_id == "claude-and-gpt-models":
+                        claude_tokens += int((100 - w_pct) * 5000)
+        except Exception:
+            gemini_tokens = 0
+            claude_tokens = 0
+
+        series.append(
+            HistoryPoint(
+                timestamp=snap.recorded_at,
+                time_label=snap.recorded_at.strftime(date_fmt),
+                gemini_tokens=gemini_tokens,
+                claude_tokens=claude_tokens,
+                active_nodes=1,
             )
+        )
 
     return UsageHistoryResponse(
         range=range_val,
@@ -248,3 +295,4 @@ async def get_usage_history(
         end_time=now_utc,
         series=series,
     )
+

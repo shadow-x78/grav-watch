@@ -1,10 +1,14 @@
+// ─────────────────────────────────────────────
+// GravWatch - Overview Tab Component
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 "use client";
 
 import React from "react";
 import { motion } from "framer-motion";
 import { MetricCardsGrid } from "./MetricCardsGrid";
 import { ModelQuotaMatrix } from "./ModelQuotaMatrix";
-import { ClusterNodesSummary } from "./ClusterNodesSummary";
 
 export const OverviewTab: React.FC = () => {
   return (
@@ -16,7 +20,6 @@ export const OverviewTab: React.FC = () => {
     >
       <MetricCardsGrid />
       <ModelQuotaMatrix />
-      <ClusterNodesSummary />
     </motion.div>
   );
 };

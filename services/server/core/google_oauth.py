@@ -1,108 +1,156 @@
-# GravWatch - Google Identity & Safe Token Persistence (GPL-3.0-or-later)
+# ─────────────────────────────────────────────
+# GravWatch - Safe Token Persistence
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 import os
 import json
 import logging
-import secrets
-import hashlib
-import base64
-import urllib.parse
 import httpx
+import re
+import time
 from typing import Dict, Any, Optional
 
-try:
-    from services.server.core.config import settings
-except ImportError:
-    from .config import settings
+from services.server.core.config import settings, JETSKI_PRESET
 
 logger = logging.getLogger("gravwatch.google_oauth")
 
-GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_CLIENT_ID = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
-GOOGLE_REDIRECT_URI = "https://antigravity.google/oauth-callback"
-GOOGLE_SCOPES = (
-    "https://www.googleapis.com/auth/cloud-platform "
-    "https://www.googleapis.com/auth/userinfo.email "
-    "https://www.googleapis.com/auth/userinfo.profile "
-    "https://www.googleapis.com/auth/cclog "
-    "https://www.googleapis.com/auth/experimentsandconfigs "
-    "https://www.googleapis.com/auth/aicode "
-    "openid"
-)
+GOOGLE_USERINFO_URL = settings.GOOGLE_USERINFO_URL
+GOOGLE_TOKEN_URL = settings.GOOGLE_TOKEN_URL
+GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET = settings.GOOGLE_CLIENT_SECRET
 
-def _get_verifiers_file() -> str:
-    return os.path.join(settings.DATA_DIR, ".pkce_verifiers.json")
+ACCOUNT_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
-
-def _load_verifiers() -> Dict[str, str]:
-    vf = _get_verifiers_file()
-    if os.path.exists(vf):
+def find_refresh_token_file(account_id: str) -> Optional[str]:
+    """Find a file containing a valid refresh_token for the given account."""
+    candidates = [
+        os.path.join(settings.DATA_DIR, account_id, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
+        os.path.join(settings.DATA_DIR, account_id, "antigravity-cli", "antigravity-oauth-token"),
+        os.path.join(settings.DATA_DIR, account_id, ".gemini", "antigravity-cli", "credentials.json"),
+        os.path.join(settings.DATA_DIR, account_id, "antigravity-cli", "credentials.json"),
+    ]
+    for path in candidates:
+        if not os.path.exists(path):
+            continue
         try:
-            with open(vf, "r", encoding="utf-8") as f:
-                return json.load(f)
+            with open(path, "r", encoding="utf-8") as f:
+                raw = f.read().strip()
+            if raw.startswith("{"):
+                data = json.loads(raw)
+                token_obj = data.get("token", {})
+                rt = token_obj.get("refresh_token") or token_obj.get("refreshToken") or data.get("refresh_token") or data.get("refreshToken")
+                if rt and len(rt) > 10:
+                    logger.info("Found refresh token in %s", path)
+                    return path
+            else:
+                # Plain text might be a refresh token (starts with "1//" or "4//")
+                if raw.startswith("1//") or raw.startswith("4//"):
+                    logger.info("Found refresh token in %s (plain text)", path)
+                    return path
         except Exception:
             pass
-    return {}
+    return None
 
 
-def _save_verifier(key: str, val: str):
-    vmap = _load_verifiers()
-    vmap[key] = val
-    vf = _get_verifiers_file()
+def find_refresh_token(account_id: str) -> Optional[str]:
+    """Read a refresh token value for the given account."""
+    path = find_refresh_token_file(account_id)
+    if not path:
+        return None
     try:
-        os.makedirs(settings.DATA_DIR, mode=0o777, exist_ok=True)
-        with open(vf, "w", encoding="utf-8") as f:
-            json.dump(vmap, f)
+        with open(path, "r", encoding="utf-8") as f:
+            raw = f.read().strip()
+        if raw.startswith("{"):
+            data = json.loads(raw)
+            token_obj = data.get("token", {})
+            return token_obj.get("refresh_token") or token_obj.get("refreshToken") or data.get("refresh_token") or data.get("refreshToken")
+        return raw
     except Exception:
-        pass
+        return None
 
 
-def generate_pkce_auth_url(account_id: str) -> str:
-    verifier = secrets.token_urlsafe(64)
-    digest = hashlib.sha256(verifier.encode("ascii")).digest()
-    challenge = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
-    state = secrets.token_urlsafe(32)
-
-    _save_verifier(account_id, verifier)
-    _save_verifier(state, verifier)
-
-    params = {
-        "access_type": "offline",
-        "client_id": GOOGLE_CLIENT_ID,
-        "code_challenge": challenge,
-        "code_challenge_method": "S256",
-        "prompt": "consent",
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-        "response_type": "code",
-        "scope": GOOGLE_SCOPES,
-        "state": state,
-    }
-    return "https://accounts.google.com/o/oauth2/auth?" + urllib.parse.urlencode(params)
+def save_refresh_token(path: str, new_token: str) -> None:
+    """Update a refresh_token in the given file without corrupting other data."""
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            raw = f.read()
+        if raw.startswith("{"):
+            data = json.loads(raw)
+            if "token" in data and isinstance(data["token"], dict):
+                data["token"]["refresh_token"] = new_token
+            data["refresh_token"] = new_token
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        else:
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(new_token)
+    except Exception as e:
+        logger.warning("Could not save refresh token to %s: %s", path, e)
 
 
-async def exchange_pkce_code(account_id: str, code: str) -> Dict[str, Any]:
-    vmap = _load_verifiers()
-    verifier = vmap.get(account_id)
-    payload = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "code": code.strip(),
-        "grant_type": "authorization_code",
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-    }
-    if verifier:
-        payload["code_verifier"] = verifier
+def refresh_oauth_token(account_id: str) -> Optional[Dict[str, Any]]:
+    """Try to refresh a Google OAuth access_token using stored refresh_token.
+    Returns dict with access_token, refresh_token, expires_at on success, or None."""
+    refresh_token = find_refresh_token(account_id)
+    if not refresh_token:
+        logger.info("No refresh token found for %s", account_id)
+        return None
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
-        resp = await client.post(GOOGLE_TOKEN_URL, data=payload)
-        if resp.status_code != 200:
-            logger.warning("Google Token endpoint returned HTTP %s: %s", resp.status_code, resp.text)
-            raise RuntimeError(f"Token exchange failed (HTTP {resp.status_code}): {resp.text}")
-        return resp.json()
+    rt_file = find_refresh_token_file(account_id)
+    logger.info("Trying to refresh token for %s (refresh_token starting with: %s...)",
+                account_id, refresh_token[:20])
+
+    try:
+        client = httpx.Client(timeout=10.0)
+        resp = client.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "grant_type": "refresh_token",
+                "refresh_token": refresh_token,
+            },
+        )
+        client.close()
+    except Exception as e:
+        logger.warning("Token refresh request failed for %s: %s", account_id, e)
+        return None
+
+    if resp.status_code != 200:
+        logger.warning("Token refresh returned HTTP %d for %s", resp.status_code, account_id)
+        return None
+
+    try:
+        token_data = resp.json()
+        new_access = token_data.get("access_token")
+        new_refresh = token_data.get("refresh_token") or refresh_token
+        expires_in = int(token_data.get("expires_in", 3599))
+
+        if not new_access:
+            return None
+
+        # Save the new refresh_token if provided
+        if rt_file and new_refresh != refresh_token:
+            save_refresh_token(rt_file, new_refresh)
+
+        logger.info("Successfully refreshed OAuth token for %s (expires in %ds)", account_id, expires_in)
+        return {
+            "access_token": new_access,
+            "refresh_token": new_refresh,
+            "expires_in": expires_in,
+        }
+    except Exception:
+        return None
+
+
+def _validate_account_id(account_id: str) -> str:
+    if not account_id or not ACCOUNT_ID_PATTERN.match(account_id):
+        raise ValueError(f"Invalid account_id [{account_id}]. Must be 1-64 alphanumeric, dash, or underscore characters.")
+    return account_id
 
 
 def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
+    account_id = _validate_account_id(account_id)
     target_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
     os.makedirs(target_dir, mode=0o777, exist_ok=True)
     target_file = os.path.join(target_dir, "credentials.json")
@@ -123,6 +171,24 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
         real_exp = "2030-01-01T00:00:00Z"
         real_method = "consumer"
 
+        # agy may have written a token file with a refresh_token during its
+        # own login flow. Never clobber it with an empty one (e.g. when a
+        # bare ya29.* token is pasted through exchange-code).
+        if not real_rt:
+            try:
+                with open(os.path.join(target_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token"), "r", encoding="utf-8") as ef:
+                    existing = json.load(ef)
+                    existing_rt = (existing.get("token", {}) or {}).get("refresh_token") or ""
+                    if existing_rt:
+                        real_rt = existing_rt
+                        existing_tok = existing.get("token", {}) or {}
+                        if existing_tok.get("expiry"):
+                            real_exp = existing_tok["expiry"]
+                        real_method = existing.get("auth_method") or real_method
+                        logger.info("Preserved existing refresh_token for %s", account_id)
+            except Exception:
+                pass
+
         if isinstance(access_token, str) and access_token.strip().startswith("{"):
             try:
                 parsed = json.loads(access_token)
@@ -134,23 +200,27 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
             except Exception:
                 pass
 
-        JETSKI_PRESET = """post_onboarding:  {
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_COLOR_SCHEME
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_MANAGER_WELCOME
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_USAGE_MODE
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_AGENT_CONFIGURATION
-  completed_steps:  POST_ONBOARDING_STEP_TYPE_ADD_WORKSPACE
-}
-installation_uuid:  "98d027cc-5310-4b0e-a832-fab3183df8b7"
-migrations:  { key:  3 value:  MIGRATION_STATUS_COMPLETED }
-migrations:  { key:  4 value:  MIGRATION_STATUS_COMPLETED }
-migrations:  { key:  5 value:  MIGRATION_STATUS_COMPLETED }
-"""
-
+        # Persist refresh_token to all token files (needed for CloudCode refresh).
+        # If the token file already holds a REAL agy-issued expiry (from agy's own
+        # login flow), keep it — writing a fake 2030 expiry stops agy from refreshing
+        # (it trusts the file and never re-auths).
         dirs = [
             os.path.join(target_dir, ".gemini", "antigravity-cli"),
             os.path.join(target_dir, "antigravity-cli"),
         ]
+        for d in dirs:
+            try:
+                existing_path = os.path.join(d, "antigravity-oauth-token")
+                if os.path.exists(existing_path):
+                    with open(existing_path, "r", encoding="utf-8") as ef:
+                        existing = json.load(ef)
+                    ex_tok = existing.get("token", {}) or {}
+                    ex_exp = ex_tok.get("expiry") or ""
+                    if ex_exp and not ex_exp.startswith("2030"):
+                        real_exp = ex_exp
+                        break
+            except Exception:
+                pass
         for d in dirs:
             try:
                 os.makedirs(d, mode=0o777, exist_ok=True)
@@ -166,20 +236,28 @@ migrations:  { key:  5 value:  MIGRATION_STATUS_COMPLETED }
                 }
                 with open(token_file, "w", encoding="utf-8") as tf:
                     json.dump(token_payload, tf)
-                os.chmod(token_file, 0o666)
+                os.chmod(token_file, 0o600)
+
+                # Also save refresh_token as plain_text in a known location
+                rt_file = os.path.join(d, "refresh_token")
+                if real_rt:
+                    with open(rt_file, "w", encoding="utf-8") as rf:
+                        rf.write(real_rt)
+                    os.chmod(rt_file, 0o600)
 
                 pbtxt = os.path.join(d, "jetski_state.pbtxt")
-                with open(pbtxt, "w", encoding="utf-8") as pf:
-                    pf.write(JETSKI_PRESET)
-                os.chmod(pbtxt, 0o666)
+                if not os.path.exists(pbtxt):
+                    with open(pbtxt, "w", encoding="utf-8") as pf:
+                        pf.write(JETSKI_PRESET)
+                    os.chmod(pbtxt, 0o644)
 
                 settings_json = os.path.join(d, "settings.json")
                 with open(settings_json, "w", encoding="utf-8") as sf:
                     sf.write('{\n  "trustedWorkspaces": [\n    "/app",\n    "/root",\n    "/",\n    "/tmp"\n  ]\n}\n')
-                os.chmod(settings_json, 0o666)
+                os.chmod(settings_json, 0o644)
 
                 cache_d = os.path.join(d, "cache")
-                os.makedirs(cache_d, mode=0o777, exist_ok=True)
+                os.makedirs(cache_d, mode=0o700, exist_ok=True)
                 onboard_json = os.path.join(cache_d, "onboarding.json")
                 with open(onboard_json, "w", encoding="utf-8") as of:
                     json.dump({
@@ -187,14 +265,39 @@ migrations:  { key:  5 value:  MIGRATION_STATUS_COMPLETED }
                         "enterpriseOnboardingComplete": True,
                         "onboardingComplete": True
                     }, of, indent=2)
-                os.chmod(onboard_json, 0o666)
+                os.chmod(onboard_json, 0o644)
             except Exception as e:
                 logger.warning("Could not write oauth token/config files in %s: %s", d, e)
+
+        # Auto-refresh if token is stale AND we have a refresh_token
+        if real_rt and len(real_rt) > 10:
+            # Try to validate and refresh immediately
+            refresh_result = refresh_oauth_token(account_id)
+            if refresh_result:
+                logger.info("Auto-refreshed token for %s after credential write", account_id)
+                # Update the payload with fresh token
+                data["access_token"] = refresh_result["access_token"]
+                data["refresh_token"] = refresh_result.get("refresh_token", real_rt)
+                data["expires_at"] = (
+                    data.get("expires_at", 0) or 
+                    (refresh_result.get("expires_in", 3599) + int(time.time()))
+                )
+                # Re-save with fresh token
+                try:
+                    with open(target_file, "w", encoding="utf-8") as f:
+                        json.dump(data, f, indent=2)
+                except Exception:
+                    pass
+            else:
+                logger.warning("Auto-refresh failed for %s — existing token may be stale", account_id)
+        elif not real_rt:
+            logger.info("No refresh_token saved for %s (empty/not provided). Token may expire.", account_id)
 
     return target_file
 
 
 def load_account_credentials(account_id: str) -> Optional[Dict[str, Any]]:
+    account_id = _validate_account_id(account_id)
     target_file = os.path.abspath(os.path.join(settings.DATA_DIR, account_id, "credentials.json"))
     creds: Dict[str, Any] = {}
     if os.path.exists(target_file):
@@ -204,62 +307,34 @@ def load_account_credentials(account_id: str) -> Optional[Dict[str, Any]]:
         except Exception as e:
             logger.warning("Could not read credentials for %s: %s", account_id, e)
 
-    if creds.get("email"):
+    # An explicit login-flow write marks status "authenticated" together with
+    # a real token. Email can be unavailable because Google rejects identity
+    # endpoints for first-party agy tokens — that must not hide the account.
+    if creds.get("status") == "authenticated" and (creds.get("access_token") or creds.get("email")):
         return creds
 
-    candidate_tokens = [
-        os.path.join(settings.DATA_DIR, account_id, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
-        os.path.join(settings.DATA_DIR, account_id, "antigravity-cli", "antigravity-oauth-token"),
-    ]
-    access_token = None
-    for cp in candidate_tokens:
-        if os.path.exists(cp):
-            try:
-                with open(cp, "r", encoding="utf-8") as tf:
-                    raw = tf.read().strip()
-                    if raw.startswith("{"):
-                        t_data = json.loads(raw)
-                        access_token = t_data.get("token", {}).get("access_token") or t_data.get("access_token")
-                    elif not raw.startswith("4/0A"):
-                        access_token = raw
-                if access_token:
-                    break
-            except Exception:
-                pass
-
-    if access_token:
-        try:
-            with httpx.Client(timeout=5.0) as client:
-                resp = client.get(
-                    GOOGLE_USERINFO_URL,
-                    headers={"Authorization": f"Bearer {access_token}"},
-                )
-                if resp.status_code == 200:
-                    u_data = resp.json()
-                    creds["email"] = u_data.get("email")
-                    creds["name"] = u_data.get("name")
-                    creds["picture"] = u_data.get("picture")
-                    creds["status"] = "authenticated"
-                    creds["account_id"] = account_id
-                    creds["access_token"] = access_token
-                    safe_write_credentials(account_id, creds)
-                    return creds
-        except Exception as e:
-            logger.debug("Failed resolving userinfo for %s: %s", account_id, e)
-
-    return creds if creds else None
+    return None
 
 
 def delete_account_credentials(account_id: str) -> bool:
-    target_file = os.path.abspath(os.path.join(settings.DATA_DIR, account_id, "credentials.json"))
-    if os.path.exists(target_file):
-        try:
-            os.remove(target_file)
-            return True
-        except Exception as e:
-            logger.warning("Could not delete credentials for %s: %s", account_id, e)
-            return False
-    return False
+    account_id = _validate_account_id(account_id)
+    base = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
+    targets = [
+        os.path.join(base, "credentials.json"),
+        os.path.join(base, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
+        os.path.join(base, "antigravity-cli", "antigravity-oauth-token"),
+        os.path.join(base, ".gemini", "antigravity-cli", "refresh_token"),
+        os.path.join(base, "antigravity-cli", "refresh_token"),
+    ]
+    removed = False
+    for path in targets:
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+                removed = True
+            except Exception as e:
+                logger.warning("Could not delete %s: %s", path, e)
+    return removed
 
 
 async def get_user_info(access_token: str) -> Dict[str, Any]:

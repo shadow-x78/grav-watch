@@ -1,5 +1,7 @@
+// ─────────────────────────────────────────────
 // GravWatch - Core Type Definitions (GPL-3.0-or-later)
 // https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
 
 export type AntigravityPlan = "Google AI Free" | "Google AI Pro" | "Google AI Ultra" | "Enterprise";
 export type ContainerStatus = "running" | "stopped" | "restarting" | "error";
@@ -37,8 +39,11 @@ export interface GravAccount {
   geminiQuota: ModelCategoryQuota;
   claudeGptQuota: ModelCategoryQuota;
   lastScrapedAt: string;
+  lastSnapshotAt?: string;
+  snapshotCount?: number;
   tags: string[];
   notes?: string;
+  sessionToken?: string;
   createdAt: string;
 }
 

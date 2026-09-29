@@ -33,10 +33,8 @@ cd ~/GravWatch
 ```bash
 cp .env.example .env
 ```
-Edit `.env` to configure your API keys and parameters:
+Edit `.env` to configure your ports and parameters:
 ```env
-AGENT_API_KEY=your-secure-agent-key
-MASTER_API_KEY=your-secure-master-key
 SERVER_PORT=8000
 ```
 

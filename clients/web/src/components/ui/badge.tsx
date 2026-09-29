@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - Badge UI Component
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";

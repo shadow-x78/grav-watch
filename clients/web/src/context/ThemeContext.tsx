@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - Theme Mode Context Provider
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 "use client";
 
 import React, { createContext, useContext, useEffect } from "react";

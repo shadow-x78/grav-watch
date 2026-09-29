@@ -1,24 +1,15 @@
+# ─────────────────────────────────────────────
 # GravWatch - FastAPI Application Entrypoint (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-try:
-    from services.server.core.config import settings, resolve_runtime_secrets
-    from services.server.core.database import init_db, engine
-    from services.server.api.router import api_router
-except ImportError:
-    try:
-        from .core.config import settings, resolve_runtime_secrets
-        from .core.database import init_db, engine
-        from .api.router import api_router
-    except ImportError:
-        from core.config import settings, resolve_runtime_secrets
-        from core.database import init_db, engine
-        from api.router import api_router
+from services.server.core.config import settings
+from services.server.core.database import init_db, engine
+from services.server.api.router import api_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
 logger = logging.getLogger("gravwatch.server")
@@ -28,10 +19,6 @@ logger = logging.getLogger("gravwatch.server")
 async def lifespan(app: FastAPI):
     logger.info("Initializing GravWatch Database...")
     await init_db()
-    try:
-        resolve_runtime_secrets()
-    except RuntimeError as e:
-        logger.warning("Startup secret resolution note: %s", e)
     yield
     logger.info("Shutting down GravWatch Server...")
     await engine.dispose()
@@ -45,7 +32,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan
     )
 
-    allowed_origins = [
+    cors_allowed_origins = [
         settings.PUBLIC_ORIGIN.rstrip("/"),
         "http://localhost:3000",
         "http://127.0.0.1:3000",
@@ -55,9 +42,9 @@ def create_app() -> FastAPI:
 
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=allowed_origins,
+        allow_origins=cors_allowed_origins,
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
         allow_headers=["*"],
     )
 

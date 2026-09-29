@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────
+// GravWatch - Progress Ring UI Component
+// https://github.com/shadow-x78/grav-watch
+// ─────────────────────────────────────────────
+
 "use client";
 
 import * as React from "react";

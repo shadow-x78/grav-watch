@@ -1,65 +1,41 @@
 {
   "metricCards": {
     "pooledCapacity": {
-      "title": "السعة المجمعة",
-      "subValue": "إجمالي السعة لكافة الحسابات",
-      "badge": "سعة نشطة"
+      "title": "سعة المجمع",
+      "subValue": "الحصص مجتمعة",
+      "badge": "مجمع نشط"
     },
     "gemini5h": {
-      "title": "حد 5 ساعات لـ Gemini",
-      "subValue": "المتبقي من دورة الـ 5 ساعات",
+      "title": "حد Gemini 5س",
+      "subValue": "نافذة 5س متحركة",
       "badge": "Gemini"
     },
     "claude5h": {
-      "title": "حد 5 ساعات لـ Claude و GPT",
-      "subValue": "سعة Sonnet و Opus و GPT",
+      "title": "حد Claude و GPT 5س",
+      "subValue": "Sonnet، Opus، GPT",
       "badge": "Claude / GPT"
-    },
-    "activeAccounts": {
-      "title": "الحسابات النشطة",
-      "subValue": "العقد التشغيلية النشطة",
-      "allHealthySubValue": "كافة الحسابات نشطة",
-      "depletedSubValue": "{count} بحاجة لمراجعة",
-      "badge": "العقد"
-    },
-    "dockerSandboxes": {
-      "title": "حاويات Docker",
-      "subValue": "بيئات معزولة ديناميكية",
-      "badgeWarnings": "{count} تنبيهات",
-      "badgeAllRunning": "الكل يعمل",
-      "liveHub": "بث مباشر"
     }
   },
   "matrix": {
     "title": "حصص النماذج",
     "refreshTooltip": "تحديث المؤشرات",
-    "subheaderManaging": "إدارة حصص {alias} ({email})",
-    "subheaderPooled": "مؤشرات الحصص المجمعة لكافة الحسابات.",
-    "multiAccountPool": "مجمع كافة الحسابات",
+    "subheaderManaging": "{alias} · {email}",
+    "subheaderPooled": "كل الحسابات مجتمعة",
     "planSection": "الاشتراك",
     "yourPlan": "الاشتراك: {plan}",
     "geminiModels": "نماذج Gemini",
-    "geminiTooltip": "تتقاسم نماذج Flash و Pro هذه الحصة",
+    "geminiTooltip": "Flash و Pro تشتركان",
     "claudeGptModels": "نماذج Claude و GPT",
-    "claudeTooltip": "تتقاسم نماذج Sonnet و Opus و GPT هذه الحصة",
-    "weeklyLimitRemaining": "الحد الأسبوعي",
-    "fiveHourLimitRemaining": "حد 5 ساعات",
-    "weeklyPartialUsed": "تستعاد السعة خلال {time}",
-    "fiveHourPartialUsed": "تستعاد السعة خلال {time}",
-    "fullWeeklyCapacity": "100% متوفرة",
-    "fullFiveHourCapacity": "100% متوفرة"
-  },
-  "donut": {
-    "title": "توزيع السعة",
-    "subheader": "مساهمة كل حساب",
-    "poolCap": "السعة القصوى",
-    "tooltipPlan": "الاشتراك:",
-    "tooltipAvgRemaining": "المتوسط المتبقي:",
-    "capSuffix": "{value}% من السعة"
+    "claudeTooltip": "Sonnet و Opus و GPT تشتركان",
+    "weeklyLimit": "أسبوعي",
+    "fiveHourLimit": "5 ساعات",
+    "weeklyPartialUsed": "تستعاد خلال {time}",
+    "fiveHourPartialUsed": "تستعاد خلال {time}",
+    "fullCapacity": "100% متوفرة"
   },
   "clusterNodes": {
-    "title": "عقد الحاويات المتصلة",
-    "subtitle": "المؤشرات المباشرة وتوزيع الحصص عبر بيئات Docker المعزولة",
+    "title": "العقد المتصلة",
+    "subtitle": "مؤشرات مباشرة",
     "viewAll": "إدارة الحسابات",
     "online": "نشط",
     "offline": "متوقف",

@@ -1,6 +1,7 @@
+# ─────────────────────────────────────────────
 # GravWatch - IDE Session Database Collector (GPL-3.0-or-later)
 # https://github.com/shadow-x78/grav-watch
-
+# ─────────────────────────────────────────────
 import os
 import re
 import sqlite3
@@ -65,3 +66,4 @@ def extract_email_from_blob(blob: str) -> Optional[str]:
     if m:
         return m.group(1)
     return None
+
