@@ -4,17 +4,15 @@
 // ─────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_INTERNAL_URL ||
-  (process.env.NODE_ENV === "production" ? "http://server:8000" : "http://localhost:8000");
+import { backendFetch } from "@/app/api/v1/proxy";
 
 export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get("account_id") || "acc-1";
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/v1/auth/container/toggle?account_id=${encodeURIComponent(accountId)}`,
+    const response = await backendFetch(
+      `/api/v1/auth/container/toggle?account_id=${encodeURIComponent(accountId)}`,
       { method: "POST" }
     );
 

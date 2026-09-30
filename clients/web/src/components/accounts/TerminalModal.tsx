@@ -173,8 +173,15 @@ export const TerminalModal: React.FC<TerminalModalProps> = ({
     .split("\n")
     .map((line) =>
       line
-        .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, "")
-        .replace(/\x1b\][^\x07\x1b]*(\x07|\x1b\\)/g, "")
+        // OSC 8 hyperlinks: keep only the link text
+        .replace(/\x1b\]8;[^;]*;([^\x07\x1b]*)(?:\x07|\x1b\\)/g, "$1")
+        // ANSI CSI sequences: escape codes like [>4m, [<1u, [?2026$p etc.
+        .replace(/\x1b\[[0-9;?]*[a-zA-Z@^_{}|~]/g, "")
+        // Other ANSI escapes
+        .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
+        // Remaining raw escape chars
+        .replace(/\x1b/g, "")
+        .replace(/\x07/g, "")
         .replace(/\r/g, "")
     )
     .filter((line) => line.trim().length > 0);

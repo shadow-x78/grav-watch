@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - FastAPI Application Entrypoint (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import logging
 from contextlib import asynccontextmanager
@@ -14,7 +12,6 @@ from services.server.api.router import api_router
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(name)s] %(message)s")
 logger = logging.getLogger("gravwatch.server")
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing GravWatch Database...")
@@ -22,7 +19,6 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("Shutting down GravWatch Server...")
     await engine.dispose()
-
 
 def create_app() -> FastAPI:
     application = FastAPI(
@@ -44,8 +40,8 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=cors_allowed_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "DELETE", "OPTIONS", "PUT", "PATCH"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=["Authorization", "X-API-Key", "Content-Type"],
     )
 
     @application.get("/")
@@ -60,6 +56,5 @@ def create_app() -> FastAPI:
 
     application.include_router(api_router)
     return application
-
 
 app = create_app()

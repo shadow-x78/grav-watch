@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - Async SQLAlchemy Engine & Session Manager (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -19,7 +17,6 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession,
     expire_on_commit=False
 )
-
 
 async def init_db():
     os.makedirs(settings.DATA_DIR, exist_ok=True)

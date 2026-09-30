@@ -5,7 +5,8 @@ LABEL description="GravWatch isolated minimal container agent for Google Antigra
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
-    PATH="/usr/local/bin:/root/.local/bin:$PATH"
+    PATH="/usr/local/bin:/root/.local/bin:$PATH" \
+    HOME=/tmp
 
 WORKDIR /app
 
@@ -25,5 +26,9 @@ RUN pip install --no-cache-dir -r /app/services/agent/requirements.txt
 COPY services/ /app/services/
 COPY packaging/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+RUN mkdir -p /tmp/.gemini /tmp/.config/antigravity /tmp/.config/Code/User/globalStorage /tmp/.config/Antigravity/User/globalStorage
+RUN ln -sf /tmp/.gemini /root/.gemini
+RUN ln -sf /tmp/.config /root/.config
 
 ENTRYPOINT ["/entrypoint.sh"]

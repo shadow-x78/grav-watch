@@ -11,6 +11,7 @@
     "claudeGptModels": "حصص Claude و GPT",
     "weeklyRemaining": "أسبوعي",
     "fiveHourRemaining": "5 ساعات",
+    "unlimited": "غير محدود",
     "refreshesIn": "تستعاد خلال {time}",
     "fullCapacity": "100% متوفرة",
     "lastSnapshot": "آخر تحديث قبل {time}",

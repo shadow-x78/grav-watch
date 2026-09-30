@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - Health Check API (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 from fastapi import APIRouter
 from datetime import datetime, timezone

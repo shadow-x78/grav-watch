@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - CloudCode Quota Scraper
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import os
 import os
@@ -14,7 +12,6 @@ from services.agent.core.config import settings
 from services.agent.collector.parser import normalize_category_name
 
 logger = logging.getLogger("gravwatch.collector.scraper")
-
 
 def _format_reset_delta(reset_str: Optional[str]) -> str:
     if not reset_str:
@@ -38,9 +35,6 @@ def _format_reset_delta(reset_str: Optional[str]) -> str:
     except Exception:
         return "Active"
 
-
-# ── Token file helpers ───────────────────────────────────────────────────────
-
 def _list_token_files(acc_id: str) -> List[str]:
     """Return paths where OAuth tokens may be stored."""
     data_dir = os.environ.get("DATA_DIR", "/app/data")
@@ -50,7 +44,6 @@ def _list_token_files(acc_id: str) -> List[str]:
         "/root/.gemini/antigravity-cli/antigravity-oauth-token",
     ]
     return [p for p in paths if os.path.exists(p)]
-
 
 def _read_access_token(acc_id: Optional[str] = None) -> Optional[str]:
     """Extract access_token from the best available token file."""
@@ -74,13 +67,12 @@ def _read_access_token(acc_id: Optional[str] = None) -> Optional[str]:
                     logger.info("Found token at %s", path)
                     return tok
             except json.JSONDecodeError:
-                if raw.startswith(("ya29.", "google")) and len(raw) > 20:
+                if raw.startswith("ya29.") and len(raw) > 20:
                     logger.info("Found plain text token at %s", path)
                     return raw
         except Exception as e:
             logger.debug("Failed reading %s: %s", path, e)
     return None
-
 
 def _update_token_file(acc_id: str, new_access: str, new_refresh: str = "") -> None:
     """Persist a freshly refreshed token (overwrite the first file we find)."""
@@ -102,15 +94,12 @@ def _update_token_file(acc_id: str, new_access: str, new_refresh: str = "") -> N
     with open(path, "w") as f:
         json.dump(payload, f, indent=2)
 
-
-# ── CloudCode API scraper ────────────────────────────────────────────────────
 CLOUDCODE_URL = "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuota"
 CLOUDCODE_SUMMARY_URL = "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary"
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "not-set")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "not-set")
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_REFRESH_ENDPOINT = "https://oauth2.googleapis.com/token"
-
 
 def _get_scoped_refresh_token() -> Optional[str]:
     """Try to fetch a refresh_token from known locations."""
@@ -128,7 +117,6 @@ def _get_scoped_refresh_token() -> Optional[str]:
             if rt and len(rt) > 10:
                 return rt
 
-    # Also try embedded in the token file
     tok_path = os.path.join(
         data_dir, acc_id, ".gemini", "antigravity-cli", "antigravity-oauth-token"
     )
@@ -145,7 +133,6 @@ def _get_scoped_refresh_token() -> Optional[str]:
         except Exception:
             pass
     return None
-
 
 def _refresh_via_google(access_token: str) -> Optional[str]:
     """Use a refresh_token to get a new access_token from Google."""
@@ -180,7 +167,6 @@ def _refresh_via_google(access_token: str) -> Optional[str]:
         logger.warning("Google refresh failed: %s", e)
     return None
 
-
 def _cloudcode_post(url: str, token: str) -> Optional[Dict[str, Any]]:
     """POST to a CloudCode internal endpoint and return the decoded JSON body."""
     try:
@@ -202,7 +188,6 @@ def _cloudcode_post(url: str, token: str) -> Optional[Dict[str, Any]]:
         logger.debug("CloudCode probe %s failed: %s", url.rsplit(":", 1)[-1], e)
         return None
 
-
 def _tier_from_summary_bucket(bucket: Dict[str, Any]) -> Dict[str, Any]:
     """Map a per-window quota bucket from retrieveUserQuotaSummary to our tier shape.
 
@@ -222,9 +207,7 @@ def _tier_from_summary_bucket(bucket: Dict[str, Any]) -> Dict[str, Any]:
         "is_exhausted": pct is not None and pct <= 0,
     }
 
-
 _EMPTY_TIER = {"percentage_remaining": None, "refresh_in_human": None, "is_exhausted": False}
-
 
 def _call_cloudcode_summary(token: str) -> Optional[Dict[str, Any]]:
     """Fetch the real weekly vs 5-hour windows from retrieveUserQuotaSummary."""
@@ -254,7 +237,6 @@ def _call_cloudcode_summary(token: str) -> Optional[Dict[str, Any]]:
         return {"categories": cats, "raw": data}
     return None
 
-
 def _call_cloudcode(token: str) -> Optional[Dict[str, Any]]:
     """Legacy model-level probe (retrieveUserQuota). Fallback only: the model
     buckets carry a single effective window, so we map it to weekly and leave
@@ -267,7 +249,6 @@ def _call_cloudcode(token: str) -> Optional[Dict[str, Any]]:
         if not buckets:
             return None
 
-        # Classify buckets
         gemini_buckets = [b for b in buckets if "gemini" in b.get("modelId", "").lower()]
         claude_buckets = [b for b in buckets if
                           "claude" in b.get("modelId", "").lower()
@@ -275,7 +256,6 @@ def _call_cloudcode(token: str) -> Optional[Dict[str, Any]]:
 
         cats: List[Dict[str, Any]] = []
 
-        # ── Gemini ──
         if gemini_buckets:
             fracs = [b.get("remainingFraction", 1.0) for b in gemini_buckets
                      if b.get("remainingFraction") is not None]
@@ -293,7 +273,6 @@ def _call_cloudcode(token: str) -> Optional[Dict[str, Any]]:
                 "five_hour_limit": dict(_EMPTY_TIER),
             })
 
-        # ── Claude / GPT ──
         if claude_buckets:
             fracs = [b.get("remainingFraction", 1.0) for b in claude_buckets
                      if b.get("remainingFraction") is not None]
@@ -319,9 +298,6 @@ def _call_cloudcode(token: str) -> Optional[Dict[str, Any]]:
         logger.debug("CloudCode PA probe failed: %s", e)
         return None
 
-
-# ── Public API ───────────────────────────────────────────────────────────────
-
 class QuotaScraper:
     def __init__(self):
         pass
@@ -329,17 +305,13 @@ class QuotaScraper:
     def scrape(self) -> List[Dict[str, Any]]:
         acc_id = os.environ.get("ACCOUNT_ID", "acc-1")
 
-        # ── Path 1: Load token + call CloudCode ─────────────────
         token = _read_access_token(acc_id)
         if not token:
             logger.warning("No access_token found — quota scraping disabled")
             return []
 
-        # Summary endpoint carries the true weekly vs 5-hour windows;
-        # the model-level endpoint is a fallback (single effective window).
         result = _call_cloudcode_summary(token) or _call_cloudcode(token)
 
-        # ── Retry with refresh if 401 (token expired) ──────────
         if result is None:
             logger.info("CloudCode returned no data — attempting refresh")
             refreshed = _refresh_via_google(token)
@@ -351,7 +323,6 @@ class QuotaScraper:
 
         logger.warning("Failed to scrape quota — no data from CloudCode or refresh")
         return []
-
 
 def scrape() -> List[Dict[str, Any]]:
     """Convenience function for direct calls."""

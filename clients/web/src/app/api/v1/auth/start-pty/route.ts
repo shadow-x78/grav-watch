@@ -4,12 +4,9 @@
 // ─────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_INTERNAL_URL ||
-  (process.env.NODE_ENV === "production" ? "http://server:8000" : "http://localhost:8000");
+import { backendFetch } from "@/app/api/v1/proxy";
 
 export async function GET(request: NextRequest) {
-  // Redirect GET to POST for compat
   return POST(request);
 }
 
@@ -17,26 +14,13 @@ export async function POST(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const accountId = searchParams.get("account_id") || "acc-1";
-    console.log("[start-pty proxy] account:", accountId);
 
-    const url = `${BACKEND_URL}/api/v1/auth/start-pty?account_id=${encodeURIComponent(accountId)}`;
-    console.log("[start-pty proxy] forwarding to:", url);
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      // start-pty provisions a container and walks agy through onboarding
-      // before the URL is captured; allow up to 2 minutes.
-      signal: AbortSignal.timeout(120000),
-    });
-
-    console.log("[start-pty proxy] backend status:", response.status);
+    const response = await backendFetch(
+      `/api/v1/auth/start-pty?account_id=${encodeURIComponent(accountId)}`,
+      { method: "POST", signal: AbortSignal.timeout(120000) }
+    );
 
     const text = await response.text();
-    console.log("[start-pty proxy] backend body:", text.substring(0, 100));
-
     return new NextResponse(text, {
       status: response.status,
       headers: { "Content-Type": "application/json" }
@@ -53,4 +37,3 @@ export async function POST(request: NextRequest) {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 180;
-

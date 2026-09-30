@@ -90,10 +90,22 @@ export const AccountCard: React.FC<AccountCardProps> = ({
       ? t("accounts.card.noSnapshots")
       : t("accounts.card.lastSnapshot", { time: formatRelativeAge(snapshotAgeMs, language) });
 
-  const geminiWeekly = account.geminiQuota.weekly;
-  const gemini5h = account.geminiQuota.fiveHour;
-  const claudeWeekly = account.claudeGptQuota.weekly;
-  const claude5h = account.claudeGptQuota.fiveHour;
+   const isFree = account.is_free;
+
+   const geminiWeekly = account.geminiQuota.weekly;
+   const gemini5h = account.geminiQuota.fiveHour;
+   const claudeWeekly = account.claudeGptQuota.weekly;
+   const claude5h = account.claudeGptQuota.fiveHour;
+
+   const geminiRows = [
+     { label: t("accounts.card.weeklyRemaining"), pct: geminiWeekly.percentRemaining, cd: geminiWeekly.refreshCountdown, color: "#34a853" },
+     ...(isFree ? [] : [{ label: t("accounts.card.fiveHourRemaining"), pct: gemini5h.percentRemaining, cd: gemini5h.refreshCountdown, color: "#4285f4" }]),
+   ];
+
+   const claudeRows = [
+     { label: t("accounts.card.weeklyRemaining"), pct: claudeWeekly.percentRemaining, cd: claudeWeekly.refreshCountdown, color: "#34a853" },
+     ...(isFree ? [] : [{ label: t("accounts.card.fiveHourRemaining"), pct: claude5h.percentRemaining, cd: claude5h.refreshCountdown, color: "#ea4335" }]),
+   ];
 
   return (
     <motion.div
@@ -138,25 +150,21 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           <div className="flex items-center gap-1.5 mb-3">
             <Image src={GEMINI_LOGO} alt="Gemini" width={32} height={32} className="h-6 w-6" unoptimized />
             <span className="text-xs font-semibold text-slate-200">{t("accounts.card.geminiModels")}</span>
-            <span className="ml-auto text-[10px] font-mono text-slate-500">
-              {geminiWeekly.percentRemaining < 100
-                ? formatCountdownWithDays(geminiWeekly.refreshCountdown, language)
-                : t("accounts.card.fullCapacity")}
-            </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: t("accounts.card.weeklyRemaining"), pct: geminiWeekly.percentRemaining, cd: geminiWeekly.refreshCountdown, color: "#34a853" },
-              { label: t("accounts.card.fiveHourRemaining"), pct: gemini5h.percentRemaining, cd: gemini5h.refreshCountdown, color: "#4285f4" },
-            ].map(({ label, pct, cd, color }) => (
+          <div className={`grid gap-2 ${isFree ? "grid-cols-1" : "grid-cols-2"}`}>
+            {geminiRows.map(({ label, pct, cd, color }) => (
               <div key={label} className="flex items-center justify-between bg-[#0b0f1d] rounded-md px-2.5 py-2 border border-white/[0.05]">
                 <div className="min-w-0 flex flex-col">
                   <span className="text-[11px] text-slate-400">{label}</span>
-                  <span className="text-[9px] font-mono text-slate-600 truncate">{formatCountdownWithDays(cd, language)}</span>
+                  <span className="text-[9px] font-mono text-slate-600 truncate">
+                    {isFree ? t("accounts.card.unlimited") : formatCountdownWithDays(cd, language)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs font-black font-mono" style={{ color }}>{pct}%</span>
-                  <ProgressRing value={pct} size={20} thickness={2.5} color={color} trackColor="rgba(255,255,255,0.05)" />
+                  <span className="text-xs font-black font-mono" style={{ color }}>
+                    {isFree ? "∞" : `${pct}%`}
+                  </span>
+                  <ProgressRing value={isFree ? 100 : pct} size={20} thickness={2.5} color={color} trackColor="rgba(255,255,255,0.05)" />
                 </div>
               </div>
             ))}
@@ -167,25 +175,21 @@ export const AccountCard: React.FC<AccountCardProps> = ({
           <div className="flex items-center gap-1.5 mb-3">
             <Image src={CLAUDE_LOGO} alt="Claude" width={32} height={32} className="h-6 w-6" unoptimized />
             <span className="text-xs font-semibold text-slate-200">{t("accounts.card.claudeGptModels")}</span>
-            <span className="ml-auto text-[10px] font-mono text-slate-500">
-              {claudeWeekly.percentRemaining < 100
-                ? formatCountdownWithDays(claudeWeekly.refreshCountdown, language)
-                : t("accounts.card.fullCapacity")}
-            </span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { label: t("accounts.card.weeklyRemaining"), pct: claudeWeekly.percentRemaining, cd: claudeWeekly.refreshCountdown, color: "#34a853" },
-              { label: t("accounts.card.fiveHourRemaining"), pct: claude5h.percentRemaining, cd: claude5h.refreshCountdown, color: "#ea4335" },
-            ].map(({ label, pct, cd, color }) => (
+          <div className={`grid gap-2 ${isFree ? "grid-cols-1" : "grid-cols-2"}`}>
+            {claudeRows.map(({ label, pct, cd, color }) => (
               <div key={label} className="flex items-center justify-between bg-[#0b0f1d] rounded-md px-2.5 py-2 border border-white/[0.05]">
                 <div className="min-w-0 flex flex-col">
                   <span className="text-[11px] text-slate-400">{label}</span>
-                  <span className="text-[9px] font-mono text-slate-600 truncate">{formatCountdownWithDays(cd, language)}</span>
+                  <span className="text-[9px] font-mono text-slate-600 truncate">
+                    {isFree ? t("accounts.card.unlimited") : formatCountdownWithDays(cd, language)}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs font-black font-mono" style={{ color }}>{pct}%</span>
-                  <ProgressRing value={pct} size={20} thickness={2.5} color={color} trackColor="rgba(255,255,255,0.05)" />
+                  <span className="text-xs font-black font-mono" style={{ color }}>
+                    {isFree ? "∞" : `${pct}%`}
+                  </span>
+                  <ProgressRing value={isFree ? 100 : pct} size={20} thickness={2.5} color={color} trackColor="rgba(255,255,255,0.05)" />
                 </div>
               </div>
             ))}

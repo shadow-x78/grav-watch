@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - Dynamic Account Container Lifecycle Manager (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import os
 import json
@@ -20,7 +18,6 @@ PROJECT_ROOT = os.path.join(
 AGENT_IMAGE_NAME = os.environ.get("GRAVWATCH_AGENT_IMAGE", "gravwatch-agent")
 DOCKERFILE_AGENT = os.path.join(PROJECT_ROOT, "packaging", "docker", "Dockerfile.agent")
 
-
 def _get_docker_network() -> str:
     try:
         res = subprocess.run(
@@ -35,7 +32,6 @@ def _get_docker_network() -> str:
         pass
     return "gravwatch-net"
 
-
 def _seed_account_dir(local_acc_dir: str):
     dirs = [
         os.path.join(local_acc_dir, "antigravity-cli"),
@@ -43,19 +39,19 @@ def _seed_account_dir(local_acc_dir: str):
     ]
     for d in dirs:
         try:
-            os.makedirs(d, mode=0o777, exist_ok=True)
+            os.makedirs(d, mode=0o700, exist_ok=True)
             pbtxt = os.path.join(d, "jetski_state.pbtxt")
             with open(pbtxt, "w", encoding="utf-8") as f:
                 f.write(JETSKI_PRESET)
-            os.chmod(pbtxt, 0o666)
+            os.chmod(pbtxt, 0o600)
 
             settings_json = os.path.join(d, "settings.json")
             with open(settings_json, "w", encoding="utf-8") as f:
                 f.write('{\n  "trustedWorkspaces": [\n    "/app",\n    "/root",\n    "/",\n    "/tmp"\n  ]\n}\n')
-            os.chmod(settings_json, 0o666)
+            os.chmod(settings_json, 0o600)
 
             cache_d = os.path.join(d, "cache")
-            os.makedirs(cache_d, mode=0o777, exist_ok=True)
+            os.makedirs(cache_d, mode=0o700, exist_ok=True)
             onboard_json = os.path.join(cache_d, "onboarding.json")
             with open(onboard_json, "w", encoding="utf-8") as f:
                 json.dump({
@@ -63,17 +59,14 @@ def _seed_account_dir(local_acc_dir: str):
                     "enterpriseOnboardingComplete": True,
                     "onboardingComplete": True
                 }, f, indent=2)
-            os.chmod(onboard_json, 0o666)
+            os.chmod(onboard_json, 0o600)
         except Exception:
             pass
 
-
-def provision_account_container(account_id: str, label: str = "Account") -> bool:
+def provision_account_container(account_id: str, label: str = "Account", tier: str = "Antigravity Pro") -> bool:
     """Dynamically create and start a container for the given account.
     Called from auth exchange-code after user authenticates with Google."""
     container_name = f"{AGENT_IMAGE_NAME}-{account_id}"
-    # Bind the HOST path (from the server's perspective the server itself
-    # runs inside a container, so DATA_DIR points at its own /app/data).
     local_acc_dir = os.path.abspath(
         os.path.join(settings.HOST_DATA_DIR or settings.DATA_DIR, account_id)
     )
@@ -83,7 +76,6 @@ def provision_account_container(account_id: str, label: str = "Account") -> bool
     try:
         net_name = _get_docker_network()
 
-        # Build agent image if it doesn't exist
         res = subprocess.run(
             ["docker", "images", "-q", AGENT_IMAGE_NAME],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
@@ -101,7 +93,6 @@ def provision_account_container(account_id: str, label: str = "Account") -> bool
                 return False
             logger.info("Agent image %s built OK", AGENT_IMAGE_NAME)
 
-        # Check if container already exists
         check_cmd = ["docker", "inspect", container_name]
         check = subprocess.run(check_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if check.returncode == 0:
@@ -116,6 +107,9 @@ def provision_account_container(account_id: str, label: str = "Account") -> bool
             "--restart", "unless-stopped",
             "-e", f"ACCOUNT_ID={account_id}",
             "-e", f"ACCOUNT_LABEL={label}",
+            "-e", f"ACCOUNT_TIER={tier}",
+            "-e", f"ACCOUNT_IS_FREE={'true' if tier.lower() == 'free' else 'false'}",
+            "-e", f"MASTER_API_KEY={settings.MASTER_API_KEY}",
             "-e", "SERVER_URL=http://server:8000",
             "-e", "POLL_INTERVAL_SECONDS=20",
             "-e", f"GEMINI_DIR=/app/data/{account_id}",
@@ -137,11 +131,9 @@ def provision_account_container(account_id: str, label: str = "Account") -> bool
         logger.warning("Docker provision note for %s: %s", container_name, e)
         return False
 
-
 def deprovision_account_container(account_id: str) -> bool:
     container_name = f"{AGENT_IMAGE_NAME}-{account_id}"
     try:
-        # Try to logout from agy inside the container before removing it
         subprocess.run(
             ["docker", "exec", container_name, "agy", "logout"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10
@@ -155,16 +147,17 @@ def deprovision_account_container(account_id: str) -> bool:
         logger.warning("Error removing container %s: %s", e)
 
     acc_dir = os.path.abspath(
-        os.path.join(settings.HOST_DATA_DIR or settings.DATA_DIR, account_id)
+        os.path.join(settings.DATA_DIR, account_id)
     )
-    if os.path.exists(acc_dir):
+    data_root = os.path.abspath(settings.DATA_DIR)
+    if acc_dir.startswith(data_root) and os.path.isdir(acc_dir):
         try:
             shutil.rmtree(acc_dir, ignore_errors=True)
-        except Exception:
-            pass
+            logger.info("Removed account data directory %s", acc_dir)
+        except Exception as e:
+            logger.warning("Could not remove %s: %s", acc_dir, e)
 
     return True
-
 
 def list_active_account_containers() -> List[Dict[str, Any]]:
     cmd = [
@@ -194,7 +187,6 @@ def list_active_account_containers() -> List[Dict[str, Any]]:
         return results
     except Exception:
         return []
-
 
 def toggle_account_container(account_id: str) -> Dict[str, Any]:
     container_name = f"{AGENT_IMAGE_NAME}-{account_id}"

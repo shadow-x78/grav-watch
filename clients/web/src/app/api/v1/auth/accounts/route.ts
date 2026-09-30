@@ -4,9 +4,7 @@
 // ─────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_INTERNAL_URL ||
-  (process.env.NODE_ENV === "production" ? "http://server:8000" : "http://localhost:8000");
+import { backendFetch } from "@/app/api/v1/proxy";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,11 +18,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/v1/auth/accounts`, {
+    const response = await backendFetch("/api/v1/auth/accounts", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify({
         alias: body.alias || "Account",
         email: email,

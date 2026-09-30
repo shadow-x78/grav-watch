@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - IDE Session Database Collector (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import os
 import re

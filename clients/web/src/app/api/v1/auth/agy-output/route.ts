@@ -4,42 +4,24 @@
 // ─────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_INTERNAL_URL ||
-  (process.env.NODE_ENV === "production" ? "http://server:8000" : "http://localhost:8000");
+import { backendFetch } from "@/app/api/v1/proxy";
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
+    const { searchParams } = new URL(request.url);
     const accountId = searchParams.get("account_id") || "acc-1";
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/v1/auth/agy-output?account_id=${encodeURIComponent(accountId)}`,
-      {
-        headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(10000),
-        cache: "no-store",
-      }
+    const response = await backendFetch(
+      `/api/v1/auth/agy-output?account_id=${encodeURIComponent(accountId)}`
     );
 
-    const text = await response.text();
-    return new NextResponse(text, {
-      status: response.status,
-      headers: { "Content-Type": "application/json" },
-    });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error("[agy-output proxy] error:", error);
-    return new NextResponse(
-      JSON.stringify({
-        success: false,
-        output: "",
-        empty: true,
-        error: "Proxy error: " + (error as Error).message,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+    console.error("AGY output proxy error:", error);
+    return NextResponse.json(
+      { success: false, error: "Proxy error" },
+      { status: 500 }
     );
   }
 }
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";

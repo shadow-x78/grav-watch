@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - Safe Token Persistence
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import os
 import json
@@ -43,14 +41,12 @@ def find_refresh_token_file(account_id: str) -> Optional[str]:
                     logger.info("Found refresh token in %s", path)
                     return path
             else:
-                # Plain text might be a refresh token (starts with "1//" or "4//")
                 if raw.startswith("1//") or raw.startswith("4//"):
                     logger.info("Found refresh token in %s (plain text)", path)
                     return path
         except Exception:
             pass
     return None
-
 
 def find_refresh_token(account_id: str) -> Optional[str]:
     """Read a refresh token value for the given account."""
@@ -67,7 +63,6 @@ def find_refresh_token(account_id: str) -> Optional[str]:
         return raw
     except Exception:
         return None
-
 
 def save_refresh_token(path: str, new_token: str) -> None:
     """Update a refresh_token in the given file without corrupting other data."""
@@ -87,7 +82,6 @@ def save_refresh_token(path: str, new_token: str) -> None:
     except Exception as e:
         logger.warning("Could not save refresh token to %s: %s", path, e)
 
-
 def refresh_oauth_token(account_id: str) -> Optional[Dict[str, Any]]:
     """Try to refresh a Google OAuth access_token using stored refresh_token.
     Returns dict with access_token, refresh_token, expires_at on success, or None."""
@@ -97,21 +91,19 @@ def refresh_oauth_token(account_id: str) -> Optional[Dict[str, Any]]:
         return None
 
     rt_file = find_refresh_token_file(account_id)
-    logger.info("Trying to refresh token for %s (refresh_token starting with: %s...)",
-                account_id, refresh_token[:20])
+    logger.info("Refreshing token for %s", account_id)
 
     try:
-        client = httpx.Client(timeout=10.0)
-        resp = client.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "grant_type": "refresh_token",
-                "refresh_token": refresh_token,
-            },
-        )
-        client.close()
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.post(
+                GOOGLE_TOKEN_URL,
+                data={
+                    "client_id": GOOGLE_CLIENT_ID,
+                    "client_secret": GOOGLE_CLIENT_SECRET,
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                },
+            )
     except Exception as e:
         logger.warning("Token refresh request failed for %s: %s", account_id, e)
         return None
@@ -129,7 +121,6 @@ def refresh_oauth_token(account_id: str) -> Optional[Dict[str, Any]]:
         if not new_access:
             return None
 
-        # Save the new refresh_token if provided
         if rt_file and new_refresh != refresh_token:
             save_refresh_token(rt_file, new_refresh)
 
@@ -142,17 +133,15 @@ def refresh_oauth_token(account_id: str) -> Optional[Dict[str, Any]]:
     except Exception:
         return None
 
-
 def _validate_account_id(account_id: str) -> str:
     if not account_id or not ACCOUNT_ID_PATTERN.match(account_id):
         raise ValueError(f"Invalid account_id [{account_id}]. Must be 1-64 alphanumeric, dash, or underscore characters.")
     return account_id
 
-
 def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
     account_id = _validate_account_id(account_id)
     target_dir = os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
-    os.makedirs(target_dir, mode=0o777, exist_ok=True)
+    os.makedirs(target_dir, mode=0o700, exist_ok=True)
     target_file = os.path.join(target_dir, "credentials.json")
 
     try:
@@ -171,9 +160,6 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
         real_exp = "2030-01-01T00:00:00Z"
         real_method = "consumer"
 
-        # agy may have written a token file with a refresh_token during its
-        # own login flow. Never clobber it with an empty one (e.g. when a
-        # bare ya29.* token is pasted through exchange-code).
         if not real_rt:
             try:
                 with open(os.path.join(target_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token"), "r", encoding="utf-8") as ef:
@@ -200,10 +186,6 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
             except Exception:
                 pass
 
-        # Persist refresh_token to all token files (needed for CloudCode refresh).
-        # If the token file already holds a REAL agy-issued expiry (from agy's own
-        # login flow), keep it — writing a fake 2030 expiry stops agy from refreshing
-        # (it trusts the file and never re-auths).
         dirs = [
             os.path.join(target_dir, ".gemini", "antigravity-cli"),
             os.path.join(target_dir, "antigravity-cli"),
@@ -223,7 +205,7 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
                 pass
         for d in dirs:
             try:
-                os.makedirs(d, mode=0o777, exist_ok=True)
+                os.makedirs(d, mode=0o700, exist_ok=True)
                 token_file = os.path.join(d, "antigravity-oauth-token")
                 token_payload = {
                     "token": {
@@ -238,7 +220,6 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
                     json.dump(token_payload, tf)
                 os.chmod(token_file, 0o600)
 
-                # Also save refresh_token as plain_text in a known location
                 rt_file = os.path.join(d, "refresh_token")
                 if real_rt:
                     with open(rt_file, "w", encoding="utf-8") as rf:
@@ -249,12 +230,12 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
                 if not os.path.exists(pbtxt):
                     with open(pbtxt, "w", encoding="utf-8") as pf:
                         pf.write(JETSKI_PRESET)
-                    os.chmod(pbtxt, 0o644)
+                    os.chmod(pbtxt, 0o600)
 
                 settings_json = os.path.join(d, "settings.json")
                 with open(settings_json, "w", encoding="utf-8") as sf:
                     sf.write('{\n  "trustedWorkspaces": [\n    "/app",\n    "/root",\n    "/",\n    "/tmp"\n  ]\n}\n')
-                os.chmod(settings_json, 0o644)
+                os.chmod(settings_json, 0o600)
 
                 cache_d = os.path.join(d, "cache")
                 os.makedirs(cache_d, mode=0o700, exist_ok=True)
@@ -269,20 +250,16 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
             except Exception as e:
                 logger.warning("Could not write oauth token/config files in %s: %s", d, e)
 
-        # Auto-refresh if token is stale AND we have a refresh_token
         if real_rt and len(real_rt) > 10:
-            # Try to validate and refresh immediately
             refresh_result = refresh_oauth_token(account_id)
             if refresh_result:
                 logger.info("Auto-refreshed token for %s after credential write", account_id)
-                # Update the payload with fresh token
                 data["access_token"] = refresh_result["access_token"]
                 data["refresh_token"] = refresh_result.get("refresh_token", real_rt)
                 data["expires_at"] = (
                     data.get("expires_at", 0) or 
                     (refresh_result.get("expires_in", 3599) + int(time.time()))
                 )
-                # Re-save with fresh token
                 try:
                     with open(target_file, "w", encoding="utf-8") as f:
                         json.dump(data, f, indent=2)
@@ -295,7 +272,6 @@ def safe_write_credentials(account_id: str, data: Dict[str, Any]) -> str:
 
     return target_file
 
-
 def load_account_credentials(account_id: str) -> Optional[Dict[str, Any]]:
     account_id = _validate_account_id(account_id)
     target_file = os.path.abspath(os.path.join(settings.DATA_DIR, account_id, "credentials.json"))
@@ -307,14 +283,10 @@ def load_account_credentials(account_id: str) -> Optional[Dict[str, Any]]:
         except Exception as e:
             logger.warning("Could not read credentials for %s: %s", account_id, e)
 
-    # An explicit login-flow write marks status "authenticated" together with
-    # a real token. Email can be unavailable because Google rejects identity
-    # endpoints for first-party agy tokens — that must not hide the account.
     if creds.get("status") == "authenticated" and (creds.get("access_token") or creds.get("email")):
         return creds
 
     return None
-
 
 def delete_account_credentials(account_id: str) -> bool:
     account_id = _validate_account_id(account_id)
@@ -335,7 +307,6 @@ def delete_account_credentials(account_id: str) -> bool:
             except Exception as e:
                 logger.warning("Could not delete %s: %s", path, e)
     return removed
-
 
 async def get_user_info(access_token: str) -> Dict[str, Any]:
     async with httpx.AsyncClient(timeout=10.0) as client:

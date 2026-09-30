@@ -96,11 +96,12 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           const alias = item.name || prev?.alias || `Node [${id}]`;
           const avatarUrl = item.picture || prev?.avatarUrl || "";
 
-          const usageAcc = usageAccountsMap[id];
-          const geminiCat = usageAcc?.categories?.find((c: any) => c.category_id === "gemini-models");
-          const claudeCat = usageAcc?.categories?.find((c: any) => c.category_id === "claude-and-gpt-models");
+           const usageAcc = usageAccountsMap[id];
+           const geminiCat = usageAcc?.categories?.find((c: any) => c.category_id === "gemini-models");
+           const claudeCat = usageAcc?.categories?.find((c: any) => c.category_id === "claude-and-gpt-models");
+           const isFreeAccount = usageAcc?.is_free === true;
 
-          const hasNewGeminiWeekly =
+           const hasNewGeminiWeekly =
             geminiCat?.weekly_limit?.percentage_remaining !== undefined &&
             geminiCat?.weekly_limit?.percentage_remaining !== null;
           const gWeeklyPct = hasNewGeminiWeekly
@@ -151,12 +152,13 @@ export const GravWatchProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           const containerState = item.container_status || (isAuth ? "running" : "stopped");
           const isRunning = containerState === "running";
 
-          return {
-            id: id,
-            alias: alias,
-            email: email,
-            avatarUrl: avatarUrl,
-            plan: "Google AI Pro" as AntigravityPlan,
+           return {
+             id: id,
+             alias: alias,
+             email: email,
+             avatarUrl: avatarUrl,
+             plan: isFreeAccount ? ("Google AI Free" as AntigravityPlan) : ("Google AI Pro" as AntigravityPlan),
+             is_free: isFreeAccount,
             containerName: `gravwatch-${id}`,
             containerStatus: isRunning ? ("running" as const) : ("stopped" as const),
             ramUsageMb: isRunning ? 48 : 0,

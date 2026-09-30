@@ -14,12 +14,16 @@ services:
     restart: unless-stopped
     ports:
       - "${SERVER_PORT:-8000}:8000"
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=${DATABASE_URL:-sqlite+aiosqlite:///./data/gravwatch.db}
+      - DATABASE_URL=sqlite+aiosqlite:///./data/gravwatch.db
       - DATA_DIR=/app/data
-      - HOST_DATA_DIR=${HOST_DATA_DIR:-/home/shadow-x7/Projects/Tools/Python/GravWatch/data}
+      - HOST_DATA_DIR=/home/shadow-x7/Projects/Tools/Python/GravWatch/data
+      - API_BIND_HOST=0.0.0.0
+      - MASTER_API_KEY=gravwatch_default_key_change_me
     volumes:
-      - ../../data:/app/data
+      - ${GRAVWATCH_DATA_DIR:-../../data}:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - gravwatch-net
@@ -38,9 +42,10 @@ services:
     ports:
       - "${WEB_PORT:-3000}:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://server:8000
-      - NEXT_PUBLIC_BACKEND_URL=http://server:8000
+      - NEXT_PUBLIC_API_URL=
+      - NEXT_PUBLIC_BACKEND_URL=
       - BACKEND_INTERNAL_URL=http://server:8000
+      - MASTER_API_KEY=gravwatch_default_key_change_me
       - NODE_ENV=production
       - PORT=3000
     depends_on:

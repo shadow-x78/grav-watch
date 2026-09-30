@@ -4,7 +4,8 @@ LABEL maintainer="shadow-x78 <https://github.com/shadow-x78/grav-watch>"
 LABEL description="GravWatch central FastAPI server and database"
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    HOST_DATA_DIR=/app/data
 
 WORKDIR /app
 
@@ -14,7 +15,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     docker.io \
     && rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir /usr/local/bin || true
+RUN curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir /usr/local/bin
 
 COPY services/server/requirements.txt /app/services/server/
 RUN pip install --no-cache-dir -r /app/services/server/requirements.txt
@@ -23,4 +24,4 @@ COPY services/ /app/services/
 
 EXPOSE 8000
 
-CMD ["uvicorn", "services.server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn services.server.main:app --host "${API_BIND_HOST:-0.0.0.0}" --port 8000

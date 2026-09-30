@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - Container-only agy PTY Bridge (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import os
 import json
@@ -10,19 +8,15 @@ import logging
 import subprocess
 from typing import Optional, Dict, Any
 
-from services.server.core.config import settings
+from services.server.core.config import JETSKI_PRESET, settings
 
 logger = logging.getLogger("gravwatch.agy_bridge")
 
 AGENT_IMAGE_NAME = os.environ.get("GRAVWATCH_AGENT_IMAGE", "gravwatch-agent")
 
-# Environment agy needs inside the container. HOME points at the mounted
-# account volume so the OAuth token lands on the host, not in /root.
 AGY_HOME_BASE = "/app/data"
 
-# Path to the bridge daemon script (copied to container at runtime)
 BRIDGE_DAEMON_SCRIPT_PATH = "/app/services/server/core/_agy_bridge_daemon.py"
-
 
 def _find_running_container(account_id: str) -> Optional[str]:
     """Find running container for this account."""
@@ -53,14 +47,11 @@ def _find_running_container(account_id: str) -> Optional[str]:
         pass
     return None
 
-
 def _acc_home_on_host(account_id: str) -> str:
     return os.path.abspath(os.path.join(settings.DATA_DIR, account_id))
 
-
 def _acc_home_in_container(account_id: str) -> str:
     return os.path.join(AGY_HOME_BASE, account_id)
-
 
 def _read_token_data(account_id: str) -> Optional[Dict[str, Any]]:
     """Read the agy OAuth token file from the mounted account volume.
@@ -94,11 +85,9 @@ def _read_token_data(account_id: str) -> Optional[Dict[str, Any]]:
             continue
     return None
 
-
 def _read_token_from_disk(account_id: str) -> Optional[str]:
     data = _read_token_data(account_id)
     return data["access_token"] if data else None
-
 
 def _harvest_token_from_container(account_id: str, container: str) -> bool:
     """Fallback: agy may still write to /root/.gemini — pull the token out
@@ -122,7 +111,6 @@ def _harvest_token_from_container(account_id: str, container: str) -> bool:
     except Exception:
         return False
 
-
 def _write_token_to_volume(account_id: str, access_token: str, refresh_token: str) -> None:
     """Write token payload into agy's expected JSON format on the volume."""
     acc_dir = _acc_home_on_host(account_id)
@@ -140,7 +128,7 @@ def _write_token_to_volume(account_id: str, access_token: str, refresh_token: st
     for cli_dir in [os.path.join(acc_dir, ".gemini", "antigravity-cli"),
                     os.path.join(acc_dir, "antigravity-cli")]:
         try:
-            os.makedirs(cli_dir, mode=0o777, exist_ok=True)
+            os.makedirs(cli_dir, mode=0o700, exist_ok=True)
             token_file = os.path.join(cli_dir, "antigravity-oauth-token")
             tmp_file = token_file + ".tmp"
             with open(tmp_file, "w", encoding="utf-8") as f:
@@ -148,10 +136,9 @@ def _write_token_to_volume(account_id: str, access_token: str, refresh_token: st
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(tmp_file, token_file)
-            os.chmod(token_file, 0o666)
+            os.chmod(token_file, 0o600)
         except Exception as e:
             logger.warning("Failed writing token file under %s: %s", cli_dir, e)
-
 
 def _extract_google_oauth_url(text: str) -> Optional[str]:
     """Pull agy's own Google OAuth URL out of raw TUI output.
@@ -167,8 +154,6 @@ def _extract_google_oauth_url(text: str) -> Optional[str]:
     URLQ = r"A-Za-z0-9\-._~:/?#\[\]@!$&'()*+,;=%"
 
     def _finalize(cand: str) -> Optional[str]:
-        # An OSC-8 target and its visible label can butt up against each
-        # other with no separator — cut at a second embedded https://.
         idx = cand.find("https://", 8)
         if idx > 0:
             cand = cand[:idx]
@@ -177,24 +162,16 @@ def _extract_google_oauth_url(text: str) -> Optional[str]:
             return cand
         return None
 
-    # Fast path: agy emits the OAuth URL in full (unwrapped) inside OSC-8
-    # link targets, and also as wrapped visible text. Prefer a complete
-    # contiguous match so the two copies never get stitched together.
     for cand in re.findall(r"https://(?:accounts\.google\.com/o/oauth2/auth|auth\.cloud\.google/authorize)\?[" + URLQ + r"]+", text):
         done = _finalize(cand)
         if done:
             return done
 
-    # Drop OSC-8 hyperlink wrappers, keeping the inner URI (terminated by
-    # BEL or ST), then strip all remaining escape sequences so styled URLs
-    # become plain text.
     t = re.sub(r"\x1b\]8;[^;]*;([^\x07\x1b]*)(?:\x07|\x1b\\)", r"\1", text)
     t = re.sub(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)", "", t)
     t = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z@^_{}|~]", "", t)
     t = t.replace("\x1b", "").replace("\x07", "")
 
-    # Re-try the complete contiguous match after stripping (OSC target may
-    # still carry escape bytes).
     for cand in re.findall(r"https://(?:accounts\.google\.com/o/oauth2/auth|auth\.cloud\.google/authorize)\?[" + URLQ + r"]+", t):
         done = _finalize(cand)
         if done:
@@ -219,9 +196,6 @@ def _extract_google_oauth_url(text: str) -> Optional[str]:
                 out.append(c)
                 i += 1
             elif c in "\r\n":
-                # Continue across a line wrap only when the next non-space
-                # char is a URL char and there was no blank-line paragraph
-                # break between the fragments.
                 j = i
                 newlines = 0
                 while j < n and t[j] in " \t\r\n\x1b\x07":
@@ -243,14 +217,12 @@ def _extract_google_oauth_url(text: str) -> Optional[str]:
             best = url
     return best
 
-
 def _strip_ansi(text: str) -> str:
     """Remove ANSI escape sequences."""
     text = re.sub(r'\x1b\[[^a-zA-Z]*[a-zA-Z]', '', text)
     text = re.sub(r'\x1b\][^\x07\x1b]*[\x07\x1b]', '', text)
     text = re.sub(r'\x1b[PX^_][^\x07\x1b]*[\x07\x1b]', '', text)
     return text
-
 
 def _ensure_pty_bridge(container: str) -> bool:
     """Return True if the bridge daemon is alive inside the container."""
@@ -265,8 +237,11 @@ def _ensure_pty_bridge(container: str) -> bool:
                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5
             ).stdout.strip()
             if pid:
+                if not re.fullmatch(r"[0-9]{1,7}", pid):
+                    logger.warning("Invalid PID '%s' in bridge file for %s", pid, container)
+                    return False
                 test = subprocess.run(
-                    ["docker", "exec", container, "sh", "-c", f"kill -0 {pid} 2>/dev/null"],
+                    ["docker", "exec", container, "kill", "-0", pid],
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5
                 )
                 return test.returncode == 0
@@ -274,14 +249,12 @@ def _ensure_pty_bridge(container: str) -> bool:
         pass
     return False
 
-
 def _start_pty_bridge(container: str, acc_home: str) -> bool:
     """Start the bridge daemon inside the container (docker cp + exec in background)."""
     if _ensure_pty_bridge(container):
         return True
 
     try:
-        # Copy the bridge daemon script from the host
         cp_result = subprocess.run(
             ["docker", "cp", BRIDGE_DAEMON_SCRIPT_PATH, f"{container}:/tmp/_agy_bridge_daemon.py"],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30
@@ -290,8 +263,6 @@ def _start_pty_bridge(container: str, acc_home: str) -> bool:
             logger.warning("Failed to cp bridge script: %s", (cp_result.stderr or b"")[:200])
             return False
 
-        # Start the bridge daemon in background without -d (which doesn't allocate TTY)
-        # Use shell wrapper to run in background with proper process group
         start_cmd = f"nohup python3 /tmp/_agy_bridge_daemon.py {acc_home} > /dev/null 2>&1 &"
         start_result = subprocess.run(
             ["docker", "exec", container, "sh", "-c", start_cmd],
@@ -311,7 +282,6 @@ def _start_pty_bridge(container: str, acc_home: str) -> bool:
         logger.warning("Error starting bridge: %s", e)
         return False
 
-
 def _read_container_output(container: str) -> str:
     try:
         result = subprocess.run(
@@ -323,7 +293,6 @@ def _read_container_output(container: str) -> str:
     except Exception:
         pass
     return ""
-
 
 def _seed_onboarding_state(acc_home: str):
     """Seed onboarding files on the volume to skip initial setup menus.
@@ -337,7 +306,7 @@ def _seed_onboarding_state(acc_home: str):
     ]
     for d in dirs:
         try:
-            os.makedirs(d, mode=0o777, exist_ok=True)
+            os.makedirs(d, mode=0o700, exist_ok=True)
             sf = os.path.join(d, "settings.json")
             tmp = sf + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
@@ -345,20 +314,20 @@ def _seed_onboarding_state(acc_home: str):
                 f.flush()
                 os.fsync(f.fileno())
             os.replace(tmp, sf)
-            os.chmod(sf, 0o666)
+            os.chmod(sf, 0o600)
 
             pbtxt = os.path.join(d, "jetski_state.pbtxt")
             if not os.path.exists(pbtxt):
                 tmp2 = pbtxt + ".tmp"
                 with open(tmp2, "w", encoding="utf-8") as f:
-                    f.write(settings.JETSKI_PRESET)
+                    f.write(JETSKI_PRESET)
                     f.flush()
                     os.fsync(f.fileno())
                 os.replace(tmp2, pbtxt)
-                os.chmod(pbtxt, 0o666)
+                os.chmod(pbtxt, 0o600)
 
             cache_dir = os.path.join(d, "cache")
-            os.makedirs(cache_dir, mode=0o777, exist_ok=True)
+            os.makedirs(cache_dir, mode=0o700, exist_ok=True)
             of = os.path.join(cache_dir, "onboarding.json")
             with open(of, "w", encoding="utf-8") as f:
                 json.dump({
@@ -366,10 +335,9 @@ def _seed_onboarding_state(acc_home: str):
                     "enterpriseOnboardingComplete": True,
                     "onboardingComplete": True,
                 }, f, indent=2)
-            os.chmod(of, 0o666)
+            os.chmod(of, 0o600)
         except Exception:
             pass
-
 
 def _reset_bridge_files(container: str) -> None:
     """Clear stale bridge state so a new session starts clean."""
@@ -381,7 +349,6 @@ def _reset_bridge_files(container: str) -> None:
         )
     except Exception:
         pass
-
 
 def start_agy_login_flow(account_id: str, timeout_seconds: float = 90.0) -> str:
     """Start agy inside the account container and capture its real OAuth URL.
@@ -433,9 +400,6 @@ def start_agy_login_flow(account_id: str, timeout_seconds: float = 90.0) -> str:
             logger.info("Captured agy OAuth URL for %s", account_id)
             break
 
-        # Fail fast: if agy reached the main CLI prompt (or hit its own
-        # eligibility error) without ever printing an auth URL, waiting the
-        # remaining seconds only produces a proxy timeout in the browser.
         if time.time() - started > 20:
             plain = _strip_ansi(last_output)[-800:].lower()
             if "for shortcuts" in plain or "eligibility check failed" in plain:
@@ -452,7 +416,6 @@ def start_agy_login_flow(account_id: str, timeout_seconds: float = 90.0) -> str:
             f"Last TUI output:\n{tail or '(no output)'}"
         )
     return auth_url
-
 
 def submit_code_to_agy(account_id: str, code: str, timeout_seconds: float = 90.0) -> Dict[str, Any]:
     """Submit the Google authorization code into the live agy session.
@@ -485,9 +448,6 @@ def submit_code_to_agy(account_id: str, code: str, timeout_seconds: float = 90.0
         except Exception:
             pass
 
-    # The onboarding demo carousel contains fake log lines like "✗ error:
-    # compilation failed", so failure detection must be strict — anything
-    # mentioning an error generically would misread the post-login demo.
     success_markers = (
         "welcome to antigravity", "welcome back", "logged in",
         "successfully authenticated", "you are signed in",
@@ -512,14 +472,9 @@ def submit_code_to_agy(account_id: str, code: str, timeout_seconds: float = 90.0
             verdict = "failed"
             break
 
-        # Check for success markers but don't break immediately —
-        # the token may not be written until after the onboarding flow completes.
         if any(m in tail for m in success_markers):
             success_marker_seen = True
 
-        # The token file is the real ground truth: agy writes it right
-        # after a successful exchange, sometimes before the TUI prints a
-        # recognizable success line (it may already be on a next screen).
         token_data = _read_token_data(account_id)
         if not token_data:
             _harvest_token_from_container(account_id, container)
@@ -528,7 +483,6 @@ def submit_code_to_agy(account_id: str, code: str, timeout_seconds: float = 90.0
             verdict = "authenticated"
             break
 
-    # If we saw a success marker but didn't get the token yet, wait longer for the token file.
     if success_marker_seen and not token_data:
         token_wait_deadline = time.time() + min(60, deadline - time.time())
         while time.time() < token_wait_deadline:
@@ -561,14 +515,12 @@ def submit_code_to_agy(account_id: str, code: str, timeout_seconds: float = 90.0
         f"Auth result unclear — no token found on disk. TUI output:\n{tail or '(no output)'}"
     )
 
-
 def get_agy_output(account_id: str) -> str:
     """Get current agy output from the bridge."""
     container = _find_running_container(account_id)
     if not container:
         return ""
     return _strip_ansi(_read_container_output(container))
-
 
 def cancel_agy_login_flow(account_id: str, keep_container: Optional[str] = None) -> None:
     """Stop agy and the PTY bridge daemon for this account."""
@@ -595,7 +547,6 @@ def cancel_agy_login_flow(account_id: str, keep_container: Optional[str] = None)
         )
     except Exception:
         pass
-
 
 def _wipe_auth_state(account_id: str, container: Optional[str] = None) -> None:
     """Remove every trace of a previous login so agy starts unauthenticated

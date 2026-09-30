@@ -11,6 +11,7 @@
     "claudeGptModels": "Claude & GPT Quota",
     "weeklyRemaining": "Weekly",
     "fiveHourRemaining": "5-Hour",
+    "unlimited": "Unlimited",
     "refreshesIn": "Refreshes in {time}",
     "fullCapacity": "100% Available",
     "lastSnapshot": "Updated {time} ago",

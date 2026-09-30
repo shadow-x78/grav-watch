@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - AGY PTY Bridge Daemon
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import pty, os, sys, time, signal, fcntl, re, struct, termios
 
@@ -8,7 +6,6 @@ signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 ACC_HOME = sys.argv[1]
 master_fd, slave_fd = pty.openpty()
-# Bubbletea TUIs render nothing on a 0x0 terminal -- set a real size.
 try:
     fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 40, 200, 0, 0))
 except Exception:
@@ -71,7 +68,6 @@ else:
 
     while True:
         try:
-            # ---- incoming command from the server (auth code / QUIT) ----
             cmd = ""
             try:
                 with open("/tmp/agy_cmd", "r") as cf:
@@ -98,7 +94,6 @@ else:
                 )
 
                 if is_auth_code and not at_code_prompt:
-                    # Prompt not up yet — hold the code for a later tick.
                     with open("/tmp/agy_cmd", "w") as cf:
                         cf.write(cmd)
                     last_cmd = ""
@@ -112,7 +107,6 @@ else:
                 except OSError:
                     pass
 
-            # ---- read agy output ----
             try:
                 fcntl.fcntl(master_fd, fcntl.F_SETFL,
                             fcntl.fcntl(master_fd, fcntl.F_GETFL) | os.O_NONBLOCK)
@@ -127,8 +121,6 @@ else:
                     text = output_buf.decode("utf-8", errors="ignore")
                 except Exception:
                     text = ""
-                # Unwrap OSC-8 hyperlinks keeping their URIs inline, then
-                # strip remaining escape sequences.
                 clean_buf = re.sub(r"\x1b\]8;[^;]*;([^\x07\x1b]*)(?:\x07|\x1b\\)", r"\1", text)
                 clean_buf = re.sub(r"\x1b\[[0-9;?]*[a-zA-Z@^_{}|~]", "", clean_buf)
                 clean_buf = re.sub(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)", "", clean_buf)
@@ -136,76 +128,66 @@ else:
                 lines = clean_buf.splitlines()
                 _flush_output()
 
-                # ---- auto-navigate onboarding screens ----
-                now = time.time()
-                if now - last_action_time < 0.5:
-                    time.sleep(0.12)
-                    continue
+            now = time.time()
+            if not lines or now - last_action_time < 0.5:
+                time.sleep(0.12)
+                continue
 
-                last5 = "\n".join(lines[-5:]).lower()
-                last15 = "\n".join(lines[-15:]).lower()
-                # Whitespace-normalized windows: the TUI footer renders as
-                # "[Previous]      [Done]" with many spaces, and diff redraws
-                # push key lines past a strict raw-line match. The 8-line
-                # window anchors to the *current* bottom screen so stale
-                # Terms text cannot re-trigger after the flow advances.
-                flat8 = re.sub(r"\s+", " ", "\n".join(lines[-8:]).lower())
+            last5 = "\n".join(lines[-5:]).lower()
+            last15 = "\n".join(lines[-15:]).lower()
+            flat8 = re.sub(r"\s+", " ", "\n".join(lines[-8:]).lower())
 
-                auth_prompt = (
-                    ("authorization code" in last15 and ("..." in last15 or "paste" in last15))
-                    or "paste the authorization code" in last15
-                )
+            auth_prompt = (
+                ("authorization code" in last15 and ("..." in last15 or "paste" in last15))
+                or "paste the authorization code" in last15
+            )
 
-                if auth_prompt:
-                    # Waiting for the user's code — send nothing.
-                    pass
-                elif "signing in" in last5 or "generating" in last5:
-                    # Mid-transition — send nothing.
-                    pass
-                elif "color scheme" in last5 or "[next]" in last5 or "press enter to continue" in last5:
-                    _debug("ENTER: onboarding carousel")
-                    os.write(master_fd, ENTER_KEY)
-                    last_action_time = now
-                elif "[previous] [done]" in flat8:
-                    # Terms of Service & Data Use: reject the opt-in by
-                    # pressing Space once (unchecks "[x]"), then Enter (Done).
-                    # Enter may repeat while the footer stays on screen, but
-                    # Space never does — a second Space would re-check it.
-                    if not tos_toggled:
-                        _debug("SPACE: decline Interactions data collection")
-                        os.write(master_fd, b" ")
-                        tos_toggled = True
-                        time.sleep(0.2)
-                    _debug("ENTER: terms of service done")
-                    os.write(master_fd, ENTER_KEY)
-                    last_action_time = now
-                elif (
-                    "do you trust" in last5
-                    or "trust the contents" in last5
-                    or "yes, i trust this folder" in last5
-                    or "trust this folder" in last5
-                    or "confirm gemini" in last5
-                    or "flash · high" in last5
-                ):
-                    _debug("ENTER: trust / confirm prompt")
-                    os.write(master_fd, ENTER_KEY)
-                    last_action_time = now
-                elif (
-                    "google cloud sign-in method" in last5
-                    or "continue with google cloud" in last5
-                    or "use advanced sso" in last5
-                ):
-                    _debug("ENTER: google cloud sign-in method")
-                    os.write(master_fd, ENTER_KEY)
-                    last_action_time = now
-                elif (
-                    "select login method" in last5
-                    or "navigate · enter select" in last5
-                    or "use a google cloud project" in last5
-                ):
-                    _debug("ENTER: select login method")
-                    os.write(master_fd, ENTER_KEY)
-                    last_action_time = now
+            if auth_prompt:
+                pass
+            elif "signing in" in last5 or "generating" in last5:
+                pass
+            elif "color scheme" in last5 or "[next]" in last5 or "press enter to continue" in last5:
+                _debug("ENTER: onboarding carousel")
+                os.write(master_fd, ENTER_KEY)
+                last_action_time = now
+            elif "[previous] [done]" in flat8:
+                if not tos_toggled and "> [x] yes, i agree" in flat8:
+                    _debug("SPACE: decline Interactions data collection")
+                    os.write(master_fd, b" ")
+                    tos_toggled = True
+                    time.sleep(0.2)
+                elif not tos_toggled:
+                    tos_toggled = True
+                _debug("ENTER: terms of service done")
+                os.write(master_fd, ENTER_KEY)
+                last_action_time = now
+            elif (
+                "do you trust" in last5
+                or "trust the contents" in last5
+                or "yes, i trust this folder" in last5
+                or "trust this folder" in last5
+                or "confirm gemini" in last5
+                or "flash · high" in last5
+            ):
+                _debug("ENTER: trust / confirm prompt")
+                os.write(master_fd, ENTER_KEY)
+                last_action_time = now
+            elif (
+                "google cloud sign-in method" in last5
+                or "continue with google cloud" in last5
+                or "use advanced sso" in last5
+            ):
+                _debug("ENTER: google cloud sign-in method")
+                os.write(master_fd, ENTER_KEY)
+                last_action_time = now
+            elif (
+                "select login method" in last5
+                or "navigate · enter select" in last5
+                or "use a google cloud project" in last5
+            ):
+                _debug("ENTER: select login method")
+                os.write(master_fd, ENTER_KEY)
+                last_action_time = now
 
             time.sleep(0.12)
         except KeyboardInterrupt:

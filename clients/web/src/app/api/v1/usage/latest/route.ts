@@ -4,11 +4,11 @@
 // ─────────────────────────────────────────────
 
 import { NextResponse } from "next/server";
+import { backendFetch } from "@/app/api/v1/proxy";
 
 export async function GET() {
-  const backendUrl = process.env.BACKEND_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   try {
-    const res = await fetch(`${backendUrl}/api/v1/usage/latest`, { cache: "no-store" });
+    const res = await backendFetch("/api/v1/usage/latest");
     if (!res.ok) {
       return NextResponse.json({ error: "upstream_error", status: res.status }, { status: res.status });
     }

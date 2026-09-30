@@ -4,35 +4,24 @@
 // ─────────────────────────────────────────────
 
 import { NextRequest } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_INTERNAL_URL ||
-  (process.env.NODE_ENV === "production" ? "http://server:8000" : "http://localhost:8000");
+import { backendFetch } from "@/app/api/v1/proxy";
 
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const accountId = searchParams.get("account_id") || "acc-1";
+  return POST(request);
+}
 
-    const upstream = await fetch(
-      `${BACKEND_URL}/api/v1/auth/agy-output/stream?account_id=${encodeURIComponent(accountId)}`,
-      {
-        headers: {
-          "Accept": "text/event-stream",
-          "Cache-Control": "no-cache",
-        },
-        cache: "no-store",
-      }
+export async function POST(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const accountId = searchParams.get("account_id") || "acc-1";
+
+  try {
+    const response = await backendFetch(
+      `/api/v1/auth/agy-output/stream?account_id=${encodeURIComponent(accountId)}`,
+      { method: "GET" }
     );
 
-    if (!upstream.ok || !upstream.body) {
-      return new Response(
-        JSON.stringify({ success: false, output: "", empty: true, error: `Upstream ${upstream.status}` }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    return new Response(upstream.body, {
-      status: 200,
+    return new Response(response.body, {
+      status: response.status,
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
@@ -41,18 +30,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[agy-output-stream proxy] error:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        output: "",
-        empty: true,
-        error: "Proxy error: " + (error as Error).message,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    console.error("AGY stream proxy error:", error);
+    return new Response("data: {\"success\":false,\"error\":\"stream proxy error\"}\n\n", {
+      status: 500,
+      headers: { "Content-Type": "text/event-stream" }
+    });
   }
 }
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";

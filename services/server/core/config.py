@@ -1,10 +1,7 @@
 # ─────────────────────────────────────────────
-# GravWatch - Core Application Configuration & Runtime Settings (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -16,9 +13,9 @@ class Settings(BaseSettings):
     HOST_DATA_DIR: str = "./data"
     PUBLIC_ORIGIN: str = "http://localhost:8000"
     POLL_INTERVAL_SECONDS: int = 20
+    MASTER_API_KEY: str = os.getenv("MASTER_API_KEY", "gravwatch_default_key_change_me")
+    API_BIND_HOST: str = os.getenv("API_BIND_HOST", "127.0.0.1")
 
-    # Installed-app OAuth client shipped inside the official Antigravity CLI.
-    # Provide via GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET env vars (see .env.example).
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "not-set")
     GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "not-set")
     GOOGLE_REDIRECT_URI: str = "https://antigravity.google/oauth-callback"
@@ -35,13 +32,8 @@ class Settings(BaseSettings):
         "openid"
     )
 
-
 settings = Settings()
 
-# JETSKI_PRESET consolidated here for single source of truth.
-# Must match agy's own proto format exactly: the COLOR_SCHEME step is NOT
-# a valid completed step in current agy versions (proto parse error), and
-# the file uses double spaces plus multiline migration blocks.
 JETSKI_PRESET = """post_onboarding:  {
   completed_steps:  POST_ONBOARDING_STEP_TYPE_MANAGER_WELCOME
   completed_steps:  POST_ONBOARDING_STEP_TYPE_USAGE_MODE

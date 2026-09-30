@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - Database Models & Declarative Base (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 from datetime import datetime, timezone
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column

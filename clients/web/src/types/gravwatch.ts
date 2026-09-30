@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────
 // GravWatch - Core Type Definitions (GPL-3.0-or-later)
-// https://github.com/shadow-x78/grav-watch
 // ─────────────────────────────────────────────
 
 export type AntigravityPlan = "Google AI Free" | "Google AI Pro" | "Google AI Ultra" | "Enterprise";
@@ -27,6 +26,7 @@ export interface GravAccount {
   email: string;
   avatarUrl: string;
   plan: AntigravityPlan;
+  is_free?: boolean;
   containerName: string;
   containerStatus: ContainerStatus;
   ramUsageMb: number;

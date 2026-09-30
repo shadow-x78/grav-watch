@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - Pydantic Request & Response Schemas (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -46,6 +44,7 @@ class AccountQuotaSummary(BaseModel):
     label: str
     email: Optional[str] = None
     tier: str
+    is_free: bool = False
     status: str
     last_seen_at: datetime
     last_snapshot_at: Optional[datetime] = None
@@ -101,6 +100,7 @@ class AccountDetailResponse(BaseModel):
     label: str
     email: Optional[str] = None
     tier: str
+    is_free: bool = False
     status: str
     last_seen_at: datetime
     models: List[AccountModelInfo] = Field(default_factory=list)

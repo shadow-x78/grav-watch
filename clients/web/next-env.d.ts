@@ -1,8 +1,5 @@
-// ─────────────────────────────────────────────
-// GravWatch - 
-// https://github.com/shadow-x78/grav-watch
-// ─────────────────────────────────────────────
-
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
 import "./.next/types/routes.d.ts";
 import "./.next/types/root-params.d.ts";
 

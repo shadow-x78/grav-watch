@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - Antigravity Telemetry Payload Parser (GPL-3.0-or-later)
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import re
 from typing import Dict, Any, List, Optional

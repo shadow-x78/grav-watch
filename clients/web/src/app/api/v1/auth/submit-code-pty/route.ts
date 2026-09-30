@@ -4,31 +4,19 @@
 // ─────────────────────────────────────────────
 
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_INTERNAL_URL ||
-  (process.env.NODE_ENV === "production" ? "http://server:8000" : "http://localhost:8000");
+import { backendFetch } from "@/app/api/v1/proxy";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log("[submit-code-pty proxy] body:", JSON.stringify(body).substring(0, 100));
 
-    const url = `${BACKEND_URL}/api/v1/auth/submit-code-pty`;
-    console.log("[submit-code-pty proxy] forwarding to:", url);
-
-    const response = await fetch(url, {
+    const response = await backendFetch("/api/v1/auth/submit-code-pty", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(120000),
     });
 
-    console.log("[submit-code-pty proxy] backend status:", response.status);
     const text = await response.text();
-    console.log("[submit-code-pty proxy] backend body:", text.substring(0, 100));
-
     return new NextResponse(text, {
       status: response.status,
       headers: { "Content-Type": "application/json" }
@@ -44,4 +32,3 @@ export async function POST(request: NextRequest) {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-

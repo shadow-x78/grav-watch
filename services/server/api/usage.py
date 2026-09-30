@@ -1,6 +1,4 @@
 # ─────────────────────────────────────────────
-# GravWatch - Usage API & Telemetry Router
-# https://github.com/shadow-x78/grav-watch
 # ─────────────────────────────────────────────
 import os
 import json
@@ -24,7 +22,6 @@ from services.server.models.schemas import (
 )
 
 router = APIRouter(prefix="/usage", tags=["Usage"])
-
 
 async def _calculate_pool_percentages(accounts, db) -> dict:
     """Dynamically calculate pool percentages from all categories across accounts."""
@@ -59,7 +56,6 @@ async def _calculate_pool_percentages(accounts, db) -> dict:
         pool_result[cat_id] = sum(pcts) / len(pcts) if pcts else None
 
     return pool_result
-
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def ingest_usage(
@@ -125,7 +121,6 @@ async def ingest_usage(
 
     return {"status": "ok", "message": f"Usage recorded for {account_id}"}
 
-
 @router.get("/latest", response_model=UsageLatestResponse)
 async def get_latest_usage(db: AsyncSession = Depends(get_db)):
     stmt_accs = select(Account).order_by(Account.id)
@@ -133,6 +128,14 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
     accounts = res_accs.scalars().all()
 
     account_summaries: list[AccountQuotaSummary] = []
+
+    def _is_free_account(account: Account, categories: list[CategoryQuotaSummary]) -> bool:
+        """Detect free accounts: Free tier from agent tier field."""
+        if account.tier and "free" in account.tier.lower():
+            return True
+        if account.tier and account.tier == "Antigravity Starter":
+            return True
+        return False
 
     for a in accounts:
         stmt_snap = (
@@ -181,7 +184,6 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
             except Exception:
                 pass
 
-
         email_val = a.email
         if not email_val:
             candidate_paths = [
@@ -200,8 +202,6 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
                     except Exception:
                         pass
 
-        # SQLite stores naive datetimes; tag them UTC so browsers compute
-        # freshness against the correct instant.
         snap_at = snap.recorded_at if snap else None
         if snap_at and snap_at.tzinfo is None:
             snap_at = snap_at.replace(tzinfo=timezone.utc)
@@ -215,6 +215,7 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
                 label=a.label,
                 email=email_val,
                 tier=a.tier or "Google AI Pro",
+                is_free=_is_free_account(a, categories),
                 status=a.status,
                 last_seen_at=seen_at,
                 last_snapshot_at=snap_at,
@@ -233,7 +234,6 @@ async def get_latest_usage(db: AsyncSession = Depends(get_db)):
         claude_pool_percent=pool_percentages.get("claude-and-gpt-models"),
         accounts=account_summaries,
     )
-
 
 @router.get("/history", response_model=UsageHistoryResponse)
 async def get_usage_history(
